@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+/* This tells Tailwind v4 where to look for your classes */
+@source "../index.html";
+@source "./**/*.{js,ts,jsx,tsx}";
+
+@theme {
+  --font-serif: "Instrument Serif", serif;
+  --font-sans: "Inter", sans-serif;
+  
+  /* Adding back some standard spacing/colors if they feel missing */
+  --color-brand-orange: #f97316;
+}
+
+/* Optional: Add the fonts for that high-end look */
+
+@layer base {
+  body {
+    @apply bg-[#FDFCFB] text-[#1a1a1a] antialiased;
+  }
+}
