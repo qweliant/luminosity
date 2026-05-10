@@ -35,7 +35,7 @@ Every row exposes the same six-step pipeline. You can run it inline (per-row dra
 | 2 | **Locate** — [NVC Universal Needs](https://baynvc.org/basics-of-nonviolent-communication/) | What's starving underneath the friction? | One or more chip selections from 7 categories |
 | 3 | **Anchor** — Madanes [6 Core Human Needs](https://madanesinstitute.com/the-6-human-needs/) | Which fundamental driver does this serve? | One of: Comfort, Variety, Significance, Connection, Growth, Contribution |
 | 4 | **Reframe** — [Stanford Life Design](https://cgoe.stanford.edu/news-perspectives/2020/life-design) | Where does this live in your engagement/energy? Which kind of problem is it? What's the prototype? | Two 1–5 dot-strings (Engagement, Energy), problem type (Open / Stuck / Reality), reframe note (Stuck) or acceptance note (Reality), prototype mode (Talk / Do) + action (Open or Stuck-with-reframe) |
-| 5 | **Contextualize** — [Nagoski (Come As You Are)](https://www.lovehealgrow.com/sexual-desire-brakes-and-accelerators/) | What conditions accelerate or brake this? | Two short notes |
+| 5 | **Contextualize** — [Nagoski (Come As You Are)](https://www.lovehealgrow.com/sexual-desire-brakes-and-accelerators/) + optional [Sander T. Jones (Cultivating Connection)](https://sandertjones.com/media) | What conditions accelerate or brake this? Is another person involved? | Two short notes (Accelerators / Brakes); plus an optional `Interpersonal Friction` toggle that gates a short relational check |
 | 6 | **Synthesize** | Compose all of the above into a single Need sentence. | One click — `Replace` overwrites your Need, `Append` adds to it |
 
 The synthesis is deterministic (templated, not LLM-generated). It reads like:
@@ -52,6 +52,22 @@ Underneath the Robbins step, two read-only footnotes appear:
 - **Maslow highest active layer** — Maslow's Hierarchy: `physiological / safety / belonging / esteem / self-actualization`. The highest layer reached by your NVC selections. A quick check that you're not piling everything onto self-actualization while ignoring shelter or belonging.
 - **Jones · freedoms at stake** *(only when the relational lens is active)* — Sander T. Jones's 13 Fundamental Freedoms (Bandwidth Allocation, Informed Consent, Privacy, Self-Determination, Authentic Expression, Boundaries, Pacing, Embodiment, Truth-Telling, Care for Self, Time / Space, Reciprocity, Restoration). Computed from your NVC selections; surfaces which relational rights are in play.
 
+### Interpersonal Friction (optional)
+
+At the bottom of step 5 there's a small `[ ] Interpersonal Friction` checkbox. **Most entries are solo reflections**, so it stays off by default and the rest of this lens stays out of your way. Tick it whenever another person is part of the friction — it runs a short check on whether the Need you're drafting is a *clean boundary* or has slipped into being an *overreaching rule*.
+
+When active, two questions appear:
+
+1. **Source** — pick one of three:
+   - **Inherent Right Violated** → assert an external boundary (you don't need their agreement).
+   - **Agreement Violated** → renegotiate or repair a prior agreement together.
+   - **Neither / Painful Emotion** → internal work; no one else has to change.
+2. **Boundary checklist** — does the Need (a) limit your *own* behavior, (b) honor a value rather than prevent your fear, (c) read as a request with room for "no", (d) preserve their autonomy?
+
+A live status next to the checklist reads `clean boundary` (emerald) when all four are ticked, or `overreaching · 2/4` (red) the moment any are unticked. The synthesizer (step 6) appends a single **Accountability** clause to your Need draft — naming the source you chose, plus, if any checklist items failed, the specific reframings the Need still needs.
+
+The whole section is `print:hidden`; the print summary instead emits a one-line `Relational source: … · boundary 3/4 (overreaching)` so reflections still land cleanly on paper.
+
 ## The three views
 
 - **List** (default) — all entries stacked, each editable in place with its own lens panel.
@@ -60,7 +76,7 @@ Underneath the Robbins step, two read-only footnotes appear:
 
 ## Printing / exporting
 
-The Printer icon triggers the browser print dialog. The interactive controls are hidden in print; what remains is a clean editorial layout with each row's value, friction, need, NVC tags, and a small text summary of the lens data (workability, core need, design constraint, accelerators, brakes). Useful for journaling exports or PDF saves.
+The Printer icon triggers the browser print dialog. The interactive controls are hidden in print; what remains is a clean editorial layout with each row's value, friction, need, NVC tags, and a small text summary of the lens data (workability, core need, Stanford problem type / reframe / acceptance / prototype, accelerators, brakes, and — when the relational lens is active — the interpersonal source and boundary checklist score). Useful for journaling exports or PDF saves.
 
 ## Tips
 
@@ -68,6 +84,7 @@ The Printer icon triggers the browser print dialog. The interactive controls are
 - The synthesis is meant as a *draft*. Editing it after it lands is the point; the lenses are scaffolding, not a verdict.
 - "Unmapped" entries in the Matrix view are values without a Core Need set. Use the Matrix `Map →` to assign one in two clicks, or open the Robbins lens row in List view.
 - Duplicates are detected case-insensitively. Library chips for already-added values gray out; pasted duplicates are dropped silently with a count in the modal footer.
+- If a Need feels like it's about *someone else's* behavior, tick **Interpersonal Friction** in step 5. If the boundary checklist comes back red (`overreaching · 2/4`), the Need is currently a rule for them, not a boundary for you — a signal to redraft.
 
 ## Frameworks reference
 

@@ -72,6 +72,9 @@ export const RelationalSection = ({
           Interpersonal Friction
         </span>
       </label>
+      <p className="text-[11px] italic text-pink-400 mt-1 ml-6 leading-snug">
+        Tick when another person is part of the friction — runs a short check on whether your need lands as a clean boundary or an overreaching rule.
+      </p>
 
       {r.active && (
         <div className="mt-3 border-l-[0.5px] border-gray-300 pl-4 space-y-5">

@@ -1,8 +1,15 @@
 # luminosity · Needs & Values
 
-A local-first, editorial reflection tool for mapping `Value → Friction → Need → Workability` across the values you care about. Built around five established frameworks (NVC, ACT, Robbins, Stanford Life Design, Nagoski) with a deterministic synthesis step that drafts your Need sentence from your selections.
+A local-first, editorial reflection tool for mapping `Value → Friction → Need → Workability` across the values you care about. Built around six established frameworks (NVC, ACT, Robbins, Stanford Life Design, Nagoski, and an optional Sander T. Jones relational lens) with a deterministic synthesis step that drafts your Need sentence from your selections.
 
 End-user docs live in [HOWTO.md](HOWTO.md). This file is for working on the codebase.
+
+## Status
+
+- **Audience: sample size of one.** Built as a personal wayfinding tool, then opened up. No accounts, no telemetry, no analytics. The default UI assumes a solo journaller; the relational lens is gated behind a checkbox so it stays out of the way.
+- **Storage: local-first.** Source of truth is `localStorage`. An optional Bun + SQLite sidecar (`bun run server`) writes timestamped snapshots to `data/backups.db` for safekeeping; the app keeps working without it.
+- **Schema: additive + migrating.** Old payloads keep loading via `migrateMapping()` — covered by tests. Legacy `designConstraint`/`designNote` and renamed enum values (`actionable→open`, `interview→talk`, etc.) all migrate on read.
+- **Editorial constraints.** Tailwind v4 CSS-first (no `tailwind.config.js`), hairline borders, serif/sans pairing, print-friendly. See *Conventions* below.
 
 ---
 
@@ -26,13 +33,14 @@ bun run server       # http://127.0.0.1:5174 (optional backup sidecar)
 
 The app is fully functional without the sidecar — `localStorage` is the source of truth. Run `bun run server` in a second terminal if you want timestamped SQLite snapshots written to `data/backups.db`.
 
-| Script             | Purpose                                          |
-| ------------------ | ------------------------------------------------ |
-| `bun run dev`      | Vite dev server with HMR                         |
-| `bun run build`    | Production build to `dist/`                      |
-| `bun run preview`  | Serve the built bundle                           |
-| `bun run server`   | Backup sidecar (`bun --hot server.ts`)           |
-| `bunx tsc --noEmit`| Strict typecheck (no emit, used in CI)           |
+| Script              | Purpose                                          |
+| ------------------- | ------------------------------------------------ |
+| `bun run dev`       | Vite dev server with HMR                         |
+| `bun run build`     | Production build to `dist/`                      |
+| `bun run preview`   | Serve the built bundle                           |
+| `bun run server`    | Backup sidecar (`bun --hot server.ts`)           |
+| `bun run test`      | Run the [src/*.test.ts](src/) suite              |
+| `bun run typecheck` | Strict typecheck, no emit                        |
 
 ---
 
@@ -149,7 +157,8 @@ The lens scaffolding has six parallel touch points. Follow this checklist when a
 5. **List-view UI** ([src/App.tsx](src/App.tsx) `EntrySection`): add a new `<LensRow label="N · Verb · Framework">` block inside the lens panel.
 6. **Focus-mode UI** ([src/App.tsx](src/App.tsx) `FocusStep`): add a step branch and corresponding entry in `FOCUS_STEPS` / `FOCUS_PROMPTS`.
 7. **Print summary** ([src/App.tsx](src/App.tsx) `EntrySection`'s `print:block` block): emit a summary line when the field is set.
-8. **Docs**: update the lens-workflow table in [HOWTO.md](HOWTO.md).
+8. **Tests**: extend [src/derive.test.ts](src/derive.test.ts) for any branch you added in `deriveNeed`/`lensCompletion`/`hasAnyLensData`, and [src/types.test.ts](src/types.test.ts) if you added a migration branch.
+9. **Docs**: update the lens-workflow table in [HOWTO.md](HOWTO.md).
 
 Existing lenses are good models — the **Stanford Life Design** lens (wayfinding + problem framing + reframe/acceptance + Talk/Do prototype) exercises every one of these steps if you want a worked example.
 
@@ -162,4 +171,4 @@ Existing lenses are good models — the **Stanford Life Design** lens (wayfindin
 - **Tailwind v4.** No `tailwind.config.js`. All theme tokens live in [src/style.css](src/style.css)'s `@theme` block. New scanned paths go in `@source` lines there.
 - **Strict TypeScript.** `noUncheckedIndexedAccess` is on, so `arr[0]` is `T | undefined` — handle it.
 - **Print discipline.** Interactive controls use `print:hidden`. Each `EntrySection` carries a `hidden print:block` summary that emits all set lens fields as plain text. Before merging UI changes, hit the print preview.
-- **No tests yet.** `derive.ts` is the natural starting point — small pure functions with clear inputs and outputs. Use `bun test`.
+- **Tests cover the deterministic surface.** `bun test` runs [src/derive.test.ts](src/derive.test.ts) (synthesis branches, completion bar, SDT/Maslow/Jones derivations) and [src/types.test.ts](src/types.test.ts) (`migrateMapping` legacy paths + `workabilityColor`). When extending `derive.ts` or adding a migration branch, extend the suite — new lenses without coverage will be rejected.
