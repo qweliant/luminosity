@@ -31,11 +31,11 @@ Every row exposes the same six-step pipeline. You can run it inline (per-row dra
 
 | Step | Lens | Question | What it asks for |
 | ---- | ---- | -------- | ---------------- |
-| 1 | **Diagnose** — ACT Workability | How stuck is this value right now? | A 1–5 dot rating |
-| 2 | **Locate** — NVC Universal Needs | What's starving underneath the friction? | One or more chip selections from 7 categories |
-| 3 | **Anchor** — Robbins 6 Core Human Needs | Which fundamental driver does this serve? | One of: Comfort, Variety, Significance, Connection, Growth, Contribution |
-| 4 | **Reframe** — Stanford Life Design | Where does this live in your engagement/energy? Which kind of problem is it? What's the prototype? | Two 1–5 dot-strings (Engagement, Energy), problem type (Open / Stuck / Reality), reframe note (Stuck) or acceptance note (Reality), prototype mode (Talk / Do) + action (Open or Stuck-with-reframe) |
-| 5 | **Contextualize** — Nagoski (Come As You Are) | What conditions accelerate or brake this? | Two short notes |
+| 1 | **Diagnose** — [ACT Workability](https://contextualconsulting.co.uk/knowledge/therapy-approaches/workability-in-act/) | How stuck is this value right now? | A 1–5 dot rating |
+| 2 | **Locate** — [NVC Universal Needs](https://baynvc.org/basics-of-nonviolent-communication/) | What's starving underneath the friction? | One or more chip selections from 7 categories |
+| 3 | **Anchor** — Madanes [6 Core Human Needs](https://madanesinstitute.com/the-6-human-needs/) | Which fundamental driver does this serve? | One of: Comfort, Variety, Significance, Connection, Growth, Contribution |
+| 4 | **Reframe** — [Stanford Life Design](https://cgoe.stanford.edu/news-perspectives/2020/life-design) | Where does this live in your engagement/energy? Which kind of problem is it? What's the prototype? | Two 1–5 dot-strings (Engagement, Energy), problem type (Open / Stuck / Reality), reframe note (Stuck) or acceptance note (Reality), prototype mode (Talk / Do) + action (Open or Stuck-with-reframe) |
+| 5 | **Contextualize** — [Nagoski (Come As You Are)]((https://www.lovehealgrow.com/sexual-desire-brakes-and-accelerators/)) | What conditions accelerate or brake this? | Two short notes |
 | 6 | **Synthesize** | Compose all of the above into a single Need sentence. | One click — `Replace` overwrites your Need, `Append` adds to it |
 
 The synthesis is deterministic (templated, not LLM-generated). It reads like:
