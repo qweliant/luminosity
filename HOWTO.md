@@ -1,0 +1,94 @@
+# How to use Needs & Values
+
+A personal reflection tool that bridges the gap between core beliefs (Values) and the day-to-day environmental requirements that let those beliefs actually live (Needs). Local-only; everything is stored in your browser's `localStorage` under the key `values-mapper-v2`. No account, no server, no telemetry.
+
+## The loop
+
+Every entry is one row in this loop:
+
+> **Value → Friction → Need → Workability**
+
+- **Value** — the belief, virtue, or commitment you care about (e.g. *Compassion*, *Curiosity*, *Health*).
+- **Friction** — what's currently in the way of living that value.
+- **Need** — the non-negotiable environmental or internal requirement that, if met, would let the value thrive.
+- **Workability** — how well your current life is actually serving that value, on a 1–5 ACT-Bullseye scale.
+
+The aim is not to enumerate values; it's to find where you're starving and name the smallest condition that would feed you.
+
+## Adding values
+
+Three ways:
+
+1. **Library** — click the file-input icon (top-right), open the **Library** tab, click chips from the five categories your care sheet defines. Already-imported values are grayed and struck through.
+2. **Paste** — same modal, **Paste** tab, one value per line. Imports dedupe against existing entries.
+3. **Manual `+`** — bottom of the list adds a blank row.
+
+The first time you load the app, five seeded rows appear with rich pre-fills (Compassion, Curiosity, Health, Inner Harmony, Peace). Subsequent loads respect whatever you've put in.
+
+## The lens workflow
+
+On any row, click `+ Apply Lenses` to open a numbered six-step panel that walks the value through five established frameworks and ends with a synthesized Need.
+
+| Step | Lens | Question | What it asks for |
+| ---- | ---- | -------- | ---------------- |
+| 1 | **Diagnose** — ACT Workability | How stuck is this value right now? | A 1–5 dot rating |
+| 2 | **Locate** — NVC Universal Needs | What's starving underneath the friction? | One or more chip selections from 7 categories |
+| 3 | **Anchor** — Robbins 6 Core Human Needs | Which fundamental driver does this serve? | One of: Comfort, Variety, Significance, Connection, Growth, Contribution |
+| 4 | **Reframe** — Stanford Life Design | Where does this live in your engagement/energy? Which kind of problem is it? What's the prototype? | Two 1–5 dot-strings (Engagement, Energy), problem type (Open / Stuck / Reality), reframe note (Stuck) or acceptance note (Reality), prototype mode (Talk / Do) + action (Open or Stuck-with-reframe) |
+| 5 | **Contextualize** — Nagoski (Come As You Are) | What conditions accelerate or brake this? | Two short notes |
+| 6 | **Synthesize** | Compose all of the above into a single Need sentence. | One click — `Replace` overwrites your Need, `Append` adds to it |
+
+The synthesis is deterministic (templated, not LLM-generated). It reads like:
+
+> Reliable access to *empathy, connection, and contribution*, so *compassion* can show up in everyday life. This serves my deeper need for *contribution*. Iterating via: *weekly volunteer hours.*
+
+You can always edit the resulting Need text directly.
+
+### Derived indicators (no input needed)
+
+Underneath the Robbins step, two read-only footnotes appear:
+
+- **SDT profile** — Self-Determination Theory (Deci & Ryan): `autonomy ●○○ · competence ●●○ · relatedness ●●●`. Computed from your NVC tags and selected core need. Tells you which of the three innate psychological needs your value is touching.
+- **Maslow highest active layer** — Maslow's Hierarchy: `physiological / safety / belonging / esteem / self-actualization`. The highest layer reached by your NVC selections. A quick check that you're not piling everything onto self-actualization while ignoring shelter or belonging.
+
+## The two views
+
+- **List** (default) — all entries stacked, each editable in place with its own lens panel.
+- **Matrix** — entries grouped by Core Human Need, sorted **stuck first** within each group, with a colored left border (red→amber→green) so action zones jump out. Each row has a `Map →` (or `<Current> ↻`) button that opens an inline picker for assigning the Core Need without leaving the view. Click outside the picker to close.
+
+## Printing / exporting
+
+The Printer icon triggers the browser print dialog. The interactive controls are hidden in print; what remains is a clean editorial layout with each row's value, friction, need, NVC tags, and a small text summary of the lens data (workability, core need, design constraint, accelerators, brakes). Useful for journaling exports or PDF saves.
+
+## Tips
+
+- Treat workability and Need as separate questions. Even values you score 5/5 on still benefit from articulating the Need — that's how you protect what's already working.
+- The synthesis is meant as a *draft*. Editing it after it lands is the point; the lenses are scaffolding, not a verdict.
+- "Unmapped" entries in the Matrix view are values without a Core Need set. Use the Matrix `Map →` to assign one in two clicks, or open the Robbins lens row in List view.
+- Duplicates are detected case-insensitively. Library chips for already-added values gray out; pasted duplicates are dropped silently with a count in the modal footer.
+
+## Frameworks reference
+
+The lenses already in the app:
+
+- **NVC Universal Needs** — Marshall Rosenberg, *Nonviolent Communication* (2003). The chip vocabulary names what's starving underneath surface complaints. Categories used here: Connection, Physical, Honesty, Play, Peace, Autonomy, Meaning.
+- **ACT Workability / Bullseye** — Acceptance and Commitment Therapy (Steven Hayes et al.). The 1–5 dot is a compressed Bullseye — how on-target your current behavior is with respect to the named value.
+- **Robbins 6 Core Human Needs** — Tony Robbins / Chloe Madanes. Six fundamental drivers (Comfort, Variety, Significance, Connection, Growth, Contribution). The argument: every behavior, including dysfunctional ones, serves at least one of these.
+- **Stanford Life Design** — Bill Burnett & Dave Evans, *Designing Your Life* (2016). The Reframe lens implements three of the book's central tools, gated by problem type. **Wayfinding / Good Time Journal** (Ch. 3) — rate Engagement (flow intensity) and Energy (gain vs. drain) on 1–5 hairline scales; Energy < 3 is flagged as a drain. **Problem Framing** (Ch. 1) — choose one of: *Open* (a real problem you can prototype against), *Stuck* (sticky and recurring — needs a reframe before it can be prototyped), *Reality* (a fact of life to accept and navigate around, not solve). The UI reacts: *Reality* hides the prototype and reveals a serif-italic acceptance note ("How will I navigate around it?"); *Stuck* shows the reframe field first and locks the prototype until "How might I…" has been written; *Open* shows the prototype directly. **Prototyping** (Ch. 6) — name a *Life Design Prototype* and tag its mode as either *Talk* (gather data through a story — a Life Design Interview with someone who has already lived this) or *Do* (gather data through an experience — try it for a day). Placeholders rotate to match: *"Who has already lived this? Note who you'll interview."* for Talk, or *"How can you try this for a day? Note your smallest experiment."* for Do.
+- **Nagoski Accelerators / Brakes** — Emily Nagoski, *Come As You Are* (2015). Originally a sexual-response model; we use it generically: name the contexts that turn a value on (accelerators) and the ones that shut it down (brakes).
+- **Self-Determination Theory** *(derived)* — Deci & Ryan. Three innate needs: autonomy, competence, relatedness. Computed from your NVC tags as a balance check.
+- **Maslow's Hierarchy** *(derived)* — Abraham Maslow (1943). Five layers from physiological to self-actualization. Computed from your NVC tags as a "highest active layer" indicator.
+
+Frameworks deliberately not in the app (worth knowing, but redundant or too heavy for the editorial surface):
+
+- **Schwartz's Theory of Basic Values** — 10 universal value types across cultures. Academically rigorous; overlaps Robbins.
+- **VIA Character Strengths** — 24 strengths across 6 virtues. Useful as a discovery tool but its taxonomy duplicates Robbins for our purposes.
+- **Ikigai** — what you love / are good at / world needs / can be paid for. Better suited to vocational design than daily-needs surfacing.
+- **Polyvagal Theory** — physiological state as context. Nagoski accelerators/brakes already covers the practical surface.
+- **Logotherapy / "Will to Meaning"** — Viktor Frankl. Captured implicitly via the Robbins *Significance* and *Contribution* drivers.
+
+## Data & migration
+
+- Storage key: `values-mapper-v2`. Format: `Mapping[]` (see [src/App.tsx](src/App.tsx)).
+- Seed flag: `values-mapper-seed-v1`. Set to `'1'` after the first-run seed runs once. Delete both keys to re-seed.
+- Schema additions are additive — old entries continue to load with `undefined` for new optional fields.

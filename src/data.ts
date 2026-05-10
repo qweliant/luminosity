@@ -27,6 +27,23 @@ export const NVC_CATEGORIES: NvcCategory[] = [
   { name: 'Meaning',    needs: ['challenge', 'competence', 'contribution', 'creativity', 'growth', 'learning', 'purpose', 'stimulation'] },
 ];
 
+export type MaslowLevel = 'physiological' | 'safety' | 'belonging' | 'esteem' | 'self-actualization';
+
+export const MASLOW_LEVELS: MaslowLevel[] = ['physiological', 'safety', 'belonging', 'esteem', 'self-actualization'];
+
+export const NVC_TO_MASLOW: Record<string, MaslowLevel> = {
+  movement: 'physiological', rest: 'physiological', shelter: 'physiological', touch: 'physiological',
+  safety: 'safety', order: 'safety', ease: 'safety',
+  belonging: 'belonging', empathy: 'belonging', intimacy: 'belonging', love: 'belonging',
+  respect: 'belonging', trust: 'belonging', harmony: 'belonging', presence: 'belonging',
+  competence: 'esteem', growth: 'esteem', learning: 'esteem', contribution: 'esteem',
+  challenge: 'esteem', integrity: 'esteem',
+  authenticity: 'self-actualization', creativity: 'self-actualization', purpose: 'self-actualization',
+  stimulation: 'self-actualization', beauty: 'self-actualization', freedom: 'self-actualization',
+  choice: 'self-actualization', independence: 'self-actualization', space: 'self-actualization',
+  humor: 'self-actualization', joy: 'self-actualization', spontaneity: 'self-actualization',
+};
+
 export const NVC_TO_SDT: Record<string, 'autonomy' | 'competence' | 'relatedness'> = {
   belonging: 'relatedness', empathy: 'relatedness', intimacy: 'relatedness',
   love: 'relatedness', respect: 'relatedness', trust: 'relatedness',
@@ -41,7 +58,7 @@ export const NVC_TO_SDT: Record<string, 'autonomy' | 'competence' | 'relatedness
 };
 
 export const CORE_NEEDS_DETAIL: Record<string, string> = {
-  Certainty:    'Comfort, predictability, security.',
+  Comfort:    'Comfort, predictability, security.',
   Variety:      'Novelty, surprise, change, adventure.',
   Significance: 'Importance, achievement, being needed.',
   Connection:   'Love, belonging, closeness with others.',
@@ -169,7 +186,7 @@ export const seedPersonalValues = (): Mapping[] => [
     value: 'Health',
     friction: '',
     need: 'Sleep protected, movement built into the week, nutritious food on hand, stress with a release valve.',
-    coreNeed: 'Certainty',
+    coreNeed: 'Comfort',
     nvcNeeds: ['movement', 'rest', 'safety'],
   },
   {
@@ -185,7 +202,7 @@ export const seedPersonalValues = (): Mapping[] => [
     value: 'Peace',
     friction: '',
     need: 'Low-conflict environment; clear boundaries; physical space free of clutter; capacity to forgive and release.',
-    coreNeed: 'Certainty',
+    coreNeed: 'Comfort',
     nvcNeeds: ['ease', 'safety', 'order', 'beauty'],
   },
 ];
