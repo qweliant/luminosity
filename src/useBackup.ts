@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Mapping } from './App';
+import type { Mapping } from './types';
 import {
   createSnapshot,
   fetchSnapshot,

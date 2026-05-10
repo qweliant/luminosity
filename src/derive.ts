@@ -1,5 +1,12 @@
-import type { Mapping } from './App';
-import { NVC_TO_SDT, NVC_TO_MASLOW, MASLOW_LEVELS, type MaslowLevel } from './data';
+import type { Mapping, RelationalLens, RelationalSource } from './types';
+import {
+  NVC_TO_SDT,
+  NVC_TO_MASLOW,
+  MASLOW_LEVELS,
+  NVC_TO_FREEDOMS,
+  type MaslowLevel,
+  type JonesFreedom,
+} from './data';
 
 export type SdtAxis = 'autonomy' | 'competence' | 'relatedness';
 export type SdtProfile = Record<SdtAxis, number>;
@@ -17,6 +24,13 @@ export interface LensCompletion {
   total: number;
 }
 
+// The Contextualize step counts as filled if Nagoski has data OR if the
+// optional relational lens is active and the user has answered the source
+// radio. We deliberately do not promote relational into its own step — it's
+// gated and not meaningful for solo entries.
+const relationalAnswered = (r: RelationalLens | undefined): boolean =>
+  !!(r?.active && r.source);
+
 export const lensCompletion = (entry: Mapping): LensCompletion => {
   const ld = entry.lifeDesign;
   const steps = [
@@ -27,7 +41,9 @@ export const lensCompletion = (entry: Mapping): LensCompletion => {
       || !!(ld?.reframeNote && ld.reframeNote.trim())
       || !!(ld?.acceptanceNote && ld.acceptanceNote.trim())
       || !!(ld?.prototype?.action && ld.prototype.action.trim()),
-    !!(entry.accelerators && entry.accelerators.trim()) || !!(entry.brakes && entry.brakes.trim()),
+    !!(entry.accelerators && entry.accelerators.trim())
+      || !!(entry.brakes && entry.brakes.trim())
+      || relationalAnswered(entry.relational),
     !!(entry.need && entry.need.trim()),
   ];
   return {
@@ -50,7 +66,8 @@ export const hasAnyLensData = (entry: Mapping): boolean => {
     ld?.wayfinding?.engagement ||
     ld?.wayfinding?.energy ||
     (entry.accelerators && entry.accelerators.trim()) ||
-    (entry.brakes && entry.brakes.trim())
+    (entry.brakes && entry.brakes.trim()) ||
+    entry.relational?.active
   );
 };
 
@@ -97,7 +114,48 @@ export const deriveNeed = (entry: Mapping): string => {
   if (accel) parts.push(`Accelerators: ${accel}.`);
   if (brakes) parts.push(`Brakes to watch: ${brakes}.`);
 
+  // Relational accountability clause (Sander T. Jones · Cultivating Connection).
+  // Only emitted when the lens is explicitly active. Frames the need as
+  // self-accountable rather than coercive based on the source classification
+  // and the boundary checklist outcome.
+  const r = entry.relational;
+  if (r?.active && r.source) {
+    const sourceClause: Record<RelationalSource, string> = {
+      right_violation: 'this requires asserting an external boundary, not a request',
+      agreement_violation: 'this requires collaborative repair of a prior agreement',
+      internal_work: 'this is internal work — no other person needs to change',
+    };
+    const checks = [r.focusSelf, r.intentValue, r.isRequest, r.preservesAutonomy];
+    const allClean = checks.every(c => c === true);
+    const failures: string[] = [];
+    if (r.focusSelf === false) failures.push('limit my own behavior');
+    if (r.intentValue === false) failures.push('honor the value rather than prevent fear');
+    if (r.isRequest === false) failures.push('frame as a request, not a demand');
+    if (r.preservesAutonomy === false) failures.push('preserve their autonomy');
+
+    if (allClean) {
+      parts.push(`Accountability: ${sourceClause[r.source]} — clean boundary.`);
+    } else if (failures.length > 0) {
+      parts.push(`Accountability: ${sourceClause[r.source]}. Risk: still overreaches — needs to ${formatList(failures)}.`);
+    } else {
+      parts.push(`Accountability: ${sourceClause[r.source]}.`);
+    }
+  }
+
   return parts.join(' ');
+};
+
+// --- Relational lens · derived freedoms -------------------------------------
+// Cross-references selected NVC tags against Jones's 13 Fundamental Freedoms.
+// Read-only indicator surfaced only when the relational lens is active.
+export const relationalFreedoms = (entry: Mapping): JonesFreedom[] => {
+  if (!entry.relational?.active) return [];
+  const seen = new Set<JonesFreedom>();
+  for (const n of entry.nvcNeeds ?? []) {
+    const f = NVC_TO_FREEDOMS[n];
+    if (f) seen.add(f);
+  }
+  return Array.from(seen);
 };
 
 export const maslowHighest = (entry: Mapping): MaslowLevel | null => {

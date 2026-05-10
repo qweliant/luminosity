@@ -5,7 +5,7 @@ import React from 'react';
 import { workabilityColor } from '../types';
 import type { LensCompletion, SdtProfile } from '../derive';
 
-// --- LensRow ----------------------------------------------------------------
+// --- LensRow ---------------------------------------------------------------
 // Tracking-wide tiny-caps section header used inside the inline lens panel.
 
 export const LensRow = ({ label, children }: { label: string; children: React.ReactNode }) => (
@@ -117,8 +117,8 @@ export const CompletionBar = ({ completion }: { completion: LensCompletion }) =>
 };
 
 // --- SdtFootnote ------------------------------------------------------------
-// Read-only Self-Determination Theory profile footnote (autonomy / competence
-// / relatedness), derived from NVC tags + core need. No input; appears under
+// Read-only Self-Determination Theory profile (autonomy / competence /
+// relatedness), derived from NVC tags + core need. No input; appears under
 // the Robbins step when at least one signal exists.
 
 export const SdtFootnote = ({ profile }: { profile: SdtProfile }) => {

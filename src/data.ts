@@ -1,4 +1,4 @@
-import type { Mapping } from './App';
+import type { Mapping } from './types';
 
 export interface ValueCategory {
   name: string;
@@ -42,6 +42,52 @@ export const NVC_TO_MASLOW: Record<string, MaslowLevel> = {
   stimulation: 'self-actualization', beauty: 'self-actualization', freedom: 'self-actualization',
   choice: 'self-actualization', independence: 'self-actualization', space: 'self-actualization',
   humor: 'self-actualization', joy: 'self-actualization', spontaneity: 'self-actualization',
+};
+
+// Sander T. Jones · Cultivating Connection — the 13 Fundamental Freedoms.
+// Used by the (optional) Relational lens to surface which freedoms are at
+// stake for an entry, derived from selected NVC tags.
+export const JONES_FREEDOMS = [
+  'Bandwidth Allocation',
+  'Informed Consent',
+  'Privacy',
+  'Self-Determination',
+  'Authentic Expression',
+  'Boundaries',
+  'Pacing',
+  'Embodiment',
+  'Truth-Telling',
+  'Care for Self',
+  'Time / Space',
+  'Reciprocity',
+  'Restoration',
+] as const;
+
+export type JonesFreedom = typeof JONES_FREEDOMS[number];
+
+export const NVC_TO_FREEDOMS: Record<string, JonesFreedom> = {
+  rest: 'Bandwidth Allocation',
+  ease: 'Pacing',
+  movement: 'Embodiment',
+  touch: 'Embodiment',
+  presence: 'Embodiment',
+  space: 'Privacy',
+  shelter: 'Privacy',
+  freedom: 'Self-Determination',
+  choice: 'Self-Determination',
+  independence: 'Self-Determination',
+  authenticity: 'Authentic Expression',
+  integrity: 'Truth-Telling',
+  honesty: 'Truth-Telling',
+  trust: 'Informed Consent',
+  safety: 'Care for Self',
+  empathy: 'Reciprocity',
+  belonging: 'Reciprocity',
+  intimacy: 'Reciprocity',
+  respect: 'Boundaries',
+  harmony: 'Restoration',
+  beauty: 'Restoration',
+  joy: 'Care for Self',
 };
 
 export const NVC_TO_SDT: Record<string, 'autonomy' | 'competence' | 'relatedness'> = {
