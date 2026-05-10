@@ -1,6 +1,6 @@
 # How to use Needs & Values
 
-A personal reflection tool that bridges the gap between core beliefs (Values) and the day-to-day environmental requirements that let those beliefs actually live (Needs). Local-only; everything is stored in your browser's `localStorage` under the key `values-mapper-v2`. No account, no server, no telemetry.
+A personal reflection tool that bridges the gap between core beliefs (Values) and the day-to-day environmental requirements that let those beliefs actually live (Needs). Local-first: the browser's `localStorage` (key `values-mapper-v2`) is the source of truth. An optional Bun + SQLite sidecar (see *Backup*) writes periodic snapshots to disk for safekeeping — no account, no telemetry.
 
 ## The loop
 
@@ -27,7 +27,7 @@ The first time you load the app, five seeded rows appear with rich pre-fills (Co
 
 ## The lens workflow
 
-On any row, click `+ Apply Lenses` to open a numbered six-step panel that walks the value through five established frameworks and ends with a synthesized Need.
+Every row exposes the same six-step pipeline. You can run it inline (per-row drawer) or in **Focus mode** (full-screen wizard). Click `+ Apply Lenses` on a row to open the inline panel, or click `Focus →` (or any chip in Matrix view) to open the wizard. A small 6-segment **completeness bar** beside the lens toggle shows `2/6` / `3/6` etc., turning emerald when all six steps are filled.
 
 | Step | Lens | Question | What it asks for |
 | ---- | ---- | -------- | ---------------- |
@@ -51,10 +51,11 @@ Underneath the Robbins step, two read-only footnotes appear:
 - **SDT profile** — Self-Determination Theory (Deci & Ryan): `autonomy ●○○ · competence ●●○ · relatedness ●●●`. Computed from your NVC tags and selected core need. Tells you which of the three innate psychological needs your value is touching.
 - **Maslow highest active layer** — Maslow's Hierarchy: `physiological / safety / belonging / esteem / self-actualization`. The highest layer reached by your NVC selections. A quick check that you're not piling everything onto self-actualization while ignoring shelter or belonging.
 
-## The two views
+## The three views
 
 - **List** (default) — all entries stacked, each editable in place with its own lens panel.
-- **Matrix** — entries grouped by Core Human Need, sorted **stuck first** within each group, with a colored left border (red→amber→green) so action zones jump out. Each row has a `Map →` (or `<Current> ↻`) button that opens an inline picker for assigning the Core Need without leaving the view. Click outside the picker to close.
+- **Matrix** — a true 2-axis Alignment Matrix. Rows are the 6 Core Human Needs; columns are the 5 ACT Workability bands (1 stuck → 5 working). Cells are tinted faintly by workability and contain values as clickable chips. Click any chip to open that value in **Focus mode**. Two trays beneath the grid catch edge cases: *"Workability not yet rated"* and *"Core Need not yet assigned"*.
+- **Focus** — a full-viewport wizard for one value at a time. Six steps mirror the lens taxonomy: *Diagnose* (Workability + Friction), *Locate* (NVC), *Anchor* (Robbins, with descriptions visible as cards), *Reframe* (Stanford — Wayfinding, problem type, reframe/acceptance, Talk/Do prototype), *Contextualize* (Nagoski accelerators/brakes), *Synthesize* (templated draft on the left, your editable Need on the right). Keyboard: `Esc` closes, `←/→` navigate (when not typing in a field). Click any progress segment to jump.
 
 ## Printing / exporting
 
@@ -87,8 +88,34 @@ Frameworks deliberately not in the app (worth knowing, but redundant or too heav
 - **Polyvagal Theory** — physiological state as context. Nagoski accelerators/brakes already covers the practical surface.
 - **Logotherapy / "Will to Meaning"** — Viktor Frankl. Captured implicitly via the Robbins *Significance* and *Contribution* drivers.
 
+## Backup (optional Bun + SQLite sidecar)
+
+The browser's `localStorage` can be wiped by clearing site data, switching browsers, or running incognito. To guard against that, the repo ships a tiny backup server using `Bun.serve()` + `bun:sqlite`.
+
+**Run it:**
+
+```sh
+bun run server   # listens on http://localhost:5174
+```
+
+The DB lives at `data/backups.db` (gitignored). Schema is one table — `snapshots(id, created_at, count, payload)` — where `payload` is the full `Mapping[]` JSON. No migrations: every snapshot is a complete tree, so old snapshots stay readable forever.
+
+**In the app:**
+
+- A subtle **Backup** chip in the header shows the most recent snapshot ("Last backup: 3m ago") or `Backup offline` if the server isn't running. Clicking it forces a snapshot now.
+- Auto-backup runs **debounced 5s after edits stop** when the server is reachable. If the server is down, the app keeps working — only the safety net is missing.
+- Click the chip to open a tiny **Restore** menu listing recent snapshots. Picking one replaces your current entries (after a confirm).
+
+**Endpoints:**
+
+- `POST /api/snapshots` — body `{ entries: Mapping[] }` → `{ id, createdAt, count }`
+- `GET /api/snapshots` → list `[{ id, createdAt, count }]` (most recent 50)
+- `GET /api/snapshots/:id` → `{ id, createdAt, count, entries }`
+
+The server is intentionally local-only — bind on `127.0.0.1`, no auth, no users. If you want to host it remotely, add auth before doing so.
+
 ## Data & migration
 
 - Storage key: `values-mapper-v2`. Format: `Mapping[]` (see [src/App.tsx](src/App.tsx)).
 - Seed flag: `values-mapper-seed-v1`. Set to `'1'` after the first-run seed runs once. Delete both keys to re-seed.
-- Schema additions are additive — old entries continue to load with `undefined` for new optional fields.
+- Schema additions are additive — old entries continue to load with `undefined` for new optional fields. The migration in `migrateMapping()` handles both legacy `designConstraint`/`designNote` (folded into `lifeDesign`) and legacy enum values (`'actionable'/'anchor'/'gravity'` → `'open'/'stuck'/'reality'`, `prototype.type 'interview'/'experience'` → `prototype.mode 'talk'/'do'`).
