@@ -9,6 +9,8 @@ import {
   seedPersonalValues,
 } from './data';
 import { deriveNeed, sdtProfile, maslowHighest, hasAnyLensData, lensCompletion, type SdtProfile, type LensCompletion } from './derive';
+import { useBackup } from './useBackup';
+import { relTime, type Snapshot } from './backup';
 
 export type LifeDesignProblemType = 'open' | 'stuck' | 'reality';
 export type PrototypeMode = 'talk' | 'do';
@@ -125,6 +127,35 @@ const App = () => {
     localStorage.setItem('values-mapper-v2', JSON.stringify(entries));
   }, [entries]);
 
+  const backup = useBackup(entries);
+  const [restoreOpen, setRestoreOpen] = useState(false);
+  const restoreMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!restoreOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (restoreMenuRef.current && !restoreMenuRef.current.contains(e.target as Node)) {
+        setRestoreOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [restoreOpen]);
+
+  const handleRestore = async (snap: Snapshot) => {
+    const when = relTime(snap.createdAt);
+    const ok = window.confirm(
+      `Restore snapshot from ${when} (${snap.count} ${snap.count === 1 ? 'value' : 'values'})? ` +
+      `This will replace your current entries.`
+    );
+    if (!ok) return;
+    const restored = await backup.restore(snap.id);
+    if (restored) {
+      setEntries(restored);
+      setRestoreOpen(false);
+    }
+  };
+
   const norm = (s: string) => s.trim().toLowerCase();
   const existingValues = new Set(
     entries.map(e => norm(e.value)).filter(Boolean)
@@ -228,7 +259,18 @@ const App = () => {
               <span className="block sm:inline sm:before:content-['_·_'] text-pink-700">Value → Friction → Need → Workability</span>
             </p>
           </div>
-          <div className="flex gap-5 border-b border-gray-200 pb-2 items-center self-start sm:self-auto">
+          <div className="flex gap-5 border-b border-gray-200 pb-2 items-center self-start sm:self-auto flex-wrap">
+            <BackupChip
+              status={backup.status}
+              lastSnapshot={backup.lastSnapshot}
+              snapshots={backup.snapshots}
+              inFlight={backup.inFlight}
+              onSnapshot={backup.snapshotNow}
+              onRestore={handleRestore}
+              menuOpen={restoreOpen}
+              setMenuOpen={setRestoreOpen}
+              menuRef={restoreMenuRef}
+            />
             <button
               onClick={() => setMatrixView(v => !v)}
               className={`text-[10px] uppercase tracking-[0.25em] hover:text-black-600 transition-colors min-h-10 flex items-center ${matrixView ? 'text-black-600' : 'text-pink-500'}`}
@@ -995,6 +1037,116 @@ const FocusStep = ({
           placeholder="The non-negotiable requirement, in your own words."
         />
       </div>
+    </div>
+  );
+};
+
+const BackupChip = ({
+  status,
+  lastSnapshot,
+  snapshots,
+  inFlight,
+  onSnapshot,
+  onRestore,
+  menuOpen,
+  setMenuOpen,
+  menuRef,
+}: {
+  status: 'unknown' | 'online' | 'offline';
+  lastSnapshot: Snapshot | null;
+  snapshots: Snapshot[];
+  inFlight: boolean;
+  onSnapshot: () => Promise<void>;
+  onRestore: (snap: Snapshot) => Promise<void>;
+  menuOpen: boolean;
+  setMenuOpen: (b: boolean) => void;
+  menuRef: React.RefObject<HTMLDivElement | null>;
+}) => {
+  const [, force] = useState(0);
+  // Re-render every 30s so "2m ago" stays roughly fresh
+  useEffect(() => {
+    const iv = setInterval(() => force(n => n + 1), 30_000);
+    return () => clearInterval(iv);
+  }, []);
+
+  const dotColor =
+    inFlight ? '#d97706'
+    : status === 'offline' ? '#9ca3af'
+    : status === 'online' && lastSnapshot ? '#16a34a'
+    : status === 'online' ? '#d97706'
+    : '#d1d5db';
+
+  const label =
+    inFlight ? 'Backing up…'
+    : status === 'offline' ? 'Backup offline'
+    : status === 'unknown' ? 'Backup checking…'
+    : lastSnapshot ? `Backed up · ${relTime(lastSnapshot.createdAt)}`
+    : 'Backup ready';
+
+  const disabled = status !== 'online' || inFlight;
+
+  return (
+    <div className="relative" ref={menuRef}>
+      <button
+        type="button"
+        onClick={() => setMenuOpen(!menuOpen)}
+        className="text-[10px] uppercase tracking-[0.25em] hover:text-black transition-colors min-h-10 flex items-center gap-2 text-pink-500"
+        title={status === 'offline' ? 'Run `bun run server` to enable backups' : 'Backup menu'}
+      >
+        <span className="block w-1.5 h-1.5 rounded-full transition-colors" style={{ backgroundColor: dotColor }} />
+        <span>{label}</span>
+      </button>
+
+      {menuOpen && (
+        <div className="absolute right-0 top-full mt-2 w-72 bg-white border border-gray-200 shadow-xl z-40 p-3 space-y-3">
+          <div className="flex items-baseline justify-between gap-3">
+            <span className="text-[10px] uppercase tracking-[0.25em] text-gray-500">Backup</span>
+            <button
+              type="button"
+              onClick={async () => { await onSnapshot(); }}
+              disabled={disabled}
+              className="text-[10px] uppercase tracking-[0.25em] text-orange-700 hover:underline disabled:text-gray-300 disabled:no-underline disabled:cursor-not-allowed"
+            >
+              {inFlight ? 'Saving…' : '↻ Snapshot now'}
+            </button>
+          </div>
+
+          {status === 'offline' && (
+            <p className="text-[11px] italic text-gray-500 leading-relaxed">
+              Server unreachable. Run <code className="text-gray-700 not-italic">bun run server</code> to enable.
+            </p>
+          )}
+
+          {status === 'online' && (
+            <>
+              <p className="text-[10px] uppercase tracking-[0.25em] text-gray-400">Recent snapshots</p>
+              {snapshots.length === 0 ? (
+                <p className="text-[11px] italic text-gray-400">No snapshots yet.</p>
+              ) : (
+                <ul className="divide-y divide-gray-100 max-h-72 overflow-y-auto">
+                  {snapshots.map(s => (
+                    <li key={s.id}>
+                      <button
+                        type="button"
+                        onClick={() => onRestore(s)}
+                        className="w-full text-left flex items-baseline justify-between py-2 px-1 hover:bg-gray-50 transition-colors"
+                      >
+                        <span className="font-serif text-[13px] text-gray-700">{relTime(s.createdAt)}</span>
+                        <span className="text-[10px] uppercase tracking-[0.2em] text-gray-400">
+                          {s.count} {s.count === 1 ? 'value' : 'values'}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <p className="text-[10px] italic text-gray-400 leading-relaxed pt-1 border-t border-gray-100">
+                Click a snapshot to restore. Auto-snapshot runs 5s after the last edit.
+              </p>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 };

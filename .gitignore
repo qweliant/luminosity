@@ -6,6 +6,9 @@ out
 dist
 *.tgz
 
+# local sqlite backups (sidecar server)
+data/
+
 # code coverage
 coverage
 *.lcov
