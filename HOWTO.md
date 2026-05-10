@@ -46,7 +46,7 @@ You can always edit the resulting Need text directly.
 
 ### Derived indicators (no input needed)
 
-Underneath the Robbins step, two read-only footnotes appear:
+Underneath the Madanes step, two read-only footnotes appear:
 
 - **SDT profile** — Self-Determination Theory (Deci & Ryan): `autonomy ●○○ · competence ●●○ · relatedness ●●●`. Computed from your NVC tags and selected core need. Tells you which of the three innate psychological needs your value is touching.
 - **Maslow highest active layer** — Maslow's Hierarchy: `physiological / safety / belonging / esteem / self-actualization`. The highest layer reached by your NVC selections. A quick check that you're not piling everything onto self-actualization while ignoring shelter or belonging.
@@ -72,7 +72,7 @@ The whole section is `print:hidden`; the print summary instead emits a one-line 
 
 - **List** (default) — all entries stacked, each editable in place with its own lens panel.
 - **Matrix** — a true 2-axis Alignment Matrix. Rows are the 6 Core Human Needs; columns are the 5 ACT Workability bands (1 stuck → 5 working). Cells are tinted faintly by workability and contain values as clickable chips. Click any chip to open that value in **Focus mode**. Two trays beneath the grid catch edge cases: *"Workability not yet rated"* and *"Core Need not yet assigned"*.
-- **Focus** — a full-viewport wizard for one value at a time. Six steps mirror the lens taxonomy: *Diagnose* (Workability + Friction), *Locate* (NVC), *Anchor* (Robbins, with descriptions visible as cards), *Reframe* (Stanford — Wayfinding, problem type, reframe/acceptance, Talk/Do prototype), *Contextualize* (Nagoski accelerators/brakes), *Synthesize* (templated draft on the left, your editable Need on the right). Keyboard: `Esc` closes, `←/→` navigate (when not typing in a field). Click any progress segment to jump.
+- **Focus** — a full-viewport wizard for one value at a time. Six steps mirror the lens taxonomy: *Diagnose* (Workability + Friction), *Locate* (NVC), *Anchor* (Madanes, with descriptions visible as cards), *Reframe* (Stanford — Wayfinding, problem type, reframe/acceptance, Talk/Do prototype), *Contextualize* (Nagoski accelerators/brakes), *Synthesize* (templated draft on the left, your editable Need on the right). Keyboard: `Esc` closes, `←/→` navigate (when not typing in a field). Click any progress segment to jump.
 
 ## Printing / exporting
 
@@ -82,7 +82,7 @@ The Printer icon triggers the browser print dialog. The interactive controls are
 
 - Treat workability and Need as separate questions. Even values you score 5/5 on still benefit from articulating the Need — that's how you protect what's already working.
 - The synthesis is meant as a *draft*. Editing it after it lands is the point; the lenses are scaffolding, not a verdict.
-- "Unmapped" entries in the Matrix view are values without a Core Need set. Use the Matrix `Map →` to assign one in two clicks, or open the Robbins lens row in List view.
+- "Unmapped" entries in the Matrix view are values without a Core Need set. Use the Matrix `Map →` to assign one in two clicks, or open the Madanes lens row in List view.
 - Duplicates are detected case-insensitively. Library chips for already-added values gray out; pasted duplicates are dropped silently with a count in the modal footer.
 - If a Need feels like it's about *someone else's* behavior, tick **Interpersonal Friction** in step 5. If the boundary checklist comes back red (`overreaching · 2/4`), the Need is currently a rule for them, not a boundary for you — a signal to redraft.
 
@@ -92,7 +92,7 @@ The lenses already in the app:
 
 - **NVC Universal Needs** — Marshall Rosenberg, *Nonviolent Communication* (2003). The chip vocabulary names what's starving underneath surface complaints. Categories used here: Connection, Physical, Honesty, Play, Peace, Autonomy, Meaning.
 - **ACT Workability / Bullseye** — Acceptance and Commitment Therapy (Steven Hayes et al.). The 1–5 dot is a compressed Bullseye — how on-target your current behavior is with respect to the named value.
-- **Robbins 6 Core Human Needs** — Tony Robbins / Chloe Madanes. Six fundamental drivers (Comfort, Variety, Significance, Connection, Growth, Contribution). The argument: every behavior, including dysfunctional ones, serves at least one of these.
+- **Madanes 6 Core Human Needs** —   Chloe Madanes. Six fundamental drivers (Comfort, Variety, Significance, Connection, Growth, Contribution). The argument: every behavior, including dysfunctional ones, serves at least one of these.
 - **Stanford Life Design** — Bill Burnett & Dave Evans, *Designing Your Life* (2016). The Reframe lens implements three of the book's central tools, gated by problem type. **Wayfinding / Good Time Journal** (Ch. 3) — rate Engagement (flow intensity) and Energy (gain vs. drain) on 1–5 hairline scales; Energy < 3 is flagged as a drain. **Problem Framing** (Ch. 1) — choose one of: *Open* (a real problem you can prototype against), *Stuck* (sticky and recurring — needs a reframe before it can be prototyped), *Reality* (a fact of life to accept and navigate around, not solve). The UI reacts: *Reality* hides the prototype and reveals a serif-italic acceptance note ("How will I navigate around it?"); *Stuck* shows the reframe field first and locks the prototype until "How might I…" has been written; *Open* shows the prototype directly. **Prototyping** (Ch. 6) — name a *Life Design Prototype* and tag its mode as either *Talk* (gather data through a story — a Life Design Interview with someone who has already lived this) or *Do* (gather data through an experience — try it for a day). Placeholders rotate to match: *"Who has already lived this? Note who you'll interview."* for Talk, or *"How can you try this for a day? Note your smallest experiment."* for Do.
 - **Nagoski Accelerators / Brakes** — Emily Nagoski, *Come As You Are* (2015). Originally a sexual-response model; we use it generically: name the contexts that turn a value on (accelerators) and the ones that shut it down (brakes).
 - **Sander T. Jones · Cultivating Connection** *(optional, gated)* — a relational accountability lens hidden by default behind an `Interpersonal Friction` checkbox at the bottom of step 5. When active, it asks two things. First, the **Personal Responsibility Loop**: classify the source as *Inherent Right Violated* (assert an external boundary), *Agreement Violated* (collaborative repair), or *Neither / Painful Emotion* (internal work). Second, the **4-question Boundary Checklist**: does the need (1) limit my own behavior, (2) honor the value rather than prevent fear, (3) frame as a request not a demand, (4) preserve their autonomy? All four ticked → flagged as a *clean boundary*; otherwise → *overreaching rule*. The synthesis appends an *Accountability* clause naming both the source and any failed checks.
@@ -101,11 +101,11 @@ The lenses already in the app:
 
 Frameworks deliberately not in the app (worth knowing, but redundant or too heavy for the editorial surface):
 
-- **Schwartz's Theory of Basic Values** — 10 universal value types across cultures. Academically rigorous; overlaps Robbins.
-- **VIA Character Strengths** — 24 strengths across 6 virtues. Useful as a discovery tool but its taxonomy duplicates Robbins for our purposes.
+- **Schwartz's Theory of Basic Values** — 10 universal value types across cultures. Academically rigorous; overlaps Madanes.
+- **VIA Character Strengths** — 24 strengths across 6 virtues. Useful as a discovery tool but its taxonomy duplicates Madanes for our purposes.
 - **Ikigai** — what you love / are good at / world needs / can be paid for. Better suited to vocational design than daily-needs surfacing.
 - **Polyvagal Theory** — physiological state as context. Nagoski accelerators/brakes already covers the practical surface.
-- **Logotherapy / "Will to Meaning"** — Viktor Frankl. Captured implicitly via the Robbins *Significance* and *Contribution* drivers.
+- **Logotherapy / "Will to Meaning"** — Viktor Frankl. Captured implicitly via the Madanes *Significance* and *Contribution* drivers.
 
 ## Backup (optional Bun + SQLite sidecar)
 

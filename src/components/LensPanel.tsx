@@ -101,7 +101,7 @@ export const LensPanel = ({
         </div>
       </LensRow>
 
-      <LensRow label="3 · Anchor · Robbins 6 Core Human Needs">
+      <LensRow label="3 · Anchor · Madanes 6 Core Human Needs">
         <p className="text-[11px] text-pink-700 mb-2">Which fundamental driver does this value serve?</p>
         <div className="flex flex-wrap gap-1">
           {CORE_NEEDS.map(n => {

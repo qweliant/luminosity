@@ -119,7 +119,7 @@ export const CompletionBar = ({ completion }: { completion: LensCompletion }) =>
 // --- SdtFootnote ------------------------------------------------------------
 // Read-only Self-Determination Theory profile (autonomy / competence /
 // relatedness), derived from NVC tags + core need. No input; appears under
-// the Robbins step when at least one signal exists.
+// the Madanes step when at least one signal exists.
 
 export const SdtFootnote = ({ profile }: { profile: SdtProfile }) => {
   const total = profile.autonomy + profile.competence + profile.relatedness;

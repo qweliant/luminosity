@@ -1,6 +1,6 @@
 # luminosity · Needs & Values
 
-A local-first, editorial reflection tool for mapping `Value → Friction → Need → Workability` across the values you care about. Built around six established frameworks (NVC, ACT, Robbins, Stanford Life Design, Nagoski, and an optional Sander T. Jones relational lens) with a deterministic synthesis step that drafts your Need sentence from your selections.
+A local-first, editorial reflection tool for mapping `Value → Friction → Need → Workability` across the values you care about. Built around six established frameworks (NVC, ACT, Madanes, Stanford Life Design, Nagoski, and an optional Sander T. Jones relational lens) with a deterministic synthesis step that drafts your Need sentence from your selections.
 
 End-user docs live in [HOWTO.md](HOWTO.md). This file is for working on the codebase.
 
@@ -92,7 +92,7 @@ export interface Mapping {
   // Lens fields (all optional, all additive)
   workability?: number;          // 1–5 (ACT Bullseye)
   nvcNeeds?: string[];           // selected NVC universal needs
-  coreNeed?: string;             // one of CORE_NEEDS (Robbins)
+  coreNeed?: string;             // one of CORE_NEEDS (Madanes)
   lifeDesign?: LifeDesignLens;   // Stanford: wayfinding, problem frame,
                                  //   reframe/acceptance note, prototype
   accelerators?: string;         // Nagoski
