@@ -6,6 +6,7 @@
 import React from 'react';
 import { Trash2 } from 'lucide-react';
 import type { Mapping } from '../types';
+import { EMOTION_PLACES_BY_ID, findEmotion } from '../data';
 import { lensCompletion } from '../derive';
 import { CompletionBar, WorkabilityDots } from './primitives';
 import { LensPanel } from './LensPanel';
@@ -71,6 +72,18 @@ export const EntrySection = ({
               placeholder="What's currently standing in the way?"
               rows={3}
             />
+            {entry.emotionCluster && (() => {
+              const place = EMOTION_PLACES_BY_ID[entry.emotionCluster];
+              const emo = findEmotion(entry.emotionCluster, entry.emotion);
+              const cessation = !!emo?.cessation;
+              return (
+                <p className={`text-[11px] italic pt-0.5 ${cessation ? 'text-amber-700' : 'text-pink-700'}`}>
+                  {cessation ? '⚠ ' : ''}
+                  {entry.emotion ? `${entry.emotion.toLowerCase()} · ` : ''}
+                  <span className="text-pink-500">{place.label.toLowerCase()}</span>
+                </p>
+              );
+            })()}
           </div>
           <div className="space-y-2">
             <label className="text-[10px] uppercase tracking-[0.2em] text-black-400 font-semibold">The Need</label>
@@ -114,6 +127,13 @@ export const EntrySection = ({
             interactive controls can be hidden cleanly during print. */}
         <div className="hidden print:block text-[11px] text-pink-600 pt-3 mt-2 border-t border-gray-100 space-y-1">
           {entry.workability ? <div>Workability: {entry.workability}/5</div> : null}
+          {entry.emotionCluster ? (
+            <div>
+              Atlas of the Heart:{' '}
+              {entry.emotion ? `${entry.emotion} · ` : ''}
+              {EMOTION_PLACES_BY_ID[entry.emotionCluster].label}
+            </div>
+          ) : null}
           {entry.coreNeed ? <div>Core need: {entry.coreNeed}</div> : null}
           {entry.lifeDesign?.wayfinding?.engagement || entry.lifeDesign?.wayfinding?.energy ? (
             <div>

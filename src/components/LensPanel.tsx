@@ -21,6 +21,7 @@ import {
 import { LensRow, SdtFootnote, WorkabilityDots } from './primitives';
 import { LifeDesignSection } from './LifeDesignSection';
 import { RelationalSection } from './RelationalSection';
+import { EmotionPicker } from './EmotionPicker';
 
 export const LensPanel = ({
   entry,
@@ -63,13 +64,16 @@ export const LensPanel = ({
         </LensRow>
       )}
 
-      <LensRow label="1 · Diagnose · ACT Workability">
+      <LensRow label="1 · Diagnose · ACT + Atlas of the Heart">
         <p className="text-[11px] text-pink-700 mb-2">How well is your current environment serving this value?</p>
         <WorkabilityDots
           value={entry.workability ?? 0}
           onChange={(n) => onChange({ workability: n })}
           showLabel
         />
+        <div className="mt-4">
+          <EmotionPicker entry={entry} onChange={onChange} variant="compact" />
+        </div>
       </LensRow>
 
       <LensRow label="2 · Locate · NVC Universal Needs">

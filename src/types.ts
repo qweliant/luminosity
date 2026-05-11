@@ -4,6 +4,19 @@
 export type LifeDesignProblemType = 'open' | 'stuck' | 'reality';
 export type PrototypeMode = 'talk' | 'do';
 
+// Brené Brown · Atlas of the Heart — eight of the thirteen "places we go"
+// are friction-relevant; the others (Life Is Good, It's Beyond Us, etc.) are
+// positive or self-assessing and don't belong on the friction step.
+export type EmotionCluster =
+  | 'uncertain'
+  | 'compare'
+  | 'unplanned'
+  | 'hurting'
+  | 'fall_short'
+  | 'connection'
+  | 'heart_open'
+  | 'wronged';
+
 // Sander T. Jones — Cultivating Connection. Optional relational accountability
 // layer; hidden by default since most entries are solo reflections.
 export type RelationalSource = 'right_violation' | 'agreement_violation' | 'internal_work';
@@ -43,6 +56,12 @@ export interface Mapping {
   accelerators?: string;
   brakes?: string;
   relational?: RelationalLens;
+
+  // Atlas of the Heart granularity tag. Cluster is the "place we go"; emotion
+  // is the specific feeling inside it. Both optional — entries written before
+  // this lens existed simply leave them unset.
+  emotionCluster?: EmotionCluster;
+  emotion?: string;
 }
 
 // --- Migration --------------------------------------------------------------

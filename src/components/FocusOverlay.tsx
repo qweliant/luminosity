@@ -6,9 +6,10 @@ import React, { useEffect, useState } from 'react';
 import type { Mapping } from '../types';
 import { workabilityColor } from '../types';
 import { CORE_NEEDS, CORE_NEEDS_DETAIL, NVC_CATEGORIES } from '../data';
-import { deriveNeed, lensCompletion } from '../derive';
+import { deriveNeed, isCessationState, lensCompletion } from '../derive';
 import { LifeDesignSection } from './LifeDesignSection';
 import { RelationalSection } from './RelationalSection';
+import { EmotionPicker } from './EmotionPicker';
 
 const FOCUS_STEPS = ['Diagnose', 'Locate', 'Anchor', 'Reframe', 'Contextualize', 'Synthesize'];
 const FOCUS_PROMPTS = [
@@ -191,6 +192,10 @@ const FocusStep = ({
             placeholder="What's currently standing in the way?"
           />
         </div>
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.25em] text-pink-700 mb-3">Atlas of the Heart · Granularity</p>
+          <EmotionPicker entry={entry} onChange={onChange} variant="focus" />
+        </div>
       </div>
     );
   }
@@ -294,31 +299,54 @@ const FocusStep = ({
 
   // step === 6 — Synthesize
   const draft = deriveNeed(entry);
+  const cessation = isCessationState(entry);
   return (
     <div className="space-y-8">
-      <div>
-        <p className="text-[10px] uppercase tracking-[0.25em] text-black-500 mb-2">Templated draft</p>
-        <p className="text-[14px] text-pink-700 leading-relaxed italic font-serif border-l-2 border-sky-200 pl-4">
-          {draft}
-        </p>
-        <div className="flex gap-4 mt-3">
-          <button
-            onClick={() => onChange({ need: draft })}
-            className="text-[10px] uppercase tracking-[0.25em] text-black-700 hover:underline"
-          >
-            Use draft
-          </button>
-          <button
-            onClick={() => {
-              const merged = entry.need ? `${entry.need}\n\n${draft}` : draft;
-              onChange({ need: merged });
-            }}
-            className="text-[10px] uppercase tracking-[0.25em] text-pink-600 hover:underline"
-          >
-            Append to mine
-          </button>
+      {cessation ? (
+        <div className="border-l-2 border-amber-400 pl-4">
+          <p className="text-[10px] uppercase tracking-[0.25em] text-amber-700 mb-2">
+            Cessation state · planning is not the move
+          </p>
+          <p className="text-[14px] text-pink-700 leading-relaxed italic font-serif">
+            {draft}
+          </p>
+          <p className="text-[11px] text-pink-500 mt-3 leading-relaxed">
+            Brown&apos;s research: in this state, a prescriptive Need will not work. The text above is the only Need that fits. You can use it, write your own compassion sentence, or close this entry and come back when you are not here.
+          </p>
+          <div className="flex gap-4 mt-3">
+            <button
+              onClick={() => onChange({ need: draft })}
+              className="text-[10px] uppercase tracking-[0.25em] text-amber-800 hover:underline"
+            >
+              Use compassion frame
+            </button>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div>
+          <p className="text-[10px] uppercase tracking-[0.25em] text-black-500 mb-2">Templated draft</p>
+          <p className="text-[14px] text-pink-700 leading-relaxed italic font-serif border-l-2 border-sky-200 pl-4">
+            {draft}
+          </p>
+          <div className="flex gap-4 mt-3">
+            <button
+              onClick={() => onChange({ need: draft })}
+              className="text-[10px] uppercase tracking-[0.25em] text-black-700 hover:underline"
+            >
+              Use draft
+            </button>
+            <button
+              onClick={() => {
+                const merged = entry.need ? `${entry.need}\n\n${draft}` : draft;
+                onChange({ need: merged });
+              }}
+              className="text-[10px] uppercase tracking-[0.25em] text-pink-600 hover:underline"
+            >
+              Append to mine
+            </button>
+          </div>
+        </div>
+      )}
       <div>
         <p className="text-[10px] uppercase tracking-[0.25em] text-pink-700 mb-2">Your Need</p>
         <textarea

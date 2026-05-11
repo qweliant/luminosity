@@ -9,6 +9,7 @@ import {
   deriveNeed,
   formatList,
   hasAnyLensData,
+  isCessationState,
   lensCompletion,
   maslowHighest,
   relationalFreedoms,
@@ -90,6 +91,12 @@ describe('lensCompletion', () => {
     );
     expect(c.steps[3]).toBe(true);
   });
+
+  test('emotionCluster alone fills the Diagnose step (no workability needed)', () => {
+    const c = lensCompletion(baseEntry({ emotionCluster: 'fall_short' }));
+    expect(c.steps[0]).toBe(true);
+    expect(c.filled).toBe(1);
+  });
 });
 
 // --- hasAnyLensData --------------------------------------------------------
@@ -109,6 +116,49 @@ describe('hasAnyLensData', () => {
   test('inactive relational with checklist values → false', () => {
     expect(
       hasAnyLensData(baseEntry({ relational: { active: false, focusSelf: true } }))
+    ).toBe(false);
+  });
+  test('emotionCluster alone → true', () => {
+    expect(hasAnyLensData(baseEntry({ emotionCluster: 'uncertain' }))).toBe(true);
+  });
+});
+
+// --- isCessationState ------------------------------------------------------
+
+describe('isCessationState', () => {
+  test('cluster alone is not enough — needs the specific emotion', () => {
+    expect(isCessationState(baseEntry({ emotionCluster: 'fall_short' }))).toBe(false);
+  });
+  test('non-cessation emotion in a friction cluster → false', () => {
+    expect(
+      isCessationState(baseEntry({ emotionCluster: 'fall_short', emotion: 'Guilt' }))
+    ).toBe(false);
+  });
+  test('Shame in We Fall Short → true', () => {
+    expect(
+      isCessationState(baseEntry({ emotionCluster: 'fall_short', emotion: 'Shame' }))
+    ).toBe(true);
+  });
+  test('Overwhelm in Uncertain → true', () => {
+    expect(
+      isCessationState(baseEntry({ emotionCluster: 'uncertain', emotion: 'Overwhelm' }))
+    ).toBe(true);
+  });
+  test('Flooding in Heart Is Open → true', () => {
+    expect(
+      isCessationState(baseEntry({ emotionCluster: 'heart_open', emotion: 'Flooding' }))
+    ).toBe(true);
+  });
+  test('every emotion in We\'re Hurting is cessation', () => {
+    for (const e of ['Anguish', 'Hopelessness', 'Despair', 'Sadness', 'Grief']) {
+      expect(
+        isCessationState(baseEntry({ emotionCluster: 'hurting', emotion: e }))
+      ).toBe(true);
+    }
+  });
+  test('mismatched cluster + emotion → false (emotion must live in the cluster)', () => {
+    expect(
+      isCessationState(baseEntry({ emotionCluster: 'compare', emotion: 'Shame' }))
     ).toBe(false);
   });
 });
@@ -237,6 +287,92 @@ describe('deriveNeed', () => {
   test('relational active without source emits no clause', () => {
     const out = deriveNeed(baseEntry({ relational: { active: true } }));
     expect(out).not.toContain('Accountability');
+  });
+
+  // --- Atlas of the Heart · cessation short-circuit -----------------------
+
+  test('Shame returns compassion frame only, bypassing NVC/Stanford clauses', () => {
+    const out = deriveNeed(
+      baseEntry({
+        nvcNeeds: ['empathy', 'connection'],
+        coreNeed: 'Connection',
+        lifeDesign: { problemFrame: 'open', prototype: { mode: 'do', action: 'try a thing' } },
+        emotionCluster: 'fall_short',
+        emotion: 'Shame',
+      })
+    );
+    expect(out).toContain('shame');
+    expect(out).toContain('self-compassion');
+    // The full template should not appear.
+    expect(out).not.toContain('Reliable access');
+    expect(out).not.toContain('Prototype');
+    expect(out).not.toContain('deeper need');
+  });
+
+  test('Overwhelm returns cessation frame only', () => {
+    const out = deriveNeed(
+      baseEntry({
+        nvcNeeds: ['rest'],
+        emotionCluster: 'uncertain',
+        emotion: 'Overwhelm',
+      })
+    );
+    expect(out).toContain('cessation');
+    expect(out).not.toContain('Reliable access');
+  });
+
+  test('Grief returns its own line, no prescription', () => {
+    const out = deriveNeed(
+      baseEntry({ emotionCluster: 'hurting', emotion: 'Grief' })
+    );
+    expect(out.toLowerCase()).toContain('grief');
+    expect(out).not.toContain('Reliable access');
+  });
+
+  // --- Atlas of the Heart · non-cessation biases --------------------------
+
+  test('Envy adds the latent-desire clause', () => {
+    const out = deriveNeed(
+      baseEntry({ emotionCluster: 'compare', emotion: 'Envy' })
+    );
+    expect(out).toContain('Envy as data');
+    expect(out).toContain('have not given myself permission');
+  });
+
+  test('Resentment routes to the self-imposed standard, not the other person', () => {
+    const out = deriveNeed(
+      baseEntry({ emotionCluster: 'compare', emotion: 'Resentment' })
+    );
+    expect(out).toContain('the standard I am holding');
+  });
+
+  test('Guilt frames the Need as realignment, not condemnation', () => {
+    const out = deriveNeed(
+      baseEntry({ emotionCluster: 'fall_short', emotion: 'Guilt' })
+    );
+    expect(out).toContain('realignment');
+  });
+
+  test('Disappointment surfaces the expectation question', () => {
+    const out = deriveNeed(
+      baseEntry({ emotionCluster: 'unplanned', emotion: 'Disappointment' })
+    );
+    expect(out).toContain('expectation');
+  });
+
+  test('Anger routes to the workability/acceptance branch question', () => {
+    const out = deriveNeed(
+      baseEntry({ emotionCluster: 'wronged', emotion: 'Anger' })
+    );
+    expect(out).toContain('Test the target');
+  });
+
+  test('Cluster without emotion emits no bias clause', () => {
+    const out = deriveNeed(
+      baseEntry({ emotionCluster: 'compare' })
+    );
+    expect(out).not.toContain('Envy');
+    expect(out).not.toContain('Resentment');
   });
 });
 

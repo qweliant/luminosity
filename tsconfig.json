@@ -7,8 +7,8 @@
     "moduleDetection": "force",
     "jsx": "react-jsx",
     "allowJs": true,
-    "types": ["bun"],
-
+    "types": ["bun", "react", "react-dom"],
+    
     // Bundler mode
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
