@@ -314,20 +314,36 @@ const App = () => {
 
   return (
     <div className="min-h-screen bg-[#FDF4F0] text-[#3A1E2A] selection:bg-[#FBD9E0] font-sans overflow-x-hidden relative">
-      {/* Ambient decorative flower confetti */}
-
+      {/* --- AMBIENT FLORAL CONFETTI MENAGERIE --- */}
       <div
-        aria-hidden
-        className="absolute left-[-20px] top-[240px] opacity-70 pointer-events-none print:hidden"
+        aria-hidden="true"
+        className="absolute left-[-20px] top-[180px] opacity-60 pointer-events-none print:hidden z-0"
       >
-        <BloomFlower size={60} petal="#F4ABBC" smile={false} />
+        <BloomFlower size={70} petal="#F4ABBC" smile={false} />
       </div>
-
       <div
-        aria-hidden
-        className="absolute right-[-30px] top-[580px] opacity-70 pointer-events-none print:hidden"
+        aria-hidden="true"
+        className="absolute right-[-30px] top-[420px] opacity-50 pointer-events-none print:hidden z-0"
       >
-        <BloomFlower size={80} petal="#FBD9E0" smile={false} />
+        <BloomFlower size={90} petal="#FBD9E0" smile={false} />
+      </div>
+      <div
+        aria-hidden="true"
+        className="absolute left-[10px] top-[750px] opacity-40 pointer-events-none print:hidden z-0"
+      >
+        <BloomFlower size={45} petal="#F7D679" smile={false} />
+      </div>
+      <div
+        aria-hidden="true"
+        className="absolute right-[15px] top-[1050px] opacity-40 pointer-events-none print:hidden z-0"
+      >
+        <BloomFlower size={60} petal="#9CD3B6" smile={false} />
+      </div>
+      <div
+        aria-hidden="true"
+        className="absolute left-[-40px] top-[1400px] opacity-30 pointer-events-none print:hidden z-0"
+      >
+        <BloomFlower size={120} petal="#F4ABBC" smile={false} />
       </div>
 
       {focusedEntry && (
@@ -502,20 +518,96 @@ const App = () => {
           <MatrixView entries={entries} onFocus={(id) => setFocusEntryId(id)} />
         ) : (
           <main className="space-y-4 sm:space-y-6">
+            {/* --- UPGRADED MURAKAMI EMPTY CANVAS --- */}
             {entries.length === 0 && (
-              <div className="text-center py-20 bg-white border border-dashed border-[#3A1E2A]/15 rounded-[18px] p-6">
-                <BloomFlower size={60} petal="#F4ABBC" smile={false} />
-
-                <p className="text-[#5A3645] font-serif italic text-lg mt-4 mb-2">
-                  No values currently resting here.
-                </p>
-
-                <button
-                  onClick={() => setShowImport(true)}
-                  className="text-xs text-[#C24E6E] uppercase tracking-wider font-bold hover:underline"
+              <div className="py-8 px-4 sm:px-8 bg-white border border-[#3A1E2A]/10 rounded-[18px] shadow-sm relative overflow-hidden animate-in fade-in duration-300 mt-2">
+                {/* Internal Decorative Blooms */}
+                <div
+                  aria-hidden="true"
+                  className="absolute right-[-20px] top-[-20px] opacity-30 pointer-events-none"
                 >
-                  ✿ open library to populate
-                </button>
+                  <BloomFlower size={140} petal="#F4ABBC" smile={false} />
+                </div>
+                <div
+                  aria-hidden="true"
+                  className="absolute left-[-30px] bottom-[-30px] opacity-30 pointer-events-none"
+                >
+                  <BloomFlower size={160} petal="#FBD9E0" smile={false} />
+                </div>
+
+                {/* Lumi Greeting Bubble Area */}
+                <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 sm:gap-6 mb-8 relative z-10">
+                  <div className="shrink-0">
+                    <LumiBean size={100} />
+                  </div>
+
+                  {/* Speech Bubble */}
+                  <div className="bg-[#FDF4F0] border border-[#3A1E2A]/15 rounded-2xl p-4 sm:p-5 flex-1 relative shadow-2xs">
+                    <div className="absolute left-1/2 sm:left-[-7px] top-[-7px] sm:top-auto sm:bottom-6 w-3 h-3 bg-[#FDF4F0] border-t border-l sm:border-t-0 sm:border-r border-[#3A1E2A]/15 rotate-45" />
+                    <p className="font-serif text-xl sm:text-2xl text-[#3A1E2A] leading-tight m-0">
+                      hi! i&apos;m lumi.
+                    </p>
+                    <p className="font-serif italic text-xs sm:text-sm text-[#5A3645] mt-1 mb-0">
+                      shall we drop a few core values onto the canvas to begin?
+                    </p>
+                  </div>
+                </div>
+
+                {/* Onboarding Action Stack */}
+                <div className="grid gap-3 max-w-md mx-auto relative z-10">
+                  <button
+                    type="button"
+                    onClick={() => setShowImport(true)}
+                    className="w-full bg-[#C24E6E] text-white p-3.5 rounded-xl text-left transition-all hover:bg-[#3A1E2A] shadow-2xs group cursor-pointer flex items-center gap-3"
+                  >
+                    <span className="bg-white/20 p-1.5 rounded-lg text-white group-hover:bg-white/10 shrink-0">
+                      <BloomFlower
+                        size={16}
+                        petal="#FFFFFF"
+                        eye="#C24E6E"
+                        smile={false}
+                      />
+                    </span>
+                    <div>
+                      <div className="font-sans text-xs font-bold uppercase tracking-wider">
+                        From the curated library
+                      </div>
+                      <div className="font-serif italic text-xs text-pink-100 mt-0.5">
+                        Explore detailed definitions by season...
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // Instantly populates the 5 common seed values
+                      const seeded = seedPersonalValues();
+                      setEntries(seeded);
+                    }}
+                    className="w-full bg-[#FFF5DC] text-[#3A1E2A] p-3.5 rounded-xl border border-[#3A1E2A]/10 text-left transition-all hover:border-[#E07A95] cursor-pointer flex items-center gap-3"
+                  >
+                    <span className="bg-[#F7D679] p-1.5 rounded-lg text-[#3A1E2A] shrink-0">
+                      ✿
+                    </span>
+                    <div>
+                      <div className="font-sans text-xs font-bold uppercase tracking-wider text-[#5A3645]">
+                        Seed five common pillars
+                      </div>
+                      <div className="font-serif italic text-xs text-[#B391A0] mt-0.5">
+                        Compassion · Curiosity · Health · Harmony · Peace
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowImport(true)} // Toggles modal where paste tab is available
+                    className="w-full bg-transparent text-[#5A3645] p-3 rounded-xl border border-dashed border-[#3A1E2A]/15 text-center transition-all hover:bg-[#FAE6E1]/30 cursor-pointer font-sans text-xs font-medium"
+                  >
+                    ✎ Or paste your own raw unformatted list
+                  </button>
+                </div>
               </div>
             )}
 
