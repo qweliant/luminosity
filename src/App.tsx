@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Plus, Printer, FileInput } from "lucide-react";
+import { Plus, Printer, FileInput, Radio } from "lucide-react";
 
 import { migrateMapping, type LegacyMapping, type Mapping } from "./types";
 import { seedPersonalValues } from "./data";
@@ -12,9 +12,13 @@ import { FocusOverlay } from "./components/FocusOverlay";
 import { ImportModal } from "./components/ImportModal";
 import { MatrixView } from "./components/MatrixView";
 import { PrintLedger } from "./components/PrintLedger";
+import { SyncOverlay } from "./components/SyncOverlay";
+
+// Import your shared state mapping services natively
+import { mountSystemDirectory } from "./services/storageDaemon";
+import { yEntriesMap, ydoc, isSyncing } from "./services/syncEngine";
 
 const STORAGE_KEY = "values-mapper-v2";
-const SEED_FLAG = "values-mapper-seed-v1";
 
 // -----------------------------------------------------------------------------
 // Bloom SVG Accessories & Mascots
@@ -161,7 +165,6 @@ const DynamicAmbientBlooms = () => {
     return () => observer.disconnect();
   }, []);
 
-  // Pure arithmetic layout: place exactly 1 bloom roughly every 300px of vertical space
   const count = Math.floor(pageHeight / 300);
   const petals = ["#F4ABBC", "#FBD9E0", "#F7D679", "#9CD3B6", "#E07A95"];
 
@@ -180,21 +183,17 @@ const DynamicAmbientBlooms = () => {
         }
       `}</style>
       {Array.from({ length: count }).map((_, i) => {
-        // Deterministic layout calculations based entirely on index identity.
-        // Guarantees existing flowers stay firmly anchored in place as page grows.
         const r1 = Math.abs(Math.sin(i + 1));
         const r2 = Math.abs(Math.cos(i + 1));
         const r3 = Math.abs(Math.sin((i + 1) * 2));
 
         const isLeft = i % 2 === 0;
-        // Keep them tucked elegantly along the left/right peripheral gutters
         const gutterPos = isLeft ? -30 + r1 * 40 : -20 + r1 * 30;
         const topPos = 150 + i * 300 + r2 * 100;
         const size = 45 + Math.floor(r3 * 50);
         const petal = petals[i % petals.length];
         const delay = (r1 * 5).toFixed(1);
 
-        // Prevent scattering straight past the ending footer
         if (topPos > pageHeight - 150) return null;
 
         return (
@@ -222,29 +221,23 @@ const DynamicAmbientBlooms = () => {
 const norm = (s: string) => s.trim().toLowerCase();
 
 // -----------------------------------------------------------------------------
-// App
+// App Root
 // -----------------------------------------------------------------------------
 
-const App = () => {
+export const App = () => {
   // ---------------------------------------------------------------------------
   // Persistence initialization
   // ---------------------------------------------------------------------------
 
   const [entries, setEntries] = useState<Mapping[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
-
     const parsed: LegacyMapping[] = saved ? JSON.parse(saved) : [];
-
     const migrated = parsed.map(migrateMapping);
-
-    if (!localStorage.getItem(SEED_FLAG) && migrated.length === 0) {
-      localStorage.setItem(SEED_FLAG, "1");
-      return seedPersonalValues();
-    }
 
     return migrated;
   });
 
+  // Preserve baseline application caching states safely
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
   }, [entries]);
@@ -257,10 +250,47 @@ const App = () => {
   const [matrixView, setMatrixView] = useState(false);
   const [focusEntryId, setFocusEntryId] = useState<string | null>(null);
   const [showImport, setShowImport] = useState(false);
-
+  const [showSync, setShowSync] = useState(false);
+  const [liveP2P, setLiveP2P] = useState(() => isSyncing());
   const [dismissHello, setDismissHello] = useState(
     () => localStorage.getItem("lumi-nudge-dismissed") === "1",
   );
+
+  const [randomStartIndex, setRandomStartIndex] = useState(0);
+
+  // ---------------------------------------------------------------------------
+  // CRDT TWO-WAY SYNCHRONIZATION BRIDGE
+  // ---------------------------------------------------------------------------
+
+  // 1. INBOUND: Watch shared maps to seamlessly capture incoming WebRTC updates
+  useEffect(() => {
+    const handleRemoteUpdates = (event: any, transaction: any) => {
+      // Prevent local client transaction echoes from triggering interface redraws
+      if (transaction.local) return;
+
+      const updatedMappings: Mapping[] = [];
+      yEntriesMap.forEach((mapping) => {
+        updatedMappings.push(mapping);
+      });
+
+      setEntries(updatedMappings);
+    };
+
+    yEntriesMap.observe(handleRemoteUpdates);
+    return () => yEntriesMap.unobserve(handleRemoteUpdates);
+  }, []);
+
+  // 2. HOST SEEDING: Populate ephemeral maps dynamically upon host connection
+  useEffect(() => {
+    // Check if the user has genuine persisted history rather than unedited session defaults
+    const hasPersistedHistory = localStorage.getItem(STORAGE_KEY) !== null;
+
+    if (hasPersistedHistory && entries.length > 0 && yEntriesMap.size === 0) {
+      ydoc.transact(() => {
+        entries.forEach((mapping) => yEntriesMap.set(mapping.id, mapping));
+      }, "local");
+    }
+  }, [entries]);
 
   // ---------------------------------------------------------------------------
   // Derived indicator sets
@@ -274,9 +304,7 @@ const App = () => {
     entries
       .filter((e) => {
         const k = norm(e.value);
-
         if (!k) return false;
-
         return entries.some(
           (other) => other.id !== e.id && norm(other.value) === k,
         );
@@ -293,27 +321,22 @@ const App = () => {
   // ---------------------------------------------------------------------------
 
   const countTotal = entries.length;
-
   const countStuck = entries.filter((e) => e.workability === 1).length;
-
   const countMixed = entries.filter(
     (e) => e.workability === 2 || e.workability === 3,
   ).length;
-
   const countWorking = entries.filter(
     (e) => e.workability === 4 || e.workability === 5,
   ).length;
 
   const activeLensesCount = entries.reduce((acc, e) => {
     let c = 0;
-
     if (e.workability) c++;
     if (e.emotionCluster) c++;
     if (e.coreNeed) c++;
     if (e.lifeDesign?.problemFrame) c++;
     if (e.accelerators?.trim()) c++;
     if (e.relational?.active) c++;
-
     return acc + c;
   }, 0);
 
@@ -333,38 +356,51 @@ const App = () => {
     );
 
     if (!ok) return;
-
     const restored = await backup.restore(snap.id);
-
-    if (restored) setEntries(restored);
+    if (restored) {
+      // Re-seed updated targets directly into persistent document maps
+      ydoc.transact(() => {
+        yEntriesMap.clear();
+        restored.forEach((mapping) => yEntriesMap.set(mapping.id, mapping));
+      }, "local");
+      setEntries(restored);
+    }
   };
 
   // ---------------------------------------------------------------------------
-  // State mutations
+  // State mutations (Bridged natively to Local and CRDT map targets)
   // ---------------------------------------------------------------------------
 
-  const updateEntry = (id: string, patch: Partial<Mapping>) =>
-    setEntries(entries.map((e) => (e.id === id ? { ...e, ...patch } : e)));
+  const updateEntry = (id: string, patch: Partial<Mapping>) => {
+    setEntries((prev) =>
+      prev.map((e) => {
+        if (e.id === id) {
+          const updated = { ...e, ...patch };
+          // Push mutation sets safely to shared CRDT parameters
+          ydoc.transact(() => {
+            yEntriesMap.set(id, updated);
+          }, "local");
+          return updated;
+        }
+        return e;
+      }),
+    );
+  };
 
   const toggleNvc = (id: string, need: string) => {
     const e = entries.find((x) => x.id === id);
-
     if (!e) return;
 
     const cur = e.nvcNeeds ?? [];
+    const updatedNeeds = cur.includes(need)
+      ? cur.filter((n) => n !== need)
+      : [...cur, need];
 
-    updateEntry(id, {
-      nvcNeeds: cur.includes(need)
-        ? cur.filter((n) => n !== need)
-        : [...cur, need],
-    });
+    updateEntry(id, { nvcNeeds: updatedNeeds });
   };
 
   const toggleLens = (id: string) =>
-    setOpenLenses((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }));
+    setOpenLenses((prev) => ({ ...prev, [id]: !prev[id] }));
 
   const handleAddImported = (names: string[]) => {
     const newEntries: Mapping[] = names.map((name) => ({
@@ -374,7 +410,33 @@ const App = () => {
       friction: "",
     }));
 
+    ydoc.transact(() => {
+      newEntries.forEach((mapping) => yEntriesMap.set(mapping.id, mapping));
+    }, "local");
+
     setEntries([...entries, ...newEntries]);
+  };
+
+  const handleDeleteEntry = (id: string) => {
+    ydoc.transact(() => {
+      yEntriesMap.delete(id);
+    }, "local");
+    setEntries(entries.filter((e) => e.id !== id));
+  };
+
+  const handleAddBlankSpace = () => {
+    const newEntry: Mapping = {
+      id: crypto.randomUUID(),
+      value: "",
+      need: "",
+      friction: "",
+    };
+
+    ydoc.transact(() => {
+      yEntriesMap.set(newEntry.id, newEntry);
+    }, "local");
+
+    setEntries([...entries, newEntry]);
   };
 
   const hideHelloNudge = () => {
@@ -383,12 +445,11 @@ const App = () => {
   };
 
   // ---------------------------------------------------------------------------
-  // Render
+  // Render Layout
   // ---------------------------------------------------------------------------
 
   return (
     <div className="min-h-screen bg-[#FDF4F0] text-[#3A1E2A] selection:bg-[#FBD9E0] font-sans overflow-x-hidden relative">
-      {/* --- DYNAMIC AMBIENT BLOOMS ENGINE --- */}
       <DynamicAmbientBlooms />
 
       {focusedEntry && (
@@ -406,6 +467,16 @@ const App = () => {
         existingValues={existingValues}
         onAdd={handleAddImported}
       />
+
+      <SyncOverlay
+        open={showSync}
+        onClose={() => {
+          setShowSync(false);
+          setLiveP2P(isSyncing());
+        }}
+        onMountStorage={mountSystemDirectory}
+      />
+
       <PrintLedger entries={entries} />
 
       <div className="print:hidden">
@@ -414,15 +485,10 @@ const App = () => {
             matrixView ? "max-w-4xl" : "max-w-3xl"
           } mx-auto py-12 px-6 transition-all`}
         >
-          {/* ------------------------------------------------------------------- */}
-          {/* MAIN HEADER BANNER */}
-          {/* ------------------------------------------------------------------- */}
-
           <header className="mb-6 flex flex-col gap-4 print:hidden">
             <div className="flex justify-between items-end flex-wrap gap-4 border-b border-[#3A1E2A]/10 pb-4">
               <div className="flex items-baseline gap-3">
                 <BloomWordmark size={36} />
-
                 <span className="font-serif italic text-xs text-[#B391A0]">
                   a kind, small ledger
                 </span>
@@ -437,6 +503,20 @@ const App = () => {
                   onSnapshot={backup.snapshotNow}
                   onRestore={handleRestore}
                 />
+
+                <button
+                  onClick={() => setShowSync(true)}
+                  className={`hover:text-[#C24E6E] transition-colors flex items-center gap-1 cursor-pointer ${
+                    liveP2P ? "text-[#9CD3B6] font-bold" : "text-[#B391A0]"
+                  }`}
+                  title="Connect tracking nodes over end-to-end encrypted local WebRTC channels"
+                >
+                  <Radio
+                    size={15}
+                    className={`inline ${liveP2P ? "animate-pulse" : ""}`}
+                  />
+                  <span>{liveP2P ? "P2P Live" : "Sync"}</span>
+                </button>
 
                 <button
                   onClick={() => setMatrixView((v) => !v)}
@@ -467,16 +547,11 @@ const App = () => {
               </div>
             </div>
 
-            {/* ----------------------------------------------------------------- */}
-            {/* NOTEBOOK HEALTH METRICS BAND */}
-            {/* ----------------------------------------------------------------- */}
-
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 p-4 bg-[#FFFFFF] rounded-[16px] border border-[#3A1E2A]/10 items-center shadow-xs">
               <div>
                 <div className="font-mono text-[8.5px] text-[#B391A0] tracking-[0.16em] uppercase">
                   values
                 </div>
-
                 <div className="font-serif text-2xl text-[#3A1E2A] mt-0.5">
                   {countTotal}
                 </div>
@@ -486,7 +561,6 @@ const App = () => {
                 <div className="font-mono text-[8.5px] text-[#B391A0] tracking-[0.16em] uppercase">
                   stuck
                 </div>
-
                 <div className="font-serif text-2xl text-[#C24E6E] mt-0.5">
                   {countStuck}
                 </div>
@@ -496,7 +570,6 @@ const App = () => {
                 <div className="font-mono text-[8.5px] text-[#B391A0] tracking-[0.16em] uppercase">
                   mixed
                 </div>
-
                 <div className="font-serif text-2xl text-[#F7D679] mt-0.5">
                   {countMixed}
                 </div>
@@ -506,7 +579,6 @@ const App = () => {
                 <div className="font-mono text-[8.5px] text-[#B391A0] tracking-[0.16em] uppercase">
                   working
                 </div>
-
                 <div className="font-serif text-2xl text-[#9CD3B6] mt-0.5">
                   {countWorking}
                 </div>
@@ -516,7 +588,6 @@ const App = () => {
                 <div className="font-mono text-[8.5px] text-[#B391A0] tracking-[0.16em] uppercase">
                   lenses
                 </div>
-
                 <div className="font-serif text-xl text-[#3A1E2A] mt-0.5">
                   {activeLensesCount}/{maxLenses || 30}
                 </div>
@@ -524,14 +595,9 @@ const App = () => {
             </div>
           </header>
 
-          {/* ------------------------------------------------------------------- */}
-          {/* WARM LUMI HELLO NUDGE ROW */}
-          {/* ------------------------------------------------------------------- */}
-
           {!dismissHello && entries.length > 0 && (
             <div className="mb-6 p-4 bg-[#FAE6E1] rounded-[18px] border border-[#3A1E2A]/10 flex items-center gap-4 relative print:hidden shadow-xs">
               <LumiBean size={54} />
-
               <div className="flex-1">
                 <div className="font-serif italic text-sm sm:text-base text-[#3A1E2A] leading-snug">
                   Hi.
@@ -542,12 +608,10 @@ const App = () => {
                   feels like a good place to start tending today — ready to
                   unpack the friction?
                 </div>
-
                 <div className="mt-1 font-mono text-[9px] text-[#5A3645]/70 tracking-wider">
                   lumi · your gentle nudge
                 </div>
               </div>
-
               <button
                 onClick={hideHelloNudge}
                 className="text-xs text-[#C24E6E] hover:underline px-2 py-1 self-start sm:self-center font-medium"
@@ -557,10 +621,6 @@ const App = () => {
             </div>
           )}
 
-          {/* ------------------------------------------------------------------- */}
-          {/* MAIN CORE RENDER FLOW */}
-          {/* ------------------------------------------------------------------- */}
-
           {matrixView ? (
             <MatrixView
               entries={entries}
@@ -568,10 +628,8 @@ const App = () => {
             />
           ) : (
             <main className="space-y-4 sm:space-y-6">
-              {/* --- UPGRADED MURAKAMI EMPTY CANVAS --- */}
               {entries.length === 0 && (
                 <div className="py-8 px-4 sm:px-8 bg-white border border-[#3A1E2A]/10 rounded-[18px] shadow-sm relative overflow-hidden animate-in fade-in duration-300 mt-2">
-                  {/* Internal Decorative Blooms */}
                   <div
                     aria-hidden="true"
                     className="absolute right-[-20px] top-[-20px] opacity-30 pointer-events-none"
@@ -585,13 +643,10 @@ const App = () => {
                     <BloomFlower size={160} petal="#FBD9E0" smile={false} />
                   </div>
 
-                  {/* Lumi Greeting Bubble Area */}
                   <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 sm:gap-6 mb-8 relative z-10">
                     <div className="shrink-0">
                       <LumiBean size={100} />
                     </div>
-
-                    {/* Speech Bubble */}
                     <div className="bg-[#FDF4F0] border border-[#3A1E2A]/15 rounded-2xl p-4 sm:p-5 flex-1 relative shadow-2xs">
                       <div className="absolute left-1/2 sm:left-[-7px] top-[-7px] sm:top-auto sm:bottom-6 w-3 h-3 bg-[#FDF4F0] border-t border-l sm:border-t-0 sm:border-r border-[#3A1E2A]/15 rotate-45" />
                       <p className="font-serif text-xl sm:text-2xl text-[#3A1E2A] leading-tight m-0">
@@ -604,7 +659,6 @@ const App = () => {
                     </div>
                   </div>
 
-                  {/* Onboarding Action Stack */}
                   <div className="grid gap-3 max-w-md mx-auto relative z-10">
                     <button
                       type="button"
@@ -631,11 +685,7 @@ const App = () => {
 
                     <button
                       type="button"
-                      onClick={() => {
-                        // Instantly populates the 5 common seed values
-                        const seeded = seedPersonalValues();
-                        setEntries(seeded);
-                      }}
+                      onClick={() => setEntries(seedPersonalValues())}
                       className="w-full bg-[#FFF5DC] text-[#3A1E2A] p-3.5 rounded-xl border border-[#3A1E2A]/10 text-left transition-all hover:border-[#E07A95] cursor-pointer flex items-center gap-3"
                     >
                       <span className="bg-[#F7D679] p-1.5 rounded-lg text-[#3A1E2A] shrink-0">
@@ -653,7 +703,7 @@ const App = () => {
 
                     <button
                       type="button"
-                      onClick={() => setShowImport(true)} // Toggles modal where paste tab is available
+                      onClick={() => setShowImport(true)}
                       className="w-full bg-transparent text-[#5A3645] p-3 rounded-xl border border-dashed border-[#3A1E2A]/15 text-center transition-all hover:bg-[#FAE6E1]/30 cursor-pointer font-sans text-xs font-medium"
                     >
                       ✎ Or paste your own raw unformatted list
@@ -662,6 +712,7 @@ const App = () => {
                 </div>
               )}
 
+              {/* Directly target native deletion hooks inside the rendering loop */}
               {entries.map((entry) => (
                 <EntrySection
                   key={entry.id}
@@ -670,35 +721,21 @@ const App = () => {
                   lensOpen={!!openLenses[entry.id]}
                   onToggleLens={() => toggleLens(entry.id)}
                   onChange={(patch) => updateEntry(entry.id, patch)}
-                  onDelete={() =>
-                    setEntries(entries.filter((e) => e.id !== entry.id))
-                  }
+                  onDelete={() => handleDeleteEntry(entry.id)}
                   onToggleNvc={(n) => toggleNvc(entry.id, n)}
                   onFocus={() => setFocusEntryId(entry.id)}
                 />
               ))}
 
-              {/* Bottom blank row append button */}
-
+              {/* Ensure blank additions populate shared CRDT nodes safely */}
               <button
-                onClick={() =>
-                  setEntries([
-                    ...entries,
-                    {
-                      id: crypto.randomUUID(),
-                      value: "",
-                      need: "",
-                      friction: "",
-                    },
-                  ])
-                }
+                onClick={handleAddBlankSpace}
                 className="w-full py-8 border border-dashed border-[#3A1E2A]/15 rounded-[18px] text-[#B391A0] hover:text-[#C24E6E] hover:bg-white transition-all flex items-center justify-center gap-2 print:hidden group shadow-2xs cursor-pointer"
               >
                 <Plus
                   size={20}
                   className="group-hover:rotate-90 transition-transform"
                 />
-
                 <span className="font-mono text-xs tracking-wider uppercase">
                   Add blank mapping space ✿
                 </span>
