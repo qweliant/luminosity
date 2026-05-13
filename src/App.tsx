@@ -346,7 +346,7 @@ export const App = () => {
   // Backup sidecar hooks
   // ---------------------------------------------------------------------------
 
-  const backup = useBackup(entries);
+  const backup = import.meta.env.DEV ? useBackup(entries) : null;
 
   const handleRestore = async (snap: Snapshot) => {
     const ok = window.confirm(
@@ -356,7 +356,7 @@ export const App = () => {
     );
 
     if (!ok) return;
-    const restored = await backup.restore(snap.id);
+    const restored = await backup?.restore(snap.id);
     if (restored) {
       // Re-seed updated targets directly into persistent document maps
       ydoc.transact(() => {
@@ -495,7 +495,7 @@ export const App = () => {
               </div>
 
               <div className="flex gap-4 items-center flex-wrap text-[10px] uppercase tracking-[0.18em] font-medium">
-                {import.meta.env.DEV && (
+                {import.meta.env.DEV && backup && (
                   <BackupChip
                     status={backup.status}
                     lastSnapshot={backup.lastSnapshot}

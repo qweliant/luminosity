@@ -37,9 +37,9 @@ export const connectWebRTC = (config: SyncConfig): void => {
 
   provider = new WebrtcProvider(config.roomName, ydoc, {
     password: config.secretKey,
-    signaling: ["ws://localhost:4444", import.meta.env.VITE_FLYIO_RELAY].filter(
-      Boolean,
-    ) as string[],
+    signaling: import.meta.env.DEV
+      ? ["ws://localhost:4444"]
+      : [import.meta.env.VITE_FLYIO_RELAY].filter(Boolean) as string[],
   });
 
   provider.connect();
