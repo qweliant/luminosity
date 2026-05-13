@@ -1,0 +1,10 @@
+[build]
+  command = "bun run build"
+  publish = "dist"
+
+# Optional: Directs all arbitrary page paths back to index.html to seamlessly 
+# maintain client-side single-page app component state during hard reloads.
+[redirects]
+  from = "/*"
+  to = "/index.html"
+  status = 200
