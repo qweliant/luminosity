@@ -495,14 +495,16 @@ export const App = () => {
               </div>
 
               <div className="flex gap-4 items-center flex-wrap text-[10px] uppercase tracking-[0.18em] font-medium">
-                <BackupChip
-                  status={backup.status}
-                  lastSnapshot={backup.lastSnapshot}
-                  snapshots={backup.snapshots}
-                  inFlight={backup.inFlight}
-                  onSnapshot={backup.snapshotNow}
-                  onRestore={handleRestore}
-                />
+                {import.meta.env.DEV && (
+                  <BackupChip
+                    status={backup.status}
+                    lastSnapshot={backup.lastSnapshot}
+                    snapshots={backup.snapshots}
+                    inFlight={backup.inFlight}
+                    onSnapshot={backup.snapshotNow}
+                    onRestore={handleRestore}
+                  />
+                )}
 
                 <button
                   onClick={() => setShowSync(true)}
