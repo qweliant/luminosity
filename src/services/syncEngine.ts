@@ -35,14 +35,11 @@ export const connectWebRTC = (config: SyncConfig): void => {
 
   currentRoom = config.roomName;
 
-  // Swap out the dead public relays for your blazing fast local node
   provider = new WebrtcProvider(config.roomName, ydoc, {
     password: config.secretKey,
-    signaling: [
-      "ws://localhost:4444",
-      "wss://signaling.yjs.dev",
-      "wss://y-webrtc-signaling-eu.herokuapp.com",
-    ],
+    signaling: ["ws://localhost:4444", import.meta.env.VITE_FLYIO_RELAY].filter(
+      Boolean,
+    ) as string[],
   });
 
   provider.connect();
