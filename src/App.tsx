@@ -1,16 +1,18 @@
 import React, { useEffect, useState } from "react";
-import { Plus, Printer, FileInput, Radio } from "lucide-react";
+import { Plus, Printer, FileInput, Radio, BookOpen } from "lucide-react";
 
 import { migrateMapping, type LegacyMapping, type Mapping } from "./types";
 import { seedPersonalValues } from "./data";
 import { useBackup } from "./useBackup";
 import { relTime, type Snapshot } from "./backup";
+import { useHashRoute, goBackOr } from "./router";
 
 import { BackupChip } from "./components/BackupChip";
 import { EntrySection } from "./components/EntrySection";
 import { FocusOverlay } from "./components/FocusOverlay";
 import { ImportModal } from "./components/ImportModal";
 import { MatrixView } from "./components/MatrixView";
+import { MethodsPage } from "./components/MethodsPage";
 import { PrintLedger } from "./components/PrintLedger";
 import { SyncOverlay } from "./components/SyncOverlay";
 
@@ -247,8 +249,8 @@ export const App = () => {
   // ---------------------------------------------------------------------------
 
   const [openLenses, setOpenLenses] = useState<Record<string, boolean>>({});
-  const [matrixView, setMatrixView] = useState(false);
-  const [focusEntryId, setFocusEntryId] = useState<string | null>(null);
+  const [route, navigate] = useHashRoute();
+  const [lastUnderlay, setLastUnderlay] = useState<"list" | "matrix">("list");
   const [showImport, setShowImport] = useState(false);
   const [showSync, setShowSync] = useState(false);
   const [liveP2P, setLiveP2P] = useState(() => isSyncing());
@@ -256,7 +258,19 @@ export const App = () => {
     () => localStorage.getItem("lumi-nudge-dismissed") === "1",
   );
 
-  const [randomStartIndex, setRandomStartIndex] = useState(0);
+  // Track the last "ground floor" route so closing the Focus overlay can
+  // return us to whichever of list/matrix we were on. Methods is a peer
+  // page rather than an underlay, so it does not update this.
+  useEffect(() => {
+    if (route.name === "list") setLastUnderlay("list");
+    else if (route.name === "matrix") setLastUnderlay("matrix");
+  }, [route]);
+
+  const matrixView =
+    route.name === "matrix" ||
+    (route.name === "focus" && lastUnderlay === "matrix");
+  const focusEntryId = route.name === "focus" ? route.id : null;
+  const showMethods = route.name === "methods";
 
   // ---------------------------------------------------------------------------
   // CRDT TWO-WAY SYNCHRONIZATION BRIDGE
@@ -457,7 +471,7 @@ export const App = () => {
           entry={focusedEntry}
           onChange={(patch) => updateEntry(focusedEntry.id, patch)}
           onToggleNvc={(n) => toggleNvc(focusedEntry.id, n)}
-          onClose={() => setFocusEntryId(null)}
+          onClose={() => goBackOr({ name: lastUnderlay })}
         />
       )}
 
@@ -480,6 +494,9 @@ export const App = () => {
       <PrintLedger entries={entries} />
 
       <div className="print:hidden">
+        {showMethods ? (
+          <MethodsPage onClose={() => goBackOr({ name: lastUnderlay })} />
+        ) : (
         <div
           className={`${
             matrixView ? "max-w-4xl" : "max-w-3xl"
@@ -521,12 +538,23 @@ export const App = () => {
                 </button>
 
                 <button
-                  onClick={() => setMatrixView((v) => !v)}
-                  className={`hover:text-[#C24E6E] transition-colors flex items-center ${
+                  onClick={() =>
+                    navigate({ name: matrixView ? "list" : "matrix" })
+                  }
+                  className={`hover:text-[#C24E6E] transition-colors flex items-center cursor-pointer ${
                     matrixView ? "text-[#C24E6E] font-bold" : "text-[#B391A0]"
                   }`}
                 >
-                  {matrixView ? "✿ List View" : "Matrix"}
+                  {matrixView ? "✿ List view" : "Matrix"}
+                </button>
+
+                <button
+                  onClick={() => navigate({ name: "methods" })}
+                  className="hover:text-[#C24E6E] transition-colors flex items-center text-[#B391A0] cursor-pointer"
+                  title="How the lenses work, and the frameworks behind them"
+                >
+                  <BookOpen size={15} className="inline mr-1" />
+                  methods
                 </button>
 
                 <button
@@ -626,7 +654,7 @@ export const App = () => {
           {matrixView ? (
             <MatrixView
               entries={entries}
-              onFocus={(id) => setFocusEntryId(id)}
+              onFocus={(id) => navigate({ name: "focus", id })}
             />
           ) : (
             <main className="space-y-4 sm:space-y-6">
@@ -725,7 +753,7 @@ export const App = () => {
                   onChange={(patch) => updateEntry(entry.id, patch)}
                   onDelete={() => handleDeleteEntry(entry.id)}
                   onToggleNvc={(n) => toggleNvc(entry.id, n)}
-                  onFocus={() => setFocusEntryId(entry.id)}
+                  onFocus={() => navigate({ name: "focus", id: entry.id })}
                 />
               ))}
 
@@ -750,6 +778,7 @@ export const App = () => {
             ✿
           </footer>
         </div>
+        )}
       </div>
     </div>
   );
