@@ -1,11 +1,19 @@
 import React, { useEffect, useState } from "react";
-import { Plus, Printer, FileInput, Radio, BookOpen } from "lucide-react";
+import {
+  Plus,
+  Printer,
+  FileInput,
+  Radio,
+  BookOpen,
+  Download,
+} from "lucide-react";
 
 import { migrateMapping, type LegacyMapping, type Mapping } from "./types";
 import { seedPersonalValues } from "./data";
 import { useBackup } from "./useBackup";
 import { relTime, type Snapshot } from "./backup";
 import { useHashRoute, goBackOr } from "./router";
+import { downloadEntriesAsJson } from "./transfer";
 
 import { BackupChip } from "./components/BackupChip";
 import { EntrySection } from "./components/EntrySection";
@@ -438,6 +446,22 @@ export const App = () => {
     setEntries(entries.filter((e) => e.id !== id));
   };
 
+  const handleLoadBackup = (loaded: Mapping[]) => {
+    if (entries.length > 0) {
+      const ok = window.confirm(
+        `Replace your current ${entries.length} ${
+          entries.length === 1 ? "entry" : "entries"
+        } with the ${loaded.length} from this backup? Your current data will be overwritten.`,
+      );
+      if (!ok) return;
+    }
+    ydoc.transact(() => {
+      yEntriesMap.clear();
+      loaded.forEach((m) => yEntriesMap.set(m.id, m));
+    }, "local");
+    setEntries(loaded);
+  };
+
   const handleAddBlankSpace = () => {
     const newEntry: Mapping = {
       id: crypto.randomUUID(),
@@ -480,6 +504,8 @@ export const App = () => {
         onClose={() => setShowImport(false)}
         existingValues={existingValues}
         onAdd={handleAddImported}
+        onLoadBackup={handleLoadBackup}
+        currentCount={entries.length}
       />
 
       <SyncOverlay
@@ -528,13 +554,13 @@ export const App = () => {
                   className={`hover:text-[#C24E6E] transition-colors flex items-center gap-1 cursor-pointer ${
                     liveP2P ? "text-[#9CD3B6] font-bold" : "text-[#B391A0]"
                   }`}
-                  title="Connect tracking nodes over end-to-end encrypted local WebRTC channels"
+                  title="Mirror this ledger to another browser. Nothing leaves your devices."
                 >
                   <Radio
                     size={15}
                     className={`inline ${liveP2P ? "animate-pulse" : ""}`}
                   />
-                  <span>{liveP2P ? "P2P Live" : "Sync"}</span>
+                  <span>{liveP2P ? "Live" : "Sync browsers"}</span>
                 </button>
 
                 <button
@@ -559,17 +585,27 @@ export const App = () => {
 
                 <button
                   onClick={() => setShowImport(true)}
-                  className="hover:text-[#C24E6E] transition-colors flex items-center text-[#B391A0]"
-                  title="Add from library"
+                  className="hover:text-[#C24E6E] transition-colors flex items-center text-[#B391A0] cursor-pointer"
+                  title="Add values from the library, paste a list, or load a backup .json"
                 >
                   <FileInput size={16} className="inline mr-1" />
                   import
                 </button>
 
                 <button
+                  onClick={() => downloadEntriesAsJson(entries)}
+                  disabled={entries.length === 0}
+                  className="hover:text-[#C24E6E] transition-colors flex items-center text-[#B391A0] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  title="Download a JSON backup of every entry. Load it on another browser from the Import menu."
+                >
+                  <Download size={15} className="inline mr-1" />
+                  export
+                </button>
+
+                <button
                   onClick={() => window.print()}
-                  className="hover:text-[#C24E6E] transition-colors flex items-center text-[#B391A0]"
-                  title="Print clear pure text layout"
+                  className="hover:text-[#C24E6E] transition-colors flex items-center text-[#B391A0] cursor-pointer"
+                  title="Print a clean text layout — useful for PDF saves"
                 >
                   <Printer size={16} className="inline mr-1" />
                   print

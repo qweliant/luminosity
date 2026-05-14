@@ -1,5 +1,7 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { VALUE_LIBRARY } from "../data";
+import { parseBackupJson, type BackupParseResult } from "../transfer";
+import type { Mapping } from "../types";
 
 // --- Bloom SVG Accessories & Mascots --------------------------------------
 
@@ -88,15 +90,24 @@ export const ImportModal = ({
   onClose,
   existingValues,
   onAdd,
+  onLoadBackup,
+  currentCount,
 }: {
   open: boolean;
   onClose: () => void;
   existingValues: Set<string>;
   onAdd: (names: string[]) => void;
+  onLoadBackup: (entries: Mapping[]) => void;
+  currentCount: number;
 }) => {
-  const [tab, setTab] = useState<"paste" | "library">("library"); // Set library default to show off categories
+  const [tab, setTab] = useState<"paste" | "library" | "backup">("library");
   const [text, setText] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [backupJson, setBackupJson] = useState("");
+  const [backupResult, setBackupResult] = useState<BackupParseResult | null>(
+    null,
+  );
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   if (!open) return null;
 
@@ -137,6 +148,8 @@ export const ImportModal = ({
   const reset = () => {
     setText("");
     setSelected(new Set());
+    setBackupJson("");
+    setBackupResult(null);
   };
 
   const handleAdd = () => {
@@ -146,6 +159,23 @@ export const ImportModal = ({
   };
 
   const handleCancel = () => {
+    reset();
+    onClose();
+  };
+
+  const tryParseBackup = (raw: string) => {
+    setBackupJson(raw);
+    setBackupResult(raw.trim() ? parseBackupJson(raw) : null);
+  };
+
+  const handleBackupFile = async (file: File) => {
+    const text = await file.text();
+    tryParseBackup(text);
+  };
+
+  const handleLoadBackup = () => {
+    if (!backupResult || !backupResult.ok) return;
+    onLoadBackup(backupResult.entries);
     reset();
     onClose();
   };
@@ -210,7 +240,17 @@ export const ImportModal = ({
                 : "bg-transparent text-[#5A3645] border border-[#3A1E2A]/10 hover:bg-white/50"
             }`}
           >
-            Paste Raw List
+            Paste a list
+          </button>
+          <button
+            onClick={() => setTab("backup")}
+            className={`px-4 py-1.5 rounded-full font-sans text-xs font-medium transition-all cursor-pointer ${
+              tab === "backup"
+                ? "bg-[#C24E6E] text-white shadow-2xs"
+                : "bg-transparent text-[#5A3645] border border-[#3A1E2A]/10 hover:bg-white/50"
+            }`}
+          >
+            Load a backup
           </button>
         </div>
 
@@ -227,6 +267,75 @@ export const ImportModal = ({
                 value={text}
                 onChange={(e) => setText(e.target.value)}
               />
+            </div>
+          ) : tab === "backup" ? (
+            <div className="flex flex-col h-full animate-in fade-in duration-150 space-y-4">
+              <div className="bg-[#FFF5DC] border border-[#F7D679] rounded-xl p-3 text-xs text-[#5A3645] leading-relaxed">
+                <strong className="text-[#3A1E2A]">Heads up.</strong> Loading a backup{" "}
+                <em>replaces</em> all {currentCount === 1 ? "1 entry" : `${currentCount} entries`}{" "}
+                currently in this browser. To save the current ledger first, hit{" "}
+                <strong className="font-semibold">export</strong> in the header.
+              </div>
+
+              <div className="bg-white border border-[#3A1E2A]/10 rounded-xl p-4">
+                <label className="text-[10px] uppercase tracking-[0.18em] text-[#5A3645] font-semibold mb-2 block">
+                  1. Pick a .json file exported from Luminosity
+                </label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".json,application/json"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleBackupFile(f);
+                    // Allow picking the same file again later
+                    e.target.value = "";
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="bg-[#C24E6E] text-white px-4 py-2 rounded-full font-sans text-xs font-medium hover:bg-[#3A1E2A] transition-colors shadow-2xs cursor-pointer"
+                >
+                  Choose backup file
+                </button>
+              </div>
+
+              <div className="bg-white border border-[#3A1E2A]/10 rounded-xl p-4">
+                <label className="text-[10px] uppercase tracking-[0.18em] text-[#5A3645] font-semibold mb-2 block">
+                  …or paste the JSON directly
+                </label>
+                <textarea
+                  className="w-full min-h-[140px] p-3 rounded-lg border border-[#3A1E2A]/10 bg-[#FDF4F0] focus:outline-none focus:border-[#C24E6E] font-mono text-[11px] text-[#3A1E2A] placeholder:text-[#B391A0]/50 resize-none"
+                  placeholder='[ { "id": "…", "value": "…", "need": "…", "friction": "…" } ]'
+                  value={backupJson}
+                  onChange={(e) => tryParseBackup(e.target.value)}
+                />
+              </div>
+
+              {backupResult && (
+                <div
+                  className={`rounded-xl p-3 text-xs ${
+                    backupResult.ok
+                      ? "bg-[#9CD3B6]/20 border border-[#9CD3B6] text-[#1F6E4A]"
+                      : "bg-red-50 border border-red-200 text-red-700"
+                  }`}
+                >
+                  {backupResult.ok ? (
+                    <span>
+                      <strong>{backupResult.entries.length}</strong>{" "}
+                      {backupResult.entries.length === 1 ? "entry" : "entries"} found
+                      {backupResult.skipped > 0
+                        ? ` · ${backupResult.skipped} skipped (malformed)`
+                        : ""}
+                      .
+                    </span>
+                  ) : (
+                    <span>{backupResult.reason}</span>
+                  )}
+                </div>
+              )}
             </div>
           ) : (
             /* Curated Library Groupings */
@@ -287,14 +396,22 @@ export const ImportModal = ({
           <div className="flex items-center gap-2">
             <CloudFriend size={36} />
             <span className="font-mono text-[10px] text-[#5A3645]">
-              {preview.added.length > 0 ? (
+              {tab === "backup" ? (
+                backupResult?.ok ? (
+                  <strong className="text-[#C24E6E] font-bold font-sans text-xs">
+                    {backupResult.entries.length} ready to load
+                  </strong>
+                ) : (
+                  "no file selected"
+                )
+              ) : preview.added.length > 0 ? (
                 <strong className="text-[#C24E6E] font-bold font-sans text-xs">
                   {preview.added.length} queued
                 </strong>
               ) : (
                 "0 queued"
               )}
-              {preview.skipped > 0 && (
+              {tab !== "backup" && preview.skipped > 0 && (
                 <span className="text-[#B391A0]">
                   {preview.added.length > 0 ? " · " : ""}
                   {preview.skipped} skipped
@@ -310,19 +427,35 @@ export const ImportModal = ({
             >
               Cancel
             </button>
-            <button
-              onClick={handleAdd}
-              disabled={preview.added.length === 0}
-              className="bg-[#C24E6E] text-white font-sans text-xs font-medium px-5 py-2 rounded-full hover:bg-[#3A1E2A] transition-colors disabled:bg-[#B391A0]/20 disabled:text-[#B391A0]/60 disabled:cursor-not-allowed shadow-xs cursor-pointer inline-flex items-center gap-1.5"
-            >
-              <BloomFlower
-                size={12}
-                petal="#FFFFFF"
-                eye="#C24E6E"
-                smile={false}
-              />
-              <span>Map values</span>
-            </button>
+            {tab === "backup" ? (
+              <button
+                onClick={handleLoadBackup}
+                disabled={!backupResult || !backupResult.ok}
+                className="bg-[#C24E6E] text-white font-sans text-xs font-medium px-5 py-2 rounded-full hover:bg-[#3A1E2A] transition-colors disabled:bg-[#B391A0]/20 disabled:text-[#B391A0]/60 disabled:cursor-not-allowed shadow-xs cursor-pointer inline-flex items-center gap-1.5"
+              >
+                <BloomFlower
+                  size={12}
+                  petal="#FFFFFF"
+                  eye="#C24E6E"
+                  smile={false}
+                />
+                <span>Replace ledger</span>
+              </button>
+            ) : (
+              <button
+                onClick={handleAdd}
+                disabled={preview.added.length === 0}
+                className="bg-[#C24E6E] text-white font-sans text-xs font-medium px-5 py-2 rounded-full hover:bg-[#3A1E2A] transition-colors disabled:bg-[#B391A0]/20 disabled:text-[#B391A0]/60 disabled:cursor-not-allowed shadow-xs cursor-pointer inline-flex items-center gap-1.5"
+              >
+                <BloomFlower
+                  size={12}
+                  petal="#FFFFFF"
+                  eye="#C24E6E"
+                  smile={false}
+                />
+                <span>Map values</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
