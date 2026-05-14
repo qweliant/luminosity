@@ -36,7 +36,8 @@ export const EmotionPicker = ({ entry, onChange, variant = 'compact' }: Props) =
   return (
     <div className="space-y-3">
       <p className={`text-[11px] text-pink-700 ${isFocus ? 'mb-2' : 'mb-1'}`}>
-        Which place is the friction coming from? <span className="italic text-pink-500">Atlas of the Heart</span>
+        Where's the friction coming from? Pick the closest match — you can change it later.{' '}
+        <span className="italic text-pink-500">Atlas of the Heart</span>
       </p>
 
       <div className="flex flex-wrap gap-1.5">

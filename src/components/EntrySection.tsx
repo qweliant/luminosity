@@ -306,7 +306,7 @@ export const EntrySection = ({
                <p className="font-serif italic text-sm text-[#3A1E2A] leading-relaxed line-clamp-2 group-hover/col:text-[#C24E6E]">
                  {parsedNeed.core || entry.need || (
                    <span className="text-[#B391A0]/60 not-italic font-sans">
-                     Click to assemble need primitives...
+                     Click to start drafting…
                    </span>
                  )}
                </p>
@@ -317,7 +317,7 @@ export const EntrySection = ({
                <div className="mt-2 inline-flex items-center gap-1 bg-[#FBD9E0]/40 text-[#C24E6E] px-2.5 py-1 rounded-full font-sans text-[10px] font-medium self-start group-hover/col:bg-[#FBD9E0]">
                  <BloomFlower size={10} petal="#E07A95" smile={false} />
                  <span>
-                   Read full reflection ({(entry.need || "").length} chars) ↓
+                   Expand to read the full Need ↓
                  </span>
                </div>
              )}
@@ -412,7 +412,7 @@ export const EntrySection = ({
                        <p
                          className={`text-[11px] italic ${cessation ? "text-amber-700 font-medium" : "text-[#C24E6E]"}`}
                        >
-                         {cessation ? "⚠️ Halt Input: " : "✿ Near-Neighbor: "}
+                         {cessation ? "⚠️ Pause here · " : "✿ Closest match · "}
                          {entry.emotion
                            ? `${entry.emotion.toLowerCase()} · `
                            : ""}
@@ -534,7 +534,7 @@ export const EntrySection = ({
              {parsedNeed.hasExtracted && (
                <div className="bg-[#FAE6E1]/20 p-3.5 rounded-xl border border-dashed border-[#3A1E2A]/10 space-y-3">
                  <div className="text-[9px] uppercase tracking-[0.2em] text-[#B391A0] font-mono">
-                   ✿ Auto-extracted string dashboard mirrors
+                   ✿ Extracted from your existing Need text
                  </div>
 
                  {(parsedNeed.reframe || parsedNeed.prototype) && (
@@ -668,7 +668,7 @@ export const EntrySection = ({
              onClick={onToggleLens}
              className="text-[9.5px] uppercase tracking-[0.25em] text-[#C24E6E] hover:text-[#3A1E2A] transition-colors font-semibold cursor-pointer"
            >
-             {lensOpen ? "✿ Hide Lenses Canvas" : "+ Apply Lenses Canvas"}
+             {lensOpen ? "✿ Hide lenses" : "+ Apply lenses"}
            </button>
            <CompletionBar completion={completion} />
 
@@ -684,7 +684,7 @@ export const EntrySection = ({
            <button
              onClick={onFocus}
              className="bg-[#C24E6E] text-white px-3 py-1 rounded-full text-[10px] uppercase tracking-[0.2em] hover:bg-[#3A1E2A] transition-colors shadow-xs cursor-pointer"
-             title="Promote value to absolute full-bleed focus overlay"
+             title="Open this value in focus mode"
            >
              focus ✿
            </button>

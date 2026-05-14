@@ -230,7 +230,7 @@ export const FocusOverlay = ({
             <div className="flex items-center gap-2 mb-1">
               <BloomFlower size={14} petal="#C24E6E" smile={false} />
               <p className="text-[9.5px] uppercase tracking-[0.25em] text-[#C24E6E] font-bold">
-                Absolute Focus Mode
+                Focus mode
               </p>
             </div>
             <h2 className="text-3xl sm:text-4xl font-serif italic text-[#3A1E2A] leading-tight select-text tracking-[-0.01em]">
@@ -306,7 +306,7 @@ export const FocusOverlay = ({
           </div>
           <div>
             <p className="text-[9px] uppercase tracking-[0.18em] text-[#5A3645] font-mono font-bold mb-0.5">
-              Prompt directive
+              Prompt
             </p>
             <p className="text-sm text-[#3A1E2A] leading-relaxed italic font-serif select-text">
               "{FOCUS_PROMPTS[step - 1]}"
@@ -593,16 +593,15 @@ const FocusStep = ({
           </div>
           <div>
             <p className="text-[9.5px] uppercase tracking-[0.18em] text-amber-800 font-bold mb-1 font-mono">
-              ⚠️ Halt State Detected · Planning is actively harmful
+              ⚠️ Pause here — planning from this state isn't honest
             </p>
             <p className="text-sm text-[#3A1E2A] leading-relaxed italic font-serif select-text bg-white/60 p-3 rounded border border-amber-200/50 my-2">
               "{draft}"
             </p>
             <p className="text-xs text-[#5A3645] leading-snug">
-              Brené Brown&apos;s research dictates that in states of pure
-              overwhelm, standard actionable planning causes a nervous system
-              freeze. The text above is the only Need that safely fits right
-              now.
+              Brown's research on these states is unambiguous: prescribing
+              action from inside them causes the nervous system to freeze. The
+              sentence above is the only Need that fits honestly right now.
             </p>
 
             <button
@@ -610,7 +609,7 @@ const FocusStep = ({
               onClick={() => onChange({ need: draft })}
               className="mt-3 bg-amber-800 text-white px-4 py-1.5 rounded-full font-sans text-xs font-bold hover:bg-[#3A1E2A] transition-colors cursor-pointer shadow-2xs"
             >
-              ✿ Lock in compassion statement
+              ✿ Save this as the Need
             </button>
           </div>
         </div>
@@ -622,7 +621,7 @@ const FocusStep = ({
           </div>
           <div className="flex-1">
             <p className="text-[9.5px] uppercase tracking-[0.18em] text-[#C24E6E] font-bold mb-1 font-mono">
-              ✿ Pure Generated Assemblage Draft
+              ✿ Drafted from your lenses
             </p>
             <p className="text-sm sm:text-base text-[#3A1E2A] leading-relaxed italic font-serif select-text bg-[#FDF4F0] p-3 rounded border border-[#3A1E2A]/5 my-2">
               "{draft}"
@@ -634,7 +633,7 @@ const FocusStep = ({
                 onClick={() => onChange({ need: draft })}
                 className="bg-[#C24E6E] text-white px-4 py-1.5 rounded-full font-sans text-xs font-medium hover:bg-[#3A1E2A] transition-colors cursor-pointer shadow-2xs"
               >
-                Overwrite Need text
+                Replace my Need
               </button>
               <button
                 type="button"
@@ -646,7 +645,7 @@ const FocusStep = ({
                 }}
                 className="bg-transparent text-[#5A3645] border border-[#3A1E2A]/15 px-4 py-1.5 rounded-full font-sans text-xs hover:bg-[#FAE6E1]/50 transition-colors cursor-pointer"
               >
-                Append to existing string
+                Append to current
               </button>
             </div>
           </div>
@@ -656,8 +655,7 @@ const FocusStep = ({
       {/* Your Final Permanent Custom Input Area */}
       <div className="bg-white p-5 rounded-xl border border-[#3A1E2A]/10">
         <p className="text-[9.5px] uppercase tracking-[0.18em] text-[#C24E6E] font-bold mb-2 flex items-center gap-1">
-          <BloomFlower size={12} petal="#E07A95" smile={false} /> Final
-          Customized Need Primitive
+          <BloomFlower size={12} petal="#E07A95" smile={false} /> Your final Need
         </p>
         <textarea
           rows={7}
