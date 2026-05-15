@@ -14,6 +14,12 @@ import React from 'react';
 import type { Mapping } from '../types';
 import { workabilityColor } from '../types';
 import { CORE_NEEDS, CORE_NEEDS_DETAIL } from '../data';
+import {
+  ifsLayer,
+  ifsLayerForBand,
+  IFS_LAYER_LABEL,
+  IFS_LAYER_GLOSS,
+} from '../derive';
 
 const WORKABILITY_COLS = [1, 2, 3, 4, 5] as const;
 
@@ -100,12 +106,23 @@ export const MatrixView = ({
                   style={{ backgroundColor: bandTotal > 0 ? cellTintStrong(w) : 'white' }}
                 >
                   <header className="flex items-baseline justify-between gap-3 px-4 py-3 border-b border-gray-100">
-                    <div className="flex items-baseline gap-2">
+                    <div className="flex items-baseline gap-2 flex-wrap">
                       <span style={{ color: workabilityColor(w) }} className="text-base">●</span>
                       <span className="font-serif text-lg leading-none">{w}</span>
                       <span className="text-[10px] uppercase tracking-[0.2em] text-pink-700">
                         {bandLabel(w)}
                       </span>
+                      {(() => {
+                        const layer = ifsLayerForBand(w);
+                        return layer ? (
+                          <span
+                            className="font-serif italic text-[11px] text-pink-700"
+                            title={IFS_LAYER_GLOSS[layer]}
+                          >
+                            · {IFS_LAYER_LABEL[layer]}
+                          </span>
+                        ) : null;
+                      })()}
                     </div>
                     <span className="text-[10px] uppercase tracking-[0.18em] text-pink-700">
                       {bandTotal} {bandTotal === 1 ? 'value' : 'values'}
@@ -171,6 +188,24 @@ export const MatrixView = ({
                     <span className="ml-1.5">{w}</span>
                   </th>
                 ))}
+              </tr>
+              <tr>
+                <th />
+                {WORKABILITY_COLS.map(w => {
+                  const layer = ifsLayerForBand(w);
+                  return (
+                    <th key={w} className="pb-2 text-center font-normal">
+                      {layer ? (
+                        <span
+                          className="font-serif italic text-[11px] text-pink-700"
+                          title={IFS_LAYER_GLOSS[layer]}
+                        >
+                          {IFS_LAYER_LABEL[layer]}
+                        </span>
+                      ) : null}
+                    </th>
+                  );
+                })}
               </tr>
               <tr>
                 <td />

@@ -33,7 +33,7 @@ Every row exposes the same six-step pipeline. You can run it inline (per-row dra
 | ---- | ---- | -------- | ---------------- |
 | 1 | **Diagnose** — [ACT Workability](https://contextualconsulting.co.uk/knowledge/therapy-approaches/workability-in-act/) | How stuck is this value right now? | A 1–5 dot rating |
 | 2 | **Locate** — [NVC Universal Needs](https://baynvc.org/basics-of-nonviolent-communication/) | What's starving underneath the friction? | One or more chip selections from 7 categories |
-| 3 | **Anchor** — Madanes [6 Core Human Needs](https://madanesinstitute.com/the-6-human-needs/) | Which fundamental driver does this serve? | One of: Comfort, Variety, Significance, Connection, Growth, Contribution |
+| 3 | **Anchor** — Madanes [6 Core Human Needs](https://madanesinstitute.com/the-6-human-needs/) + optional IFS *Part* | Which fundamental driver does this serve, and which named identity is doing the work? | One of: Comfort, Variety, Significance, Connection, Growth, Contribution. Plus an optional *Part* — type a name like "The Caretaker" or "The Inner Critic" to assign (or create) a Part. Single-select. |
 | 4 | **Reframe** — [Stanford Life Design](https://cgoe.stanford.edu/news-perspectives/2020/life-design) | Where does this live in your engagement/energy? Which kind of problem is it? What's the prototype? | Two 1–5 dot-strings (Engagement, Energy), problem type (Open / Stuck / Reality), reframe note (Stuck) or acceptance note (Reality), prototype mode (Talk / Do) + action (Open or Stuck-with-reframe) |
 | 5 | **Contextualize** — [Nagoski (Come As You Are)](https://www.lovehealgrow.com/sexual-desire-brakes-and-accelerators/) + optional [Sander T. Jones (Cultivating Connection)](https://sandertjones.com/media) | What conditions accelerate or brake this? Is another person involved? | Two short notes (Accelerators / Brakes); plus an optional `Interpersonal Friction` toggle that gates a short relational check |
 | 6 | **Synthesize** | Compose all of the above into a single Need sentence. | One click — `Replace` overwrites your Need, `Append` adds to it |
@@ -51,6 +51,7 @@ Underneath the Madanes step, two read-only footnotes appear:
 - **SDT profile** — Self-Determination Theory (Deci & Ryan): `autonomy ●○○ · competence ●●○ · relatedness ●●●`. Computed from your NVC tags and selected core need. Tells you which of the three innate psychological needs your value is touching.
 - **Maslow highest active layer** — Maslow's Hierarchy: `physiological / safety / belonging / esteem / self-actualization`. The highest layer reached by your NVC selections. A quick check that you're not piling everything onto self-actualization while ignoring shelter or belonging.
 - **Jones · freedoms at stake** *(only when the relational lens is active)* — Sander T. Jones's 13 Fundamental Freedoms (Bandwidth Allocation, Informed Consent, Privacy, Self-Determination, Authentic Expression, Boundaries, Pacing, Embodiment, Truth-Telling, Care for Self, Time / Space, Reciprocity, Restoration). Computed from your NVC selections; surfaces which relational rights are in play.
+- **IFS reading** — Internal Family Systems (Richard Schwartz) overlay on the workability band: 1-2 → *Firefighter*, 3 → *Manager*, 4-5 → *Self*. Surfaces as a small italic label on each Matrix band header and as a chip in the list-view row. Not a value judgment — Firefighter means a protective part is doing necessary work; the frame is recognition, not alarm.
 
 ### Interpersonal Friction (optional)
 
@@ -70,9 +71,11 @@ The whole section is `print:hidden`; the print summary instead emits a one-line 
 
 ## The three views
 
-- **List** (default) — all entries stacked, each editable in place with its own lens panel.
-- **Matrix** — a true 2-axis Alignment Matrix. Rows are the 6 Core Human Needs; columns are the 5 ACT Workability bands (1 stuck → 5 working). Cells are tinted faintly by workability and contain values as clickable chips. Click any chip to open that value in **Focus mode**. Two trays beneath the grid catch edge cases: *"Workability not yet rated"* and *"Core Need not yet assigned"*.
-- **Focus** — a full-viewport wizard for one value at a time. Six steps mirror the lens taxonomy: *Diagnose* (Workability + Friction), *Locate* (NVC), *Anchor* (Madanes, with descriptions visible as cards), *Reframe* (Stanford — Wayfinding, problem type, reframe/acceptance, Talk/Do prototype), *Contextualize* (Nagoski accelerators/brakes), *Synthesize* (templated draft on the left, your editable Need on the right). Keyboard: `Esc` closes, `←/→` navigate (when not typing in a field). Click any progress segment to jump.
+- **List** (default, `#/`) — all entries stacked, each editable in place with its own lens panel. The condensed row shows a status pill strip — IFS layer, assigned Part, accelerator/brake counts, reframe/prototype flags, relational indicator.
+- **Matrix** (`#/matrix`) — a true 2-axis Alignment Matrix. Rows are the 6 Core Human Needs; columns are the 5 ACT Workability bands (1 stuck → 5 working). Each band header carries its IFS label (Firefighter / Manager / Self). Cells are tinted faintly by workability and contain values as clickable chips. On narrow viewports the grid becomes a horizontal swipe-stack of band cards. Click any chip to open that value in **Focus mode**. Two trays beneath the grid catch edge cases: *"Workability not yet rated"* and *"Core Need not yet assigned"*.
+- **Focus** (`#/focus/<id>`) — a full-viewport wizard for one value at a time. Six steps mirror the lens taxonomy: *Diagnose* (Workability + Friction + Atlas of the Heart), *Locate* (NVC), *Anchor* (Madanes + IFS Part), *Reframe* (Stanford — Wayfinding, problem type, reframe/acceptance, Talk/Do prototype), *Contextualize* (Nagoski accelerators/brakes + optional relational lens), *Synthesize* (templated draft on the left, your editable Need on the right). Keyboard: `Esc` closes, `←/→` navigate (when not typing in a field). Click any progress segment to jump. Focus mode is the only place to author or assign Parts.
+
+There is also a read-only **Part Profiles** page at `#/parts` — groups your entries by the Part you've assigned and surfaces the Core Needs and recent Need sentences each Part has authored. Not a management UI: parts are created in Focus mode, and clearing a Part on an entry just detaches it (the Part itself remains, visible on this page). A separate **Methods** page at `#/methods` mirrors the frameworks reference below in a more navigable form.
 
 ## Printing / exporting
 
@@ -98,6 +101,7 @@ The lenses already in the app:
 - **Sander T. Jones · Cultivating Connection** *(optional, gated)* — a relational accountability lens hidden by default behind an `Interpersonal Friction` checkbox at the bottom of step 5. When active, it asks two things. First, the **Personal Responsibility Loop**: classify the source as *Inherent Right Violated* (assert an external boundary), *Agreement Violated* (collaborative repair), or *Neither / Painful Emotion* (internal work). Second, the **4-question Boundary Checklist**: does the need (1) limit my own behavior, (2) honor the value rather than prevent fear, (3) frame as a request not a demand, (4) preserve their autonomy? All four ticked → flagged as a *clean boundary*; otherwise → *overreaching rule*. The synthesis appends an *Accountability* clause naming both the source and any failed checks.
 - **Self-Determination Theory** *(derived)* — Deci & Ryan. Three innate needs: autonomy, competence, relatedness. Computed from your NVC tags as a balance check.
 - **Maslow's Hierarchy** *(derived)* — Abraham Maslow (1943). Five layers from physiological to self-actualization. Computed from your NVC tags as a "highest active layer" indicator.
+- **Internal Family Systems** — Richard Schwartz. Two surfaces. (1) A *derived* IFS reading layered onto the workability band: 1-2 → *Firefighter* (a protective part is actively containing pain), 3 → *Manager* (a part is holding the situation together at cost), 4-5 → *Self* (curious, calm, connected — Self is leading). No input needed; visible on Matrix band headers and in the list-view chip strip. (2) An optional *Part tag* at step 3 — name the specific identity acting in this entry ("The People Pleaser", "The Caretaker") with a single-select combobox. Tagged entries roll up into the Part Profiles page at `#/parts`, which groups entries by Part with their Core Needs and recent Need drafts.
 
 Frameworks deliberately not in the app (worth knowing, but redundant or too heavy for the editorial surface):
 
@@ -135,6 +139,9 @@ The server is intentionally local-only — bind on `127.0.0.1`, no auth, no user
 
 ## Data & migration
 
-- Storage key: `values-mapper-v2`. Format: `Mapping[]` (see [src/App.tsx](src/App.tsx)).
-- Seed flag: `values-mapper-seed-v1`. Set to `'1'` after the first-run seed runs once. Delete both keys to re-seed.
-- Schema additions are additive — old entries continue to load with `undefined` for new optional fields. The migration in `migrateMapping()` handles both legacy `designConstraint`/`designNote` (folded into `lifeDesign`) and legacy enum values (`'actionable'/'anchor'/'gravity'` → `'open'/'stuck'/'reality'`, `prototype.type 'interview'/'experience'` → `prototype.mode 'talk'/'do'`).
+- Storage keys:
+  - `values-mapper-v2` — `Mapping[]`, your entries (see [src/types.ts](src/types.ts)).
+  - `values-mapper-parts-v1` — `Part[]`, your named IFS Parts.
+  - `values-mapper-seed-v1` — set to `'1'` after the first-run seed runs once. Delete this key plus `values-mapper-v2` to re-seed.
+- Both stores are mirrored into a shared Yjs document (`yEntriesMap` / `yPartsMap`) so optional peer-to-peer sync stays symmetric across devices.
+- Schema additions are additive — old entries continue to load with `undefined` for new optional fields. The migration in `migrateMapping()` handles both legacy `designConstraint`/`designNote` (folded into `lifeDesign`) and legacy enum values (`'actionable'/'anchor'/'gravity'` → `'open'/'stuck'/'reality'`, `prototype.type 'interview'/'experience'` → `prototype.mode 'talk'/'do'`). A pure additive optional field (like `partId`) doesn't need its own branch.

@@ -9,6 +9,8 @@ import {
   deriveNeed,
   formatList,
   hasAnyLensData,
+  ifsLayer,
+  ifsLayerForBand,
   isCessationState,
   lensCompletion,
   maslowHighest,
@@ -448,5 +450,44 @@ describe('relationalFreedoms', () => {
     expect(
       relationalFreedoms(baseEntry({ relational: { active: true }, nvcNeeds: ['xyz'] }))
     ).toEqual([]);
+  });
+});
+
+// --- ifsLayer --------------------------------------------------------------
+// IFS overlay on the ACT workability band. Pure derivation: bands 1-2 →
+// Firefighter, 3 → Manager, 4-5 → Self. No schema change; null when the
+// entry hasn't been rated.
+
+describe('ifsLayerForBand', () => {
+  test('1 and 2 → firefighter', () => {
+    expect(ifsLayerForBand(1)).toBe('firefighter');
+    expect(ifsLayerForBand(2)).toBe('firefighter');
+  });
+
+  test('3 → manager', () => {
+    expect(ifsLayerForBand(3)).toBe('manager');
+  });
+
+  test('4 and 5 → self', () => {
+    expect(ifsLayerForBand(4)).toBe('self');
+    expect(ifsLayerForBand(5)).toBe('self');
+  });
+
+  test('out-of-range / undefined → null', () => {
+    expect(ifsLayerForBand(0)).toBeNull();
+    expect(ifsLayerForBand(6)).toBeNull();
+    expect(ifsLayerForBand(undefined)).toBeNull();
+  });
+});
+
+describe('ifsLayer', () => {
+  test('mirrors ifsLayerForBand for rated entries', () => {
+    expect(ifsLayer(baseEntry({ workability: 1 }))).toBe('firefighter');
+    expect(ifsLayer(baseEntry({ workability: 3 }))).toBe('manager');
+    expect(ifsLayer(baseEntry({ workability: 5 }))).toBe('self');
+  });
+
+  test('unrated entry → null', () => {
+    expect(ifsLayer(baseEntry())).toBeNull();
   });
 });

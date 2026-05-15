@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
-import type { Mapping } from "../types";
+import type { Mapping, Part } from "../types";
 import { CORE_NEEDS, CORE_NEEDS_DETAIL, NVC_CATEGORIES } from "../data";
 import { deriveNeed, isCessationState, lensCompletion } from "../derive";
 import { LifeDesignSection } from "./LifeDesignSection";
 import { RelationalSection } from "./RelationalSection";
 import { EmotionPicker } from "./EmotionPicker";
+import { PartSelector } from "./PartSelector";
 
 const FOCUS_STEPS = [
   "Diagnose",
@@ -179,11 +180,15 @@ const BloomWorkabilityInput = ({
 
 export const FocusOverlay = ({
   entry,
+  parts,
+  onUpsertPart,
   onChange,
   onToggleNvc,
   onClose,
 }: {
   entry: Mapping;
+  parts: Part[];
+  onUpsertPart: (name: string) => string | null;
   onChange: (patch: Partial<Mapping>) => void;
   onToggleNvc: (n: string) => void;
   onClose: () => void;
@@ -319,6 +324,8 @@ export const FocusOverlay = ({
           <FocusStep
             step={step}
             entry={entry}
+            parts={parts}
+            onUpsertPart={onUpsertPart}
             onChange={onChange}
             onToggleNvc={onToggleNvc}
           />
@@ -380,11 +387,15 @@ export const FocusOverlay = ({
 const FocusStep = ({
   step,
   entry,
+  parts,
+  onUpsertPart,
   onChange,
   onToggleNvc,
 }: {
   step: number;
   entry: Mapping;
+  parts: Part[];
+  onUpsertPart: (name: string) => string | null;
   onChange: (patch: Partial<Mapping>) => void;
   onToggleNvc: (n: string) => void;
 }) => {
@@ -474,47 +485,68 @@ const FocusStep = ({
     );
   }
 
-  // STEP 3: Anchor (Robbins 6 Core Drivers)
+  // STEP 3: Anchor (Robbins 6 Core Drivers) + IFS Part identity
   if (step === 3) {
     return (
-      <div className="space-y-3 animate-in fade-in duration-200">
-        {CORE_NEEDS.map((n) => {
-          const sel = entry.coreNeed === n;
-          return (
-            <button
-              key={n}
-              type="button"
-              onClick={() => onChange({ coreNeed: sel ? "" : n })}
-              className={`w-full text-left p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
-                sel
-                  ? "border-[#C24E6E] bg-[#FBD9E0]/30 shadow-2xs"
-                  : "border-[#3A1E2A]/10 bg-white hover:border-[#E07A95]"
-              }`}
-            >
-              <div>
-                <div
-                  className={`text-lg font-serif tracking-[-0.01em] ${sel ? "text-[#C24E6E] font-medium" : "text-[#3A1E2A]"}`}
-                >
-                  {n}
+      <div className="space-y-6 animate-in fade-in duration-200">
+        <div className="space-y-3">
+          {CORE_NEEDS.map((n) => {
+            const sel = entry.coreNeed === n;
+            return (
+              <button
+                key={n}
+                type="button"
+                onClick={() => onChange({ coreNeed: sel ? "" : n })}
+                className={`w-full text-left p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                  sel
+                    ? "border-[#C24E6E] bg-[#FBD9E0]/30 shadow-2xs"
+                    : "border-[#3A1E2A]/10 bg-white hover:border-[#E07A95]"
+                }`}
+              >
+                <div>
+                  <div
+                    className={`text-lg font-serif tracking-[-0.01em] ${sel ? "text-[#C24E6E] font-medium" : "text-[#3A1E2A]"}`}
+                  >
+                    {n}
+                  </div>
+                  <div className="text-xs text-[#B391A0] mt-0.5 leading-snug">
+                    {CORE_NEEDS_DETAIL[n]}
+                  </div>
                 </div>
-                <div className="text-xs text-[#B391A0] mt-0.5 leading-snug">
-                  {CORE_NEEDS_DETAIL[n]}
-                </div>
-              </div>
 
-              {sel && (
-                <span className="shrink-0 bg-[#C24E6E] text-white p-1 rounded-full">
-                  <BloomFlower
-                    size={14}
-                    petal="#FFFFFF"
-                    eye="#C24E6E"
-                    smile={false}
-                  />
-                </span>
-              )}
-            </button>
-          );
-        })}
+                {sel && (
+                  <span className="shrink-0 bg-[#C24E6E] text-white p-1 rounded-full">
+                    <BloomFlower
+                      size={14}
+                      petal="#FFFFFF"
+                      eye="#C24E6E"
+                      smile={false}
+                    />
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="bg-white border border-[#3A1E2A]/5 rounded-xl p-4">
+          <p className="text-[9.5px] uppercase tracking-[0.18em] text-[#C24E6E] font-bold mb-1 flex items-center gap-1">
+            <BloomFlower size={12} petal="#E07A95" smile={false} /> Part · IFS
+          </p>
+          <p className="text-xs italic text-[#B391A0] mb-3 leading-snug">
+            Which named identity is acting here? Type a name (e.g. "The People
+            Pleaser") to create it, or pick one you've named before.
+          </p>
+          <PartSelector
+            parts={parts}
+            selectedId={entry.partId}
+            onSelect={(name) => {
+              const id = onUpsertPart(name);
+              onChange({ partId: id ?? undefined });
+            }}
+            onClear={() => onChange({ partId: undefined })}
+          />
+        </div>
       </div>
     );
   }

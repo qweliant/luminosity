@@ -1,12 +1,14 @@
 # luminosity · Needs & Values
 
-A local-first, editorial reflection tool for mapping `Value → Friction → Need → Workability` across the values you care about. Built around six established frameworks (NVC, ACT, Madanes, Stanford Life Design, Nagoski, and an optional Sander T. Jones relational lens) with a deterministic synthesis step that drafts your Need sentence from your selections.
+Luminosity is a local-first reflective system for introspection.
+
+It is designed to help users trace friction back to unmet needs, values conflicts, and behavioral patterns instead of looping endlessly inside unstructured reflection.
 
 End-user docs live in [HOWTO.md](HOWTO.md). This file is for working on the codebase.
 
 ## Status
 
-- **Audience: sample size of one.** Built as a personal wayfinding tool, then opened up. No accounts, no telemetry, no analytics. The default UI assumes a solo journaller; the relational lens is gated behind a checkbox so it stays out of the way.
+- **Audience: sample size of one.** Built as a personal tool, then opened up. No accounts, no telemetry, no analytics. The default UI assumes a solo journaller; the relational lens is gated behind a checkbox so it stays out of the way.
 - **Storage: local-first.** Source of truth is `localStorage`. An optional Bun + SQLite sidecar (`bun run server`) writes timestamped snapshots to `data/backups.db` for safekeeping; the app keeps working without it.
 - **Schema: additive + migrating.** Old payloads keep loading via `migrateMapping()` — covered by tests. Legacy `designConstraint`/`designNote` and renamed enum values (`actionable→open`, `interview→talk`, etc.) all migrate on read.
 - **Editorial constraints.** Tailwind v4 CSS-first (no `tailwind.config.js`), hairline borders, serif/sans pairing, print-friendly. See *Conventions* below.
@@ -49,19 +51,37 @@ The app is fully functional without the sidecar — `localStorage` is the source
 ```text
 src/
   App.tsx          UI root: header, list/matrix/focus views, lens panel,
-                   import modal, BackupChip, print layout. Contains the
-                   Mapping interface, all React components, and the
-                   localStorage migration path.
+                   import modal, BackupChip, print layout. Holds all
+                   React state for entries + parts and bridges them
+                   to localStorage and the Yjs sync engine.
+  types.ts         Schema source of truth: Mapping, Part, lens types,
+                   migrateMapping(), workabilityColor().
+  router.ts        Hash router · #/, #/matrix, #/methods, #/parts,
+                   #/focus/<id>. Zero deps, ~80 lines.
+  transfer.ts      JSON export + parseBackupJson (with migration).
   data.ts          Static data: VALUE_LIBRARY, VALUE_DETAILS, NVC_CATEGORIES,
                    NVC_TO_SDT, NVC_TO_MASLOW, CORE_NEEDS, seedPersonalValues().
                    No React, no I/O. Pure data exports.
   derive.ts        Pure functions over a Mapping: lensCompletion(), deriveNeed(),
-                   sdtProfile(), maslowHighest(), hasAnyLensData(), formatList().
-                   No React, no I/O. Easy to test.
+                   sdtProfile(), maslowHighest(), ifsLayer(), hasAnyLensData(),
+                   formatList(). No React, no I/O. Easy to test.
   backup.ts        Typed fetch client for the sidecar (ping, createSnapshot,
                    listSnapshots, fetchSnapshot) + relTime() formatter.
   useBackup.ts     React hook: status pinging, debounced auto-snapshot,
                    restore. Returns BackupState consumed by BackupChip.
+  services/
+    syncEngine.ts  Yjs doc + yEntriesMap + yPartsMap + WebRTC provider.
+    storageDaemon.ts  Optional File System Access API backup target.
+  components/
+    EntrySection.tsx   List-view row (condensed + expanded states).
+    FocusOverlay.tsx   Full-screen wizard (six steps).
+    MatrixView.tsx     2-axis grid + mobile swipe-stack carousel.
+    MethodsPage.tsx    #/methods · framework reference page.
+    PartsPage.tsx      #/parts · read-only IFS Part profiles drawer.
+    PartSelector.tsx   Combobox inside Focus step 3 — assigns/creates Parts.
+    LensPanel.tsx, LifeDesignSection.tsx, RelationalSection.tsx,
+    EmotionPicker.tsx, ImportModal.tsx, SyncOverlay.tsx, BackupChip.tsx,
+    PrintLedger.tsx, primitives.tsx.
   index.tsx        ReactDOM bootstrap.
   style.css        Tailwind v4 entry + @theme tokens.
   env.d.ts         Ambient `*.css` module decl for side-effect imports.
@@ -82,7 +102,7 @@ CLAUDE.md          Bun-first conventions for tooling agents.
 Everything is one shape:
 
 ```ts
-// src/App.tsx
+// src/types.ts
 export interface Mapping {
   id: string;
   value: string;
@@ -97,21 +117,33 @@ export interface Mapping {
                                  //   reframe/acceptance note, prototype
   accelerators?: string;         // Nagoski
   brakes?: string;               // Nagoski
+  relational?: RelationalLens;   // Sander T. Jones (gated)
+  emotionCluster?: EmotionCluster; // Atlas of the Heart
+  emotion?: string;
+  partId?: string;               // IFS · references Part.id (single-select)
+}
+
+export interface Part {
+  id: string;
+  name: string;        // user-authored, e.g. "The People Pleaser"
+  createdAt: number;
 }
 ```
 
-Persisted as `Mapping[]` under `localStorage` key `values-mapper-v2`. Every entry source (seed, paste, library, manual) creates the same shape with the lens fields starting `undefined`.
+Persisted as `Mapping[]` under `localStorage` key `values-mapper-v2`. Parts live in their own top-level store under `values-mapper-parts-v1`, mirrored into the Yjs doc's `yPartsMap` so peer sync stays symmetric with entries. Every entry source (seed, paste, library, manual) creates the same shape with the lens fields starting `undefined`.
 
-**Schema additions are additive.** Don't break existing localStorage; if you must rename or restructure, extend `migrateMapping()` in [src/App.tsx](src/App.tsx) with a new branch. Two migrations are already in there as templates: legacy `designConstraint`/`designNote` → `lifeDesign`, and old enum values (`'actionable' | 'anchor' | 'gravity'` → `'open' | 'stuck' | 'reality'`, `prototype.type` → `prototype.mode`).
+**Schema additions are additive.** Don't break existing localStorage; if you must rename or restructure, extend `migrateMapping()` in [src/types.ts](src/types.ts) with a new branch. Two migrations are already in there as templates: legacy `designConstraint`/`designNote` → `lifeDesign`, and old enum values (`'actionable' | 'anchor' | 'gravity'` → `'open' | 'stuck' | 'reality'`, `prototype.type` → `prototype.mode`). A pure additive optional field (like `partId`) does **not** need a migration branch — `migrateMapping` is a no-op pass-through for it.
 
 ### The derive layer
 
 [src/derive.ts](src/derive.ts) is the only place that turns a `Mapping` into something else:
 
 - `lensCompletion(entry)` — returns `{ steps[6], filled, total }` driving the per-row completeness bar and the focus-mode progress bar.
-- `deriveNeed(entry)` — deterministic, templated synthesis. Reads `nvcNeeds`, `coreNeed`, `lifeDesign.problemFrame`, `lifeDesign.acceptanceNote`/`reframeNote`, `lifeDesign.prototype`, `accelerators`, `brakes`. Returns the draft Need sentence shown in step 6.
+- `deriveNeed(entry)` — deterministic, templated synthesis. Reads `nvcNeeds`, `coreNeed`, `lifeDesign.problemFrame`, `lifeDesign.acceptanceNote`/`reframeNote`, `lifeDesign.prototype`, `accelerators`, `brakes`, `relational`. Returns the draft Need sentence shown in step 6. Short-circuits to a compassion sentence in cessation states (Atlas of the Heart).
 - `sdtProfile(entry)` — derived Self-Determination Theory profile (autonomy/competence/relatedness counts) from NVC tags + core need.
 - `maslowHighest(entry)` — derived highest-active Maslow layer from NVC tags.
+- `relationalFreedoms(entry)` — Jones · 13 Fundamental Freedoms touched by the NVC selections, only when the relational lens is active.
+- `ifsLayer(entry)` / `ifsLayerForBand(w)` — IFS overlay on the workability band: 1-2 → Firefighter, 3 → Manager, 4-5 → Self. Surfaced as a label on the Matrix band headers and a chip in the list-view status pill strip. Pure derivation — no schema change.
 
 Pure, no React, no I/O. Add new derived indicators here.
 
@@ -147,17 +179,17 @@ Frontend integration is in [src/useBackup.ts](src/useBackup.ts) — pings every 
 
 The lens scaffolding has six parallel touch points. Follow this checklist when adding e.g. a Maslow input lens or a Schwartz axis:
 
-1. **Schema** ([src/App.tsx](src/App.tsx)): add an optional field to `Mapping`.
-2. **Migration** if you're renaming or restructuring an existing field: add a branch to `migrateMapping()`. Skip this if your field is a clean addition.
+1. **Schema** ([src/types.ts](src/types.ts)): add an optional field to `Mapping`.
+2. **Migration** if you're renaming or restructuring an existing field: add a branch to `migrateMapping()` in [src/types.ts](src/types.ts). Skip this if your field is a clean addition.
 3. **Vocabulary** ([src/data.ts](src/data.ts)): add any constant arrays/maps the lens needs (chip lists, descriptions, mappings to derived axes).
 4. **Derive** ([src/derive.ts](src/derive.ts)):
    - Update `lensCompletion()` if the new lens should count as a step.
    - Update `hasAnyLensData()` to include it.
    - Update `deriveNeed()` if it should affect the synthesized sentence.
-5. **List-view UI** ([src/App.tsx](src/App.tsx) `EntrySection`): add a new `<LensRow label="N · Verb · Framework">` block inside the lens panel.
-6. **Focus-mode UI** ([src/App.tsx](src/App.tsx) `FocusStep`): add a step branch and corresponding entry in `FOCUS_STEPS` / `FOCUS_PROMPTS`.
-7. **Print summary** ([src/App.tsx](src/App.tsx) `EntrySection`'s `print:block` block): emit a summary line when the field is set.
-8. **Tests**: extend [src/derive.test.ts](src/derive.test.ts) for any branch you added in `deriveNeed`/`lensCompletion`/`hasAnyLensData`, and [src/types.test.ts](src/types.test.ts) if you added a migration branch.
+5. **List-view UI** ([src/components/LensPanel.tsx](src/components/LensPanel.tsx)): add a new `<LensRow label="N · Verb · Framework">` block. For chip-style indicators on the condensed row (like Parts or IFS), extend the status pill strip in [src/components/EntrySection.tsx](src/components/EntrySection.tsx).
+6. **Focus-mode UI** ([src/components/FocusOverlay.tsx](src/components/FocusOverlay.tsx)'s `FocusStep`): add a step branch and corresponding entry in `FOCUS_STEPS` / `FOCUS_PROMPTS`.
+7. **Print summary** ([src/components/EntrySection.tsx](src/components/EntrySection.tsx) and [src/components/PrintLedger.tsx](src/components/PrintLedger.tsx)): emit a summary line when the field is set.
+8. **Tests**: extend [src/derive.test.ts](src/derive.test.ts) for any branch you added in `deriveNeed`/`lensCompletion`/`hasAnyLensData`, and [src/types.test.ts](src/types.test.ts) if you added a migration branch or a new top-level type.
 9. **Docs**: update the lens-workflow table in [HOWTO.md](HOWTO.md).
 
 Existing lenses are good models — the **Stanford Life Design** lens (wayfinding + problem framing + reframe/acceptance + Talk/Do prototype) exercises every one of these steps if you want a worked example.

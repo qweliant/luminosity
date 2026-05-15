@@ -1,12 +1,16 @@
 import * as Y from "yjs";
 import { WebrtcProvider } from "y-webrtc";
-import type { Mapping } from "../types";
+import type { Mapping, Part } from "../types";
 
 // Establish the singleton application state source
 export const ydoc = new Y.Doc();
 
 // Expose the typed top-level mappings container
 export const yEntriesMap = ydoc.getMap<Mapping>("entries");
+
+// IFS Parts — user-named identities, referenced by Mapping.partId. Lives in
+// the same ydoc so sync is symmetric with entries.
+export const yPartsMap = ydoc.getMap<Part>("parts");
 
 // Track active connection state safely
 let provider: WebrtcProvider | null = null;

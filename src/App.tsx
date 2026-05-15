@@ -8,7 +8,7 @@ import {
   Download,
 } from "lucide-react";
 
-import { migrateMapping, type LegacyMapping, type Mapping } from "./types";
+import { migrateMapping, type LegacyMapping, type Mapping, type Part } from "./types";
 import { seedPersonalValues } from "./data";
 import { useBackup } from "./useBackup";
 import { relTime, type Snapshot } from "./backup";
@@ -21,14 +21,16 @@ import { FocusOverlay } from "./components/FocusOverlay";
 import { ImportModal } from "./components/ImportModal";
 import { MatrixView } from "./components/MatrixView";
 import { MethodsPage } from "./components/MethodsPage";
+import { PartsPage } from "./components/PartsPage";
 import { PrintLedger } from "./components/PrintLedger";
 import { SyncOverlay } from "./components/SyncOverlay";
 
 // Import your shared state mapping services natively
 import { mountSystemDirectory } from "./services/storageDaemon";
-import { yEntriesMap, ydoc, isSyncing } from "./services/syncEngine";
+import { yEntriesMap, yPartsMap, ydoc, isSyncing } from "./services/syncEngine";
 
 const STORAGE_KEY = "values-mapper-v2";
+const PARTS_STORAGE_KEY = "values-mapper-parts-v1";
 
 // -----------------------------------------------------------------------------
 // Bloom SVG Accessories & Mascots
@@ -247,10 +249,25 @@ export const App = () => {
     return migrated;
   });
 
+  const [parts, setParts] = useState<Part[]>(() => {
+    const saved = localStorage.getItem(PARTS_STORAGE_KEY);
+    if (!saved) return [];
+    try {
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? (parsed as Part[]) : [];
+    } catch {
+      return [];
+    }
+  });
+
   // Preserve baseline application caching states safely
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
   }, [entries]);
+
+  useEffect(() => {
+    localStorage.setItem(PARTS_STORAGE_KEY, JSON.stringify(parts));
+  }, [parts]);
 
   // ---------------------------------------------------------------------------
   // App-level UI state
@@ -279,6 +296,7 @@ export const App = () => {
     (route.name === "focus" && lastUnderlay === "matrix");
   const focusEntryId = route.name === "focus" ? route.id : null;
   const showMethods = route.name === "methods";
+  const showParts = route.name === "parts";
 
   // ---------------------------------------------------------------------------
   // CRDT TWO-WAY SYNCHRONIZATION BRIDGE
@@ -302,6 +320,19 @@ export const App = () => {
     return () => yEntriesMap.unobserve(handleRemoteUpdates);
   }, []);
 
+  // INBOUND (parts): same pattern as entries — observe the shared yParts map
+  // and reflect remote changes into local state.
+  useEffect(() => {
+    const handleRemotePartsUpdates = (_event: any, transaction: any) => {
+      if (transaction.local) return;
+      const updated: Part[] = [];
+      yPartsMap.forEach((part) => updated.push(part));
+      setParts(updated);
+    };
+    yPartsMap.observe(handleRemotePartsUpdates);
+    return () => yPartsMap.unobserve(handleRemotePartsUpdates);
+  }, []);
+
   // 2. HOST SEEDING: Populate ephemeral maps dynamically upon host connection
   useEffect(() => {
     // Check if the user has genuine persisted history rather than unedited session defaults
@@ -313,6 +344,16 @@ export const App = () => {
       }, "local");
     }
   }, [entries]);
+
+  // HOST SEEDING (parts): mirror locally-persisted parts into the Yjs map on
+  // first paint when the shared map is still empty.
+  useEffect(() => {
+    if (parts.length > 0 && yPartsMap.size === 0) {
+      ydoc.transact(() => {
+        parts.forEach((p) => yPartsMap.set(p.id, p));
+      }, "local");
+    }
+  }, [parts]);
 
   // ---------------------------------------------------------------------------
   // Derived indicator sets
@@ -409,6 +450,28 @@ export const App = () => {
     );
   };
 
+  // Resolves a typed Part name to a stable id. Case-insensitive lookup against
+  // existing parts; creates a new one (with a fresh id) when no match exists.
+  // Empty/whitespace names return null and are treated as "clear the tag".
+  const upsertPart = (rawName: string): string | null => {
+    const name = rawName.trim();
+    if (!name) return null;
+    const existing = parts.find(
+      (p) => p.name.trim().toLowerCase() === name.toLowerCase(),
+    );
+    if (existing) return existing.id;
+    const next: Part = {
+      id: crypto.randomUUID(),
+      name,
+      createdAt: Date.now(),
+    };
+    ydoc.transact(() => {
+      yPartsMap.set(next.id, next);
+    }, "local");
+    setParts((prev) => [...prev, next]);
+    return next.id;
+  };
+
   const toggleNvc = (id: string, need: string) => {
     const e = entries.find((x) => x.id === id);
     if (!e) return;
@@ -493,6 +556,8 @@ export const App = () => {
       {focusedEntry && (
         <FocusOverlay
           entry={focusedEntry}
+          parts={parts}
+          onUpsertPart={upsertPart}
           onChange={(patch) => updateEntry(focusedEntry.id, patch)}
           onToggleNvc={(n) => toggleNvc(focusedEntry.id, n)}
           onClose={() => goBackOr({ name: lastUnderlay })}
@@ -520,7 +585,14 @@ export const App = () => {
       <PrintLedger entries={entries} />
 
       <div className="print:hidden">
-        {showMethods ? (
+        {showParts ? (
+          <PartsPage
+            parts={parts}
+            entries={entries}
+            onClose={() => goBackOr({ name: lastUnderlay })}
+            onFocus={(id) => navigate({ name: "focus", id })}
+          />
+        ) : showMethods ? (
           <MethodsPage onClose={() => goBackOr({ name: lastUnderlay })} />
         ) : (
         <div
@@ -783,6 +855,7 @@ export const App = () => {
                 <EntrySection
                   key={entry.id}
                   entry={entry}
+                  parts={parts}
                   isDuplicate={duplicateIds.has(entry.id)}
                   lensOpen={!!openLenses[entry.id]}
                   onToggleLens={() => toggleLens(entry.id)}

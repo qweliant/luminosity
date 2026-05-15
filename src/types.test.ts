@@ -4,7 +4,13 @@
 // existing user data, so we cover each branch + the no-op pass-through.
 
 import { test, expect, describe } from 'bun:test';
-import { migrateMapping, workabilityColor, type LegacyMapping, type Mapping } from './types';
+import {
+  migrateMapping,
+  workabilityColor,
+  type LegacyMapping,
+  type Mapping,
+  type Part,
+} from './types';
 
 const base: Mapping = {
   id: 'x',
@@ -130,6 +136,44 @@ describe('migrateMapping', () => {
     expect(out.lifeDesign?.prototype?.action).toBe('try a thing');
     expect((out as LegacyMapping).designConstraint).toBeUndefined();
     expect((out as LegacyMapping).designNote).toBeUndefined();
+  });
+});
+
+// --- Part shape + partId additive field ------------------------------------
+// IFS Parts live in their own store, but `partId` is an additive optional
+// field on Mapping. We cover two things: (1) the Part shape compiles with
+// the expected fields, (2) migrating an entry with partId leaves it intact —
+// no migration branch is needed for a pure additive optional.
+
+describe('Part shape', () => {
+  test('has id, name, createdAt', () => {
+    const p: Part = {
+      id: 'p1',
+      name: 'The Caretaker',
+      createdAt: 1715731200000,
+    };
+    expect(p.id).toBe('p1');
+    expect(p.name).toBe('The Caretaker');
+    expect(p.createdAt).toBe(1715731200000);
+  });
+});
+
+describe('migrateMapping with partId', () => {
+  test('partId on an otherwise-clean entry passes through unchanged', () => {
+    const input: Mapping = { ...base, partId: 'p1' };
+    const out = migrateMapping(input);
+    expect(out.partId).toBe('p1');
+  });
+
+  test('partId survives a migration that also touches lifeDesign', () => {
+    const input = {
+      ...base,
+      partId: 'p2',
+      designConstraint: true,
+    } as LegacyMapping;
+    const out = migrateMapping(input);
+    expect(out.partId).toBe('p2');
+    expect(out.lifeDesign?.problemFrame).toBe('open');
   });
 });
 

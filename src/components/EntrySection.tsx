@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { Trash2 } from "lucide-react";
-import type { Mapping } from "../types";
+import type { Mapping, Part } from "../types";
 import { EMOTION_PLACES_BY_ID, findEmotion } from "../data";
-import { lensCompletion } from "../derive";
+import { ifsLayer, IFS_LAYER_LABEL, IFS_LAYER_GLOSS, lensCompletion } from "../derive";
 import { CompletionBar } from "./primitives";
 import { LensPanel } from "./LensPanel";
 
@@ -153,6 +153,7 @@ const parseCompositeNeed = (raw: string) => {
 
 interface EntryProps {
   entry: Mapping;
+  parts: Part[];
   isDuplicate: boolean;
   lensOpen: boolean;
   onToggleLens: () => void;
@@ -164,6 +165,7 @@ interface EntryProps {
 
 export const EntrySection = ({
   entry,
+  parts,
   isDuplicate,
   lensOpen,
   onToggleLens,
@@ -190,6 +192,14 @@ export const EntrySection = ({
  const servesDriver = entry.coreNeed
    ? entry.coreNeed.toLowerCase()
    : "unmapped";
+
+ // IFS overlay — derived from workability. Surfaces the part doing the work
+ // (Firefighter / Manager / Self) as a calm identity frame alongside the
+ // other status pills. Null when the entry hasn't been rated.
+ const ifsBand = ifsLayer(entry);
+ const partName = entry.partId
+   ? (parts.find((p) => p.id === entry.partId)?.name ?? null)
+   : null;
 
  // --- SMART AUTO-PARSER FOR MASSIVE COMPOSITE STRINGS ---
  // Safely extracts labeled subsections from legacy pasted text on the fly
@@ -324,6 +334,22 @@ export const EntrySection = ({
 
              {/* Status pill strip */}
              <div className="mt-3 flex items-center gap-2 flex-wrap font-mono text-[9px] text-[#B391A0] tracking-wider pt-2 border-t border-[#3A1E2A]/5">
+               {ifsBand && (
+                 <span
+                   className="font-serif italic normal-case tracking-normal text-[10px] text-[#5A3645] bg-white border border-[#3A1E2A]/10 px-2 py-0.5 rounded-full"
+                   title={IFS_LAYER_GLOSS[ifsBand]}
+                 >
+                   {IFS_LAYER_LABEL[ifsBand]}
+                 </span>
+               )}
+               {partName && (
+                 <span
+                   className="font-serif italic normal-case tracking-normal text-[10px] text-[#C24E6E] bg-[#FBD9E0]/40 border border-[#FBD9E0] px-2 py-0.5 rounded-full"
+                   title={`Part · ${partName}`}
+                 >
+                   {partName}
+                 </span>
+               )}
                {(acceleratorsCount > 0 || parsedNeed.accelerators) && (
                  <span className="text-[#C24E6E] bg-[#FBD9E0]/50 px-2 py-0.5 rounded-full">
                    {parsedNeed.accelerators

@@ -62,6 +62,21 @@ export interface Mapping {
   // this lens existed simply leave them unset.
   emotionCluster?: EmotionCluster;
   emotion?: string;
+
+  // IFS · single Part tag. Names which user-defined identity is acting in this
+  // entry (e.g. "The People Pleaser"). Single-select by design — an entry
+  // expresses one part at a time. References Part.id in the parts store.
+  partId?: string;
+}
+
+// IFS · user-named identities. Parts live in their own top-level store
+// (localStorage key `values-mapper-parts-v1` + Yjs map "parts"). They are
+// created during entry assignment in Focus mode; the #/parts route surfaces
+// a read-only profile per Part. No edit/delete UI by design.
+export interface Part {
+  id: string;
+  name: string;
+  createdAt: number;
 }
 
 // --- Migration --------------------------------------------------------------

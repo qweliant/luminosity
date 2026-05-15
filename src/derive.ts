@@ -242,6 +242,44 @@ export const maslowHighest = (entry: Mapping): MaslowLevel | null => {
   return highestIdx === -1 ? null : MASLOW_LEVELS[highestIdx]!;
 };
 
+// --- IFS overlay · derived parts layer --------------------------------------
+// Internal Family Systems reading of the ACT workability band. The premise:
+// low-workability values aren't broken — they're *protected*. A 1 or 2 means
+// a Firefighter is doing the work of containing pain; a 3 means a Manager is
+// holding the situation together at cost; a 4 or 5 means the Self has room
+// to lead. Pure derivation, no schema change. Surfaced as a quiet label.
+//
+// Not "Firefighter alarmed" — the whole point of the IFS frame is that the
+// part is doing protective work and deserves recognition, not a red flag.
+export type IfsLayer = 'firefighter' | 'manager' | 'self';
+
+export const ifsLayerForBand = (w: number | undefined): IfsLayer | null => {
+  if (!w || w < 1 || w > 5) return null;
+  if (w <= 2) return 'firefighter';
+  if (w === 3) return 'manager';
+  return 'self';
+};
+
+export const ifsLayer = (entry: Mapping): IfsLayer | null =>
+  ifsLayerForBand(entry.workability);
+
+export const IFS_LAYER_LABEL: Record<IfsLayer, string> = {
+  firefighter: 'Firefighter',
+  manager: 'Manager',
+  self: 'Self',
+};
+
+// One-line gloss for chip hover and band headers. Editorial, kind — frames
+// each part as doing necessary work, not as a problem to be solved.
+export const IFS_LAYER_GLOSS: Record<IfsLayer, string> = {
+  firefighter:
+    'A Firefighter is on duty here — protecting you from contact with this. The work is to thank it, not override it.',
+  manager:
+    'A Manager is holding this together. Capable, but carrying the cost. Notice what it is preventing.',
+  self:
+    'Self is leading here. Curious, calm, connected. Worth naming what makes that possible.',
+};
+
 export const sdtProfile = (entry: Mapping): SdtProfile => {
   const profile: SdtProfile = { autonomy: 0, competence: 0, relatedness: 0 };
   for (const n of entry.nvcNeeds ?? []) {

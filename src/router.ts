@@ -1,6 +1,7 @@
-// Lightweight hash-based router. Zero dependencies — just enough for four
-// routes (list, matrix, focus/<id>, methods) so the back button works, focus
-// mode survives a refresh, and the methods page has its own URL.
+// Lightweight hash-based router. Zero dependencies — just enough for five
+// routes (list, matrix, focus/<id>, methods, parts) so the back button works,
+// focus mode survives a refresh, and the methods + parts pages have their
+// own URLs.
 //
 // We use hash routing (rather than History API) deliberately: Luminosity is
 // served as a static bundle and may be opened from `file://` for printing.
@@ -12,6 +13,7 @@ export type Route =
   | { name: 'list' }
   | { name: 'matrix' }
   | { name: 'methods' }
+  | { name: 'parts' }
   | { name: 'focus'; id: string };
 
 export const parseHash = (hash: string): Route => {
@@ -19,6 +21,7 @@ export const parseHash = (hash: string): Route => {
   if (!h) return { name: 'list' };
   if (h === 'matrix') return { name: 'matrix' };
   if (h === 'methods') return { name: 'methods' };
+  if (h === 'parts') return { name: 'parts' };
   const m = h.match(/^focus\/(.+)$/);
   if (m && m[1]) return { name: 'focus', id: decodeURIComponent(m[1]) };
   return { name: 'list' };
@@ -32,6 +35,8 @@ export const routeToHash = (r: Route): string => {
       return '#/matrix';
     case 'methods':
       return '#/methods';
+    case 'parts':
+      return '#/parts';
     case 'focus':
       return `#/focus/${encodeURIComponent(r.id)}`;
   }
