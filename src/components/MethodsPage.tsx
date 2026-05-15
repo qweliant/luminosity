@@ -99,6 +99,37 @@ const DERIVED: Derived[] = [
   },
 ];
 
+interface Influence {
+  title: string;
+  author: string;
+  href: string;
+  why: string;
+}
+
+const INFLUENCES: Influence[] = [
+  {
+    title: "The ABC's of Luminosity",
+    author: 'Alicorn (LessWrong, 2009)',
+    href: 'https://www.lesswrong.com/posts/rLuZ6XrGpgjk9BNpX/the-abc-s-of-luminosity',
+    why:
+      'The namesake. Names the loop this app is a small instance of — Affect, Behavior, and Circumstance are interdependent — and gives "luminosity" its working meaning: introspective accuracy as a trainable skill. Every Value → Friction → Need → Workability row here is one slice of that ABC loop.',
+  },
+  {
+    title: 'The Luminosity sequence',
+    author: 'Alicorn (LessWrong, 2009–2011)',
+    href: 'https://www.lesswrong.com/s/ynMFrq9K5iNMfSZNg/p/9o3Cjjem7AbmmZfBs',
+    why:
+      "The longer arc behind the namesake post. Practical exercises in noticing your own mental states accurately — without flinching, flattering, or theorizing past what's actually there.",
+  },
+  {
+    title: 'Ureshiku Naritai',
+    author: 'Alicorn (LessWrong, 2024)',
+    href: 'https://www.lesswrong.com/posts/xnPFYBuaGhpq869mY/ureshiku-naritai',
+    why:
+      "A later update on the same project — what it actually looked like to try to be happier on purpose, and what stuck. A reminder that the work doesn't end at the sequence.",
+  },
+];
+
 interface OmittedFramework {
   name: string;
   why: string;
@@ -267,6 +298,45 @@ export const MethodsPage = ({ onClose }: { onClose: () => void }) => {
             <li key={o.name}>
               <strong className="font-serif text-[#3A1E2A]">{o.name}</strong>
               <span className="text-sm text-[#5A3645] leading-relaxed"> — {o.why}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="mb-12">
+        <h2 className="text-[10px] uppercase tracking-[0.25em] text-[#C24E6E] font-bold mb-3">
+          Influences
+        </h2>
+        <p className="text-sm text-[#5A3645] leading-relaxed mb-2 max-w-prose">
+          This app's whole architecture is a small instance of a larger loop Alicorn
+          named on LessWrong: <em>Affect, Behavior,</em> and <em>Circumstance</em> are
+          interdependent, and <em>luminosity</em> is the practice of seeing each clearly
+          enough to act on them.
+        </p>
+        <p className="text-sm text-[#5A3645] leading-relaxed mb-5 max-w-prose">
+          The Value &rarr; Friction &rarr; Need &rarr; Workability loop is one slice of
+          that ABC interdependence &mdash; Friction names the circumstance, Workability
+          names the behavior, and Need names the affective ground both rest on. The
+          namesake is older than this codebase by sixteen years; the debt is happily
+          acknowledged.
+        </p>
+        <ul className="space-y-5">
+          {INFLUENCES.map((i) => (
+            <li key={i.href} className="pl-5 border-l-2 border-[#FBD9E0]">
+              <a
+                href={i.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-serif italic text-lg text-[#3A1E2A] hover:text-[#C24E6E] transition-colors"
+              >
+                {i.title}
+              </a>
+              <p className="text-[10px] uppercase tracking-[0.2em] text-[#B391A0] mt-0.5">
+                {i.author}
+              </p>
+              <p className="text-sm text-[#5A3645] leading-relaxed mt-2 max-w-prose">
+                {i.why}
+              </p>
             </li>
           ))}
         </ul>

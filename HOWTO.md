@@ -111,6 +111,14 @@ Frameworks deliberately not in the app (worth knowing, but redundant or too heav
 - **Polyvagal Theory** — physiological state as context. Nagoski accelerators/brakes already covers the practical surface.
 - **Logotherapy / "Will to Meaning"** — Viktor Frankl. Captured implicitly via the Madanes *Significance* and *Contribution* drivers.
 
+## Influences
+
+This app's whole architecture is a small instance of a larger loop Alicorn named on LessWrong: *Affect, Behavior,* and *Circumstance* are interdependent, and *luminosity* is the practice of seeing each clearly enough to act on them. Value → Friction → Need → Workability is one slice of that ABC interdependence — Friction names the circumstance, Workability names the behavior, and Need names the affective ground both rest on.
+
+- [**The ABC's of Luminosity**](https://www.lesswrong.com/posts/rLuZ6XrGpgjk9BNpX/the-abc-s-of-luminosity) — Alicorn (LessWrong, 2009). The namesake. Names the ABC interdependence and gives "luminosity" its working meaning: introspective accuracy as a trainable skill.
+- [**The Luminosity sequence**](https://www.lesswrong.com/s/ynMFrq9K5iNMfSZNg/p/9o3Cjjem7AbmmZfBs) — Alicorn (LessWrong, 2009–2011). Practical exercises in noticing your own mental states accurately — without flinching, flattering, or theorizing past what's actually there.
+- [**Ureshiku Naritai**](https://www.lesswrong.com/posts/xnPFYBuaGhpq869mY/ureshiku-naritai) — Alicorn (LessWrong, 2024). A later update on the same project — what it actually looked like to try to be happier on purpose, and what stuck.
+
 ## Backup (optional Bun + SQLite sidecar)
 
 The browser's `localStorage` can be wiped by clearing site data, switching browsers, or running incognito. To guard against that, the repo ships a tiny backup server using `Bun.serve()` + `bun:sqlite`.
