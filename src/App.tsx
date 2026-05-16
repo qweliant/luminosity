@@ -6,6 +6,7 @@ import {
   Radio,
   BookOpen,
   Download,
+  Users,
 } from "lucide-react";
 
 import { migrateMapping, type LegacyMapping, type Mapping, type Part } from "./types";
@@ -21,6 +22,7 @@ import { FocusOverlay } from "./components/FocusOverlay";
 import { ImportModal } from "./components/ImportModal";
 import { MatrixView } from "./components/MatrixView";
 import { MethodsPage } from "./components/MethodsPage";
+import { OverflowMenu } from "./components/OverflowMenu";
 import { PartsPage } from "./components/PartsPage";
 import { PrintLedger } from "./components/PrintLedger";
 import { SyncOverlay } from "./components/SyncOverlay";
@@ -231,6 +233,128 @@ const DynamicAmbientBlooms = () => {
 // -----------------------------------------------------------------------------
 
 const norm = (s: string) => s.trim().toLowerCase();
+
+const numWord = (n: number): string => {
+  if (n === 0) return "none";
+  const words = [
+    "zero",
+    "one",
+    "two",
+    "three",
+    "four",
+    "five",
+    "six",
+    "seven",
+    "eight",
+    "nine",
+    "ten",
+    "eleven",
+    "twelve",
+  ];
+  return words[n] ?? String(n);
+};
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const isAre = (n: number) => (n === 1 ? "is" : "are");
+
+// Dynamic narration of the workability distribution. Returns a JSX fragment
+// so we can color the count spans inline. Pure function — easy to test if/when.
+//
+// Buckets:
+//   - stuck    = workability 1
+//   - mixed    = workability 2 or 3 ("in between" in copy)
+//   - working  = workability 4 or 5
+//   - unrated  = entries with no workability set (derived from total - others)
+const healthSentence = (
+  total: number,
+  stuck: number,
+  mixed: number,
+  working: number,
+): React.ReactNode => {
+  const unrated = Math.max(0, total - stuck - mixed - working);
+  const PINK = "#C24E6E";
+  const SAGE = "#5C7F66";
+
+  if (total === 0) return <span>Nothing mapped yet.</span>;
+
+  if (total === 1) {
+    const where =
+      stuck === 1 ? (
+        <>
+          and it's <span style={{ color: PINK }}>stuck</span>
+        </>
+      ) : working === 1 ? (
+        <>
+          and it's <span style={{ color: SAGE }}>working</span>
+        </>
+      ) : mixed === 1 ? (
+        <>currently in between</>
+      ) : (
+        <>not yet rated</>
+      );
+    return <>One value mapped, {where}.</>;
+  }
+
+  // All-one-bucket shortcuts
+  if (stuck === total)
+    return (
+      <>
+        {cap(numWord(total))} values mapped.{" "}
+        <span style={{ color: PINK }}>All stuck</span>.
+      </>
+    );
+  if (working === total)
+    return (
+      <>
+        {cap(numWord(total))} values mapped.{" "}
+        <span style={{ color: SAGE }}>All working</span>.
+      </>
+    );
+  if (mixed === total)
+    return <>{cap(numWord(total))} values mapped. All in between.</>;
+  if (unrated === total)
+    return <>{cap(numWord(total))} values mapped. None rated yet.</>;
+
+  // Build clauses in priority order (extremes first, then middle, then unrated).
+  // Always explicit — no "the rest are" shortcut, since with four possible
+  // buckets the reader can't infer which one is "the rest".
+  const clauses: React.ReactNode[] = [];
+  if (stuck > 0) {
+    clauses.push(
+      <span key="s" style={{ color: PINK }}>
+        {numWord(stuck)} {isAre(stuck)} stuck
+      </span>,
+    );
+  }
+  if (working > 0) {
+    clauses.push(
+      <span key="w" style={{ color: SAGE }}>
+        {numWord(working)} {isAre(working)} working
+      </span>,
+    );
+  }
+  if (mixed > 0) {
+    clauses.push(
+      <span key="m">
+        {numWord(mixed)} {isAre(mixed)} in between
+      </span>,
+    );
+  }
+  if (unrated > 0) {
+    clauses.push(<span key="u">{numWord(unrated)} not yet rated</span>);
+  }
+
+  // Comma-join. The opener already has its own period from the next fragment.
+  const joined = clauses.flatMap((c, i) => (i === 0 ? [c] : [", ", c]));
+  return (
+    <>
+      {cap(numWord(total))} values mapped.{" "}
+      {joined.map((n, i) => (
+        <React.Fragment key={i}>{n}</React.Fragment>
+      ))}
+      .
+    </>
+  );
+};
 
 // -----------------------------------------------------------------------------
 // App Root
@@ -595,298 +719,325 @@ export const App = () => {
         ) : showMethods ? (
           <MethodsPage onClose={() => goBackOr({ name: lastUnderlay })} />
         ) : (
-        <div
-          className={`${
-            matrixView ? "max-w-4xl" : "max-w-3xl"
-          } mx-auto py-12 px-6 transition-all`}
-        >
-          <header className="mb-6 flex flex-col gap-4 print:hidden">
-            <div className="flex justify-between items-end flex-wrap gap-4 border-b border-[#3A1E2A]/10 pb-4">
-              <div className="flex items-baseline gap-3">
-                <BloomWordmark size={36} />
-                <span className="font-serif italic text-xs text-[#B391A0]">
-                  a kind, small ledger
-                </span>
+          <div
+            className={`${
+              matrixView ? "max-w-4xl" : "max-w-3xl"
+            } mx-auto py-12 px-6 transition-all`}
+          >
+            <header className="mb-6 flex flex-col gap-4 print:hidden">
+              <div className="flex justify-between items-end flex-wrap gap-4 border-b border-[#3A1E2A]/10 pb-4">
+                <div className="flex items-baseline gap-3">
+                  <BloomWordmark size={36} />
+                  <span className="font-serif italic text-xs text-[#B391A0]">
+                    a kind, small ledger
+                  </span>
+                </div>
+
+                <div className="flex gap-4 items-center flex-wrap text-[10px] uppercase tracking-[0.18em] font-medium">
+                  {import.meta.env.DEV && backup && (
+                    <BackupChip
+                      status={backup.status}
+                      lastSnapshot={backup.lastSnapshot}
+                      snapshots={backup.snapshots}
+                      inFlight={backup.inFlight}
+                      onSnapshot={backup.snapshotNow}
+                      onRestore={handleRestore}
+                    />
+                  )}
+
+                  {/* Primary: live state */}
+                  <button
+                    onClick={() => setShowSync(true)}
+                    className={`hover:text-[#C24E6E] transition-colors flex items-center gap-1 cursor-pointer ${
+                      liveP2P ? "text-[#9CD3B6] font-bold" : "text-[#B391A0]"
+                    }`}
+                    title="Mirror this ledger to another browser. Nothing leaves your devices."
+                  >
+                    <Radio
+                      size={15}
+                      className={`inline ${liveP2P ? "animate-pulse" : ""}`}
+                    />
+                    <span>{liveP2P ? "Live" : "Sync"}</span>
+                  </button>
+
+                  {/* Primary: view toggle */}
+                  <button
+                    onClick={() =>
+                      navigate({ name: matrixView ? "list" : "matrix" })
+                    }
+                    className={`hover:text-[#C24E6E] transition-colors flex items-center cursor-pointer ${
+                      matrixView ? "text-[#C24E6E] font-bold" : "text-[#B391A0]"
+                    }`}
+                  >
+                    {matrixView ? "✿ List view" : "Matrix"}
+                  </button>
+
+                  {/* Reading surfaces — keep discoverable */}
+                  <button
+                    onClick={() => navigate({ name: "methods" })}
+                    className="hover:text-[#C24E6E] transition-colors flex items-center text-[#B391A0] cursor-pointer"
+                    title="How the lenses work, and the frameworks behind them"
+                  >
+                    <BookOpen size={15} className="inline mr-1" />
+                    methods
+                  </button>
+
+                  <button
+                    onClick={() => navigate({ name: "parts" })}
+                    className="hover:text-[#C24E6E] transition-colors flex items-center text-[#B391A0] cursor-pointer"
+                    title="IFS profiles — the parts of you that are doing the work"
+                  >
+                    <Users size={15} className="inline mr-1" />
+                    parts
+                  </button>
+
+                  {/* Archival actions — collapsed */}
+                  <OverflowMenu
+                    items={[
+                      {
+                        label: "Import",
+                        hint: "From the library, paste a list, or load a backup .json",
+                        icon: <FileInput size={15} />,
+                        onClick: () => setShowImport(true),
+                      },
+                      {
+                        label: "Export",
+                        hint: "Download a JSON backup of every entry",
+                        icon: <Download size={15} />,
+                        disabled: entries.length === 0,
+                        onClick: () => downloadEntriesAsJson(entries),
+                      },
+                      {
+                        label: "Print",
+                        hint: "Editorial layout — useful for PDF saves",
+                        icon: <Printer size={15} />,
+                        onClick: () => window.print(),
+                      },
+                    ]}
+                  />
+                </div>
               </div>
 
-              <div className="flex gap-4 items-center flex-wrap text-[10px] uppercase tracking-[0.18em] font-medium">
-                {import.meta.env.DEV && backup && (
-                  <BackupChip
-                    status={backup.status}
-                    lastSnapshot={backup.lastSnapshot}
-                    snapshots={backup.snapshots}
-                    inFlight={backup.inFlight}
-                    onSnapshot={backup.snapshotNow}
-                    onRestore={handleRestore}
-                  />
+              <div className="p-4 bg-[#FFFFFF] rounded-[16px] border border-[#3A1E2A]/10 shadow-xs">
+                {/* Sentence + Lumi */}
+                <div className="flex justify-between items-start gap-4 mb-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-mono text-[8.5px] text-[#C24E6E] tracking-[0.16em] uppercase font-bold">
+                      Today's weather
+                    </div>
+                    <p className="font-serif text-lg sm:text-xl text-[#3A1E2A] mt-1 leading-snug tracking-[-0.005em] m-0">
+                      {healthSentence(
+                        countTotal,
+                        countStuck,
+                        countMixed,
+                        countWorking,
+                      )}
+                    </p>
+                  </div>
+                  <LumiBean size={44} />
+                </div>
+
+                {/* Existing count grid, unchanged */}
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 items-center pt-3 border-t border-dashed border-[#3A1E2A]/10">
+                  <div>
+                    <div className="font-mono text-[8.5px] text-[#B391A0] tracking-[0.16em] uppercase">
+                      values
+                    </div>
+                    <div className="font-serif text-2xl text-[#3A1E2A] mt-0.5">
+                      {countTotal}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-mono text-[8.5px] text-[#B391A0] tracking-[0.16em] uppercase">
+                      stuck
+                    </div>
+                    <div className="font-serif text-2xl text-[#C24E6E] mt-0.5">
+                      {countStuck}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-mono text-[8.5px] text-[#B391A0] tracking-[0.16em] uppercase">
+                      mixed
+                    </div>
+                    <div className="font-serif text-2xl text-[#F7D679] mt-0.5">
+                      {countMixed}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-mono text-[8.5px] text-[#B391A0] tracking-[0.16em] uppercase">
+                      working
+                    </div>
+                    <div className="font-serif text-2xl text-[#9CD3B6] mt-0.5">
+                      {countWorking}
+                    </div>
+                  </div>
+                  <div className="col-span-2 sm:col-span-1 pt-2 sm:pt-0 sm:border-l border-[#3A1E2A]/5 sm:pl-3">
+                    <div className="font-mono text-[8.5px] text-[#B391A0] tracking-[0.16em] uppercase">
+                      lenses
+                    </div>
+                    <div className="font-serif text-xl text-[#3A1E2A] mt-0.5">
+                      {activeLensesCount}/{maxLenses || 30}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </header>
+
+            {!dismissHello && entries.length > 0 && (
+              <div className="mb-6 p-4 bg-[#FAE6E1] rounded-[18px] border border-[#3A1E2A]/10 flex items-center gap-4 relative print:hidden shadow-xs">
+                <LumiBean size={54} />
+                <div className="flex-1">
+                  <div className="font-serif italic text-sm sm:text-base text-[#3A1E2A] leading-snug">
+                    Hi.
+                    <span className="text-[#C24E6E] font-bold not-italic">
+                      {" "}
+                      {entries[0]?.value || "Your alignment"}
+                    </span>{" "}
+                    feels like a good place to start tending today — ready to
+                    unpack the friction?
+                  </div>
+                  <div className="mt-1 font-mono text-[9px] text-[#5A3645]/70 tracking-wider">
+                    lumi · your gentle nudge
+                  </div>
+                </div>
+                <button
+                  onClick={hideHelloNudge}
+                  className="text-xs text-[#C24E6E] hover:underline px-2 py-1 self-start sm:self-center font-medium"
+                >
+                  dismiss ✿
+                </button>
+              </div>
+            )}
+
+            {matrixView ? (
+              <MatrixView
+                entries={entries}
+                parts={parts}
+                onFocus={(id) => navigate({ name: "focus", id })}
+              />
+            ) : (
+              <main className="space-y-4 sm:space-y-6">
+                {entries.length === 0 && (
+                  <div className="py-8 px-4 sm:px-8 bg-white border border-[#3A1E2A]/10 rounded-[18px] shadow-sm relative overflow-hidden animate-in fade-in duration-300 mt-2">
+                    <div
+                      aria-hidden="true"
+                      className="absolute right-[-20px] top-[-20px] opacity-30 pointer-events-none"
+                    >
+                      <BloomFlower size={140} petal="#F4ABBC" smile={false} />
+                    </div>
+                    <div
+                      aria-hidden="true"
+                      className="absolute left-[-30px] bottom-[-30px] opacity-30 pointer-events-none"
+                    >
+                      <BloomFlower size={160} petal="#FBD9E0" smile={false} />
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 sm:gap-6 mb-8 relative z-10">
+                      <div className="shrink-0">
+                        <LumiBean size={100} />
+                      </div>
+                      <div className="bg-[#FDF4F0] border border-[#3A1E2A]/15 rounded-2xl p-4 sm:p-5 flex-1 relative shadow-2xs">
+                        <div className="absolute left-1/2 sm:left-[-7px] top-[-7px] sm:top-auto sm:bottom-6 w-3 h-3 bg-[#FDF4F0] border-t border-l sm:border-t-0 sm:border-r border-[#3A1E2A]/15 rotate-45" />
+                        <p className="font-serif text-xl sm:text-2xl text-[#3A1E2A] leading-tight m-0">
+                          hi! i&apos;m lumi.
+                        </p>
+                        <p className="font-serif italic text-xs sm:text-sm text-[#5A3645] mt-1 mb-0">
+                          shall we drop a few core values onto the canvas to
+                          begin?
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-3 max-w-md mx-auto relative z-10">
+                      <button
+                        type="button"
+                        onClick={() => setShowImport(true)}
+                        className="w-full bg-[#C24E6E] text-white p-3.5 rounded-xl text-left transition-all hover:bg-[#3A1E2A] shadow-2xs group cursor-pointer flex items-center gap-3"
+                      >
+                        <span className="bg-white/20 p-1.5 rounded-lg text-white group-hover:bg-white/10 shrink-0">
+                          <BloomFlower
+                            size={16}
+                            petal="#FFFFFF"
+                            eye="#C24E6E"
+                            smile={false}
+                          />
+                        </span>
+                        <div>
+                          <div className="font-sans text-xs font-bold uppercase tracking-wider">
+                            From the curated library
+                          </div>
+                          <div className="font-serif italic text-xs text-pink-100 mt-0.5">
+                            Explore detailed definitions by season...
+                          </div>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setEntries(seedPersonalValues())}
+                        className="w-full bg-[#FFF5DC] text-[#3A1E2A] p-3.5 rounded-xl border border-[#3A1E2A]/10 text-left transition-all hover:border-[#E07A95] cursor-pointer flex items-center gap-3"
+                      >
+                        <span className="bg-[#F7D679] p-1.5 rounded-lg text-[#3A1E2A] shrink-0">
+                          ✿
+                        </span>
+                        <div>
+                          <div className="font-sans text-xs font-bold uppercase tracking-wider text-[#5A3645]">
+                            Seed five common pillars
+                          </div>
+                          <div className="font-serif italic text-xs text-[#B391A0] mt-0.5">
+                            Compassion · Curiosity · Health · Harmony · Peace
+                          </div>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setShowImport(true)}
+                        className="w-full bg-transparent text-[#5A3645] p-3 rounded-xl border border-dashed border-[#3A1E2A]/15 text-center transition-all hover:bg-[#FAE6E1]/30 cursor-pointer font-sans text-xs font-medium"
+                      >
+                        ✎ Or paste your own raw unformatted list
+                      </button>
+                    </div>
+                  </div>
                 )}
 
-                <button
-                  onClick={() => setShowSync(true)}
-                  className={`hover:text-[#C24E6E] transition-colors flex items-center gap-1 cursor-pointer ${
-                    liveP2P ? "text-[#9CD3B6] font-bold" : "text-[#B391A0]"
-                  }`}
-                  title="Mirror this ledger to another browser. Nothing leaves your devices."
-                >
-                  <Radio
-                    size={15}
-                    className={`inline ${liveP2P ? "animate-pulse" : ""}`}
+                {/* Directly target native deletion hooks inside the rendering loop */}
+                {entries.map((entry) => (
+                  <EntrySection
+                    key={entry.id}
+                    entry={entry}
+                    parts={parts}
+                    isDuplicate={duplicateIds.has(entry.id)}
+                    lensOpen={!!openLenses[entry.id]}
+                    onToggleLens={() => toggleLens(entry.id)}
+                    onChange={(patch) => updateEntry(entry.id, patch)}
+                    onDelete={() => handleDeleteEntry(entry.id)}
+                    onToggleNvc={(n) => toggleNvc(entry.id, n)}
+                    onFocus={() => navigate({ name: "focus", id: entry.id })}
                   />
-                  <span>{liveP2P ? "Live" : "Sync browsers"}</span>
-                </button>
+                ))}
 
+                {/* Ensure blank additions populate shared CRDT nodes safely */}
                 <button
-                  onClick={() =>
-                    navigate({ name: matrixView ? "list" : "matrix" })
-                  }
-                  className={`hover:text-[#C24E6E] transition-colors flex items-center cursor-pointer ${
-                    matrixView ? "text-[#C24E6E] font-bold" : "text-[#B391A0]"
-                  }`}
+                  onClick={handleAddBlankSpace}
+                  className="w-full py-8 border border-dashed border-[#3A1E2A]/15 rounded-[18px] text-[#B391A0] hover:text-[#C24E6E] hover:bg-white transition-all flex items-center justify-center gap-2 print:hidden group shadow-2xs cursor-pointer"
                 >
-                  {matrixView ? "✿ List view" : "Matrix"}
+                  <Plus
+                    size={20}
+                    className="group-hover:rotate-90 transition-transform"
+                  />
+                  <span className="font-mono text-xs tracking-wider uppercase">
+                    Add blank mapping space ✿
+                  </span>
                 </button>
+              </main>
+            )}
 
-                <button
-                  onClick={() => navigate({ name: "methods" })}
-                  className="hover:text-[#C24E6E] transition-colors flex items-center text-[#B391A0] cursor-pointer"
-                  title="How the lenses work, and the frameworks behind them"
-                >
-                  <BookOpen size={15} className="inline mr-1" />
-                  methods
-                </button>
-
-                <button
-                  onClick={() => setShowImport(true)}
-                  className="hover:text-[#C24E6E] transition-colors flex items-center text-[#B391A0] cursor-pointer"
-                  title="Add values from the library, paste a list, or load a backup .json"
-                >
-                  <FileInput size={16} className="inline mr-1" />
-                  import
-                </button>
-
-                <button
-                  onClick={() => downloadEntriesAsJson(entries)}
-                  disabled={entries.length === 0}
-                  className="hover:text-[#C24E6E] transition-colors flex items-center text-[#B391A0] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-                  title="Download a JSON backup of every entry. Load it on another browser from the Import menu."
-                >
-                  <Download size={15} className="inline mr-1" />
-                  export
-                </button>
-
-                <button
-                  onClick={() => window.print()}
-                  className="hover:text-[#C24E6E] transition-colors flex items-center text-[#B391A0] cursor-pointer"
-                  title="Print a clean text layout — useful for PDF saves"
-                >
-                  <Printer size={16} className="inline mr-1" />
-                  print
-                </button>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 p-4 bg-[#FFFFFF] rounded-[16px] border border-[#3A1E2A]/10 items-center shadow-xs">
-              <div>
-                <div className="font-mono text-[8.5px] text-[#B391A0] tracking-[0.16em] uppercase">
-                  values
-                </div>
-                <div className="font-serif text-2xl text-[#3A1E2A] mt-0.5">
-                  {countTotal}
-                </div>
-              </div>
-
-              <div>
-                <div className="font-mono text-[8.5px] text-[#B391A0] tracking-[0.16em] uppercase">
-                  stuck
-                </div>
-                <div className="font-serif text-2xl text-[#C24E6E] mt-0.5">
-                  {countStuck}
-                </div>
-              </div>
-
-              <div>
-                <div className="font-mono text-[8.5px] text-[#B391A0] tracking-[0.16em] uppercase">
-                  mixed
-                </div>
-                <div className="font-serif text-2xl text-[#F7D679] mt-0.5">
-                  {countMixed}
-                </div>
-              </div>
-
-              <div>
-                <div className="font-mono text-[8.5px] text-[#B391A0] tracking-[0.16em] uppercase">
-                  working
-                </div>
-                <div className="font-serif text-2xl text-[#9CD3B6] mt-0.5">
-                  {countWorking}
-                </div>
-              </div>
-
-              <div className="col-span-2 sm:col-span-1 pt-2 sm:pt-0 sm:border-l border-[#3A1E2A]/5 sm:pl-3">
-                <div className="font-mono text-[8.5px] text-[#B391A0] tracking-[0.16em] uppercase">
-                  lenses
-                </div>
-                <div className="font-serif text-xl text-[#3A1E2A] mt-0.5">
-                  {activeLensesCount}/{maxLenses || 30}
-                </div>
-              </div>
-            </div>
-          </header>
-
-          {!dismissHello && entries.length > 0 && (
-            <div className="mb-6 p-4 bg-[#FAE6E1] rounded-[18px] border border-[#3A1E2A]/10 flex items-center gap-4 relative print:hidden shadow-xs">
-              <LumiBean size={54} />
-              <div className="flex-1">
-                <div className="font-serif italic text-sm sm:text-base text-[#3A1E2A] leading-snug">
-                  Hi.
-                  <span className="text-[#C24E6E] font-bold not-italic">
-                    {" "}
-                    {entries[0]?.value || "Your alignment"}
-                  </span>{" "}
-                  feels like a good place to start tending today — ready to
-                  unpack the friction?
-                </div>
-                <div className="mt-1 font-mono text-[9px] text-[#5A3645]/70 tracking-wider">
-                  lumi · your gentle nudge
-                </div>
-              </div>
-              <button
-                onClick={hideHelloNudge}
-                className="text-xs text-[#C24E6E] hover:underline px-2 py-1 self-start sm:self-center font-medium"
-              >
-                dismiss ✿
-              </button>
-            </div>
-          )}
-
-          {matrixView ? (
-            <MatrixView
-              entries={entries}
-              onFocus={(id) => navigate({ name: "focus", id })}
-            />
-          ) : (
-            <main className="space-y-4 sm:space-y-6">
-              {entries.length === 0 && (
-                <div className="py-8 px-4 sm:px-8 bg-white border border-[#3A1E2A]/10 rounded-[18px] shadow-sm relative overflow-hidden animate-in fade-in duration-300 mt-2">
-                  <div
-                    aria-hidden="true"
-                    className="absolute right-[-20px] top-[-20px] opacity-30 pointer-events-none"
-                  >
-                    <BloomFlower size={140} petal="#F4ABBC" smile={false} />
-                  </div>
-                  <div
-                    aria-hidden="true"
-                    className="absolute left-[-30px] bottom-[-30px] opacity-30 pointer-events-none"
-                  >
-                    <BloomFlower size={160} petal="#FBD9E0" smile={false} />
-                  </div>
-
-                  <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 sm:gap-6 mb-8 relative z-10">
-                    <div className="shrink-0">
-                      <LumiBean size={100} />
-                    </div>
-                    <div className="bg-[#FDF4F0] border border-[#3A1E2A]/15 rounded-2xl p-4 sm:p-5 flex-1 relative shadow-2xs">
-                      <div className="absolute left-1/2 sm:left-[-7px] top-[-7px] sm:top-auto sm:bottom-6 w-3 h-3 bg-[#FDF4F0] border-t border-l sm:border-t-0 sm:border-r border-[#3A1E2A]/15 rotate-45" />
-                      <p className="font-serif text-xl sm:text-2xl text-[#3A1E2A] leading-tight m-0">
-                        hi! i&apos;m lumi.
-                      </p>
-                      <p className="font-serif italic text-xs sm:text-sm text-[#5A3645] mt-1 mb-0">
-                        shall we drop a few core values onto the canvas to
-                        begin?
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="grid gap-3 max-w-md mx-auto relative z-10">
-                    <button
-                      type="button"
-                      onClick={() => setShowImport(true)}
-                      className="w-full bg-[#C24E6E] text-white p-3.5 rounded-xl text-left transition-all hover:bg-[#3A1E2A] shadow-2xs group cursor-pointer flex items-center gap-3"
-                    >
-                      <span className="bg-white/20 p-1.5 rounded-lg text-white group-hover:bg-white/10 shrink-0">
-                        <BloomFlower
-                          size={16}
-                          petal="#FFFFFF"
-                          eye="#C24E6E"
-                          smile={false}
-                        />
-                      </span>
-                      <div>
-                        <div className="font-sans text-xs font-bold uppercase tracking-wider">
-                          From the curated library
-                        </div>
-                        <div className="font-serif italic text-xs text-pink-100 mt-0.5">
-                          Explore detailed definitions by season...
-                        </div>
-                      </div>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setEntries(seedPersonalValues())}
-                      className="w-full bg-[#FFF5DC] text-[#3A1E2A] p-3.5 rounded-xl border border-[#3A1E2A]/10 text-left transition-all hover:border-[#E07A95] cursor-pointer flex items-center gap-3"
-                    >
-                      <span className="bg-[#F7D679] p-1.5 rounded-lg text-[#3A1E2A] shrink-0">
-                        ✿
-                      </span>
-                      <div>
-                        <div className="font-sans text-xs font-bold uppercase tracking-wider text-[#5A3645]">
-                          Seed five common pillars
-                        </div>
-                        <div className="font-serif italic text-xs text-[#B391A0] mt-0.5">
-                          Compassion · Curiosity · Health · Harmony · Peace
-                        </div>
-                      </div>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setShowImport(true)}
-                      className="w-full bg-transparent text-[#5A3645] p-3 rounded-xl border border-dashed border-[#3A1E2A]/15 text-center transition-all hover:bg-[#FAE6E1]/30 cursor-pointer font-sans text-xs font-medium"
-                    >
-                      ✎ Or paste your own raw unformatted list
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Directly target native deletion hooks inside the rendering loop */}
-              {entries.map((entry) => (
-                <EntrySection
-                  key={entry.id}
-                  entry={entry}
-                  parts={parts}
-                  isDuplicate={duplicateIds.has(entry.id)}
-                  lensOpen={!!openLenses[entry.id]}
-                  onToggleLens={() => toggleLens(entry.id)}
-                  onChange={(patch) => updateEntry(entry.id, patch)}
-                  onDelete={() => handleDeleteEntry(entry.id)}
-                  onToggleNvc={(n) => toggleNvc(entry.id, n)}
-                  onFocus={() => navigate({ name: "focus", id: entry.id })}
-                />
-              ))}
-
-              {/* Ensure blank additions populate shared CRDT nodes safely */}
-              <button
-                onClick={handleAddBlankSpace}
-                className="w-full py-8 border border-dashed border-[#3A1E2A]/15 rounded-[18px] text-[#B391A0] hover:text-[#C24E6E] hover:bg-white transition-all flex items-center justify-center gap-2 print:hidden group shadow-2xs cursor-pointer"
-              >
-                <Plus
-                  size={20}
-                  className="group-hover:rotate-90 transition-transform"
-                />
-                <span className="font-mono text-xs tracking-wider uppercase">
-                  Add blank mapping space ✿
-                </span>
-              </button>
-            </main>
-          )}
-
-          <footer className="mt-16 pt-6 border-t border-[#3A1E2A]/10 text-center text-xs text-[#B391A0] font-serif italic print:hidden">
-            ✿ built for clarity · persisted locally · nothing leaves your device
-            ✿
-          </footer>
-        </div>
+            <footer className="mt-16 pt-6 border-t border-[#3A1E2A]/10 text-center text-xs text-[#B391A0] font-serif italic print:hidden">
+              ✿ built for clarity · persisted locally · nothing leaves your
+              device ✿
+            </footer>
+          </div>
         )}
       </div>
     </div>

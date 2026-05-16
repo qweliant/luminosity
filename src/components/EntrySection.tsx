@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Trash2 } from "lucide-react";
 import type { Mapping, Part } from "../types";
 import { EMOTION_PLACES_BY_ID, findEmotion } from "../data";
-import { ifsLayer, IFS_LAYER_LABEL, IFS_LAYER_GLOSS, lensCompletion } from "../derive";
+import { ifsLayer, IFS_LAYER_LABEL, IFS_LAYER_GLOSS, lensCompletion, isCessationState } from "../derive";
 import { CompletionBar } from "./primitives";
 import { LensPanel } from "./LensPanel";
 
@@ -264,6 +264,86 @@ export const EntrySection = ({
 
      {/* --- VERSION A: CONDENSED SCAN ROW (Default State) --- */}
      {!isExpanded ? (
+       isCessationState(entry) ? (
+         /* CESSATION VARIANT — softens to amber, hides prototype/reframe chips
+            and the focus CTA. The synthesizer already refuses to draft from
+            here; the row matches that stance. Clicking still expands so the
+            entry can be read or edited, but nothing pushes the user to act. */
+         <div
+           onClick={() => setIsExpanded(true)}
+           className="relative overflow-hidden rounded-[18px] border border-[#D6A24A]/30 p-4 sm:p-5 hover:border-[#D6A24A]/60 transition-colors shadow-xs cursor-pointer"
+           style={{
+             background:
+               "linear-gradient(180deg, #FFFAF0 0%, #FDF4F0 100%)",
+           }}
+         >
+           <div
+             aria-hidden
+             className="absolute -top-2 -right-2 w-16 h-16 overflow-hidden opacity-40 pointer-events-none"
+           >
+             <BloomFlower size={60} petal="#F7D679" smile={false} />
+           </div>
+
+           <div className="relative">
+             <div className="flex items-baseline gap-2 mb-1">
+               <span className="text-[13px] text-[#8B6914]">⏸</span>
+               <span className="text-[9px] uppercase tracking-[0.2em] text-[#8B6914] font-bold">
+                 Pause here{entry.emotion ? ` · ${entry.emotion.toLowerCase()}` : ""}
+               </span>
+             </div>
+
+             <div className="flex items-baseline gap-3 mb-3">
+               <h3 className="font-serif text-xl sm:text-2xl text-[#3A1E2A] m-0 flex-1 leading-tight">
+                 {entry.value || (
+                   <span className="text-[#B391A0]/60 italic">Core Value ✿</span>
+                 )}
+               </h3>
+               {partName && (
+                 <span
+                   className="font-serif italic text-[12px] text-[#8B6914] bg-[#FFF1D6] border border-[#D6A24A]/40 px-2.5 py-0.5 rounded-full"
+                   title={`Part · ${partName}`}
+                 >
+                   {partName}
+                 </span>
+               )}
+             </div>
+
+             <div className="grid grid-cols-1 sm:grid-cols-[200px_1fr] gap-4 sm:gap-6 items-start">
+               <div>
+                 <div className="text-[9.5px] uppercase tracking-[0.18em] text-[#B391A0] font-semibold mb-1">
+                   The friction
+                 </div>
+                 <p className="text-xs text-[#5A3645] leading-relaxed line-clamp-2 m-0">
+                   {entry.friction || (
+                     <span className="text-[#B391A0]/60 italic">—</span>
+                   )}
+                 </p>
+               </div>
+               <div>
+                 <div className="text-[9.5px] uppercase tracking-[0.18em] text-[#8B6914] font-semibold mb-1">
+                   What this needs
+                 </div>
+                 <p className="font-serif text-[15px] text-[#3A1E2A] leading-snug m-0">
+                   {parsedNeed.core || entry.need || (
+                     <span className="text-[#B391A0]/60 not-italic font-sans text-xs">
+                       Witness, not solve.
+                     </span>
+                   )}
+                 </p>
+               </div>
+             </div>
+
+             <div className="mt-3 pt-2.5 border-t border-dashed border-[#D6A24A]/30 flex items-center gap-3 flex-wrap">
+               <span className="font-serif italic text-[11.5px] text-[#B391A0]">
+                 prototype + reframe hidden — we don't design from inside this
+               </span>
+               <span className="ml-auto inline-flex items-center gap-1.5 px-3 py-1 text-[9.5px] uppercase tracking-[0.18em] font-semibold text-[#8B6914] border border-[#D6A24A]/50 rounded-full">
+                 <span>⏸</span> stay here with this
+               </span>
+             </div>
+           </div>
+         </div>
+       ) : (
        <div className="bg-[#FFFFFF] rounded-[18px] border border-[#3A1E2A]/10 p-4 sm:p-5 hover:border-[#E07A95]/40 transition-colors shadow-xs">
          <div className="flex items-baseline gap-3 mb-2">
            <BloomFlower size={16} petal="#E07A95" smile={false} />
@@ -384,6 +464,137 @@ export const EntrySection = ({
                </span>
              </div>
            </div>
+         </div>
+       </div>
+       )
+     ) : isCessationState(entry) ? (
+       /* --- VERSION B (CESSATION): SOFTENED EXPANDED CARD ---
+          Amber chrome instead of pink. Compassion sentence (the need)
+          foregrounded; Prototype + Reframe collapsed into ghost rows that
+          communicate the system's stance rather than render the fields. The
+          synthesizer already refuses to draft from here — this view matches. */
+       <div
+         className="relative overflow-hidden rounded-[18px] border border-[#D6A24A]/30 p-6 shadow-sm"
+         style={{ background: "linear-gradient(180deg, #FFFAF0 0%, #FDF4F0 100%)" }}
+       >
+         <div
+           aria-hidden
+           className="absolute -top-5 -right-5 opacity-35 pointer-events-none"
+         >
+           <BloomFlower size={90} petal="#F7D679" smile={false} />
+         </div>
+
+         <div className="relative">
+           {/* Quiet header */}
+           <div className="flex items-baseline gap-2 mb-1">
+             <span className="text-[14px] text-[#8B6914]">⏸</span>
+             <span className="font-mono text-[9.5px] uppercase tracking-[0.2em] text-[#8B6914] font-bold">
+               Pause here{entry.emotion ? ` · ${entry.emotion.toLowerCase()}` : ""}
+             </span>
+           </div>
+           <input
+             className="font-serif text-2xl sm:text-3xl text-[#3A1E2A] bg-transparent focus:outline-none placeholder:text-[#B391A0]/50 w-full"
+             value={entry.value}
+             onChange={(e) => onChange({ value: e.target.value })}
+             placeholder="Name this core value..."
+           />
+           <p className="font-serif italic text-[13.5px] text-[#5A3645] leading-relaxed max-w-[480px] m-0 mt-2 mb-5">
+             You've tagged this with a cessation state
+             {entry.emotion ? ` — ${entry.emotion.toLowerCase()}, this time` : ""}.
+             The app is going to step back from prescribing anything.
+           </p>
+
+           {isDuplicate && (
+             <p className="-mt-2 mb-3 text-[10px] uppercase tracking-[0.2em] text-[#8B6914] bg-[#FFF1D6] p-2 rounded-lg">
+               ⏸ Duplicate detected — values must carry unique names.
+             </p>
+           )}
+
+           {/* The compassion sentence — the only thing this card foregrounds. */}
+           <div className="bg-white border border-[#D6A24A]/30 rounded-2xl px-5 py-5 mb-5 shadow-xs">
+             <div className="text-[9px] uppercase tracking-[0.2em] text-[#8B6914] font-bold mb-2">
+               What this needs
+             </div>
+             <textarea
+               className="w-full bg-transparent focus:outline-none font-serif text-xl text-[#3A1E2A] leading-snug resize-none placeholder:text-[#B391A0]/40 border border-transparent focus:border-[#D6A24A]/40 rounded-lg p-1 -ml-1"
+               value={entry.need}
+               onChange={(e) => onChange({ need: e.target.value })}
+               placeholder="To be witnessed, not solved..."
+               rows={dynamicRows}
+             />
+             <p className="font-serif italic text-[12px] text-[#B391A0] m-0 mt-2 leading-relaxed">
+               — a compassion sentence, drafted from the cessation template. Edit as you wish.
+             </p>
+           </div>
+
+           {/* Friction stays visible but soft; Prototype + Reframe become ghosts. */}
+           <div className="grid grid-cols-1 sm:grid-cols-[200px_1fr] gap-5 pt-4 border-t border-dashed border-[#D6A24A]/30">
+             <div>
+               <div className="text-[9.5px] uppercase tracking-[0.18em] text-[#B391A0] font-semibold mb-1">
+                 The friction
+               </div>
+               <textarea
+                 className="w-full bg-transparent focus:outline-none text-[12.5px] text-[#5A3645] leading-relaxed resize-none placeholder:text-[#B391A0]/40 border border-transparent focus:border-[#D6A24A]/40 rounded-lg p-1 -ml-1"
+                 value={entry.friction}
+                 onChange={(e) => onChange({ friction: e.target.value })}
+                 placeholder="What feels sticky or exhausting right now?"
+                 rows={3}
+               />
+             </div>
+             <div>
+               <div className="text-[9.5px] uppercase tracking-[0.18em] text-[#B391A0] font-semibold mb-2">
+                 Held quietly · for later
+               </div>
+               <div className="flex flex-col gap-1.5">
+                 <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-dashed border-[#D6A24A]/40">
+                   <span className="text-[13px] text-[#8B6914]">◆</span>
+                   <span className="font-serif italic text-[11.5px] text-[#B391A0]">
+                     Prototype hidden — we don't design from inside this.
+                   </span>
+                 </div>
+                 <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-dashed border-[#D6A24A]/40">
+                   <span className="text-[13px] text-[#8B6914]">↺</span>
+                   <span className="font-serif italic text-[11.5px] text-[#B391A0]">
+                     Reframe hidden — the feeling isn't a problem to reframe.
+                   </span>
+                 </div>
+               </div>
+             </div>
+           </div>
+
+           {/* Softened footer — quiet lens toggle, fold back, and a non-action
+               "stay here with this" pill instead of the usual focus CTA. */}
+           <div className="mt-6 pt-4 border-t border-dashed border-[#D6A24A]/30 flex items-center gap-4 flex-wrap">
+             <button
+               onClick={onToggleLens}
+               className="text-[9.5px] uppercase tracking-[0.22em] text-[#8B6914] hover:text-[#3A1E2A] transition-colors font-semibold cursor-pointer"
+             >
+               {lensOpen ? "⏸ Hide lenses" : "+ Apply lenses (quietly)"}
+             </button>
+             <CompletionBar completion={completion} />
+             <button
+               onClick={() => setIsExpanded(false)}
+               className="text-[9.5px] uppercase tracking-[0.2em] text-[#5A3645] hover:text-[#8B6914] transition-colors ml-auto font-bold cursor-pointer"
+             >
+               fold back ↑
+             </button>
+             <span
+               className="inline-flex items-center gap-1.5 px-3 py-1 text-[9.5px] uppercase tracking-[0.18em] font-semibold text-[#8B6914] border border-[#D6A24A]/60 rounded-full"
+               title="No CTA on purpose. The synthesizer will offer presence, not a plan."
+             >
+               <span>⏸</span> stay here with this
+             </span>
+           </div>
+
+           {lensOpen && (
+             <div className="mt-8 pt-4 border-t border-[#D6A24A]/30 animate-in fade-in duration-200">
+               <LensPanel
+                 entry={entry}
+                 onChange={onChange}
+                 onToggleNvc={onToggleNvc}
+               />
+             </div>
+           )}
          </div>
        </div>
      ) : (

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import type { Mapping, Part } from "../types";
 import { CORE_NEEDS, CORE_NEEDS_DETAIL, NVC_CATEGORIES } from "../data";
-import { deriveNeed, isCessationState, lensCompletion } from "../derive";
+import { deriveNeed, isCessationState, lensCompletion, maslowHighest, sdtProfile } from "../derive";
 import { LifeDesignSection } from "./LifeDesignSection";
 import { RelationalSection } from "./RelationalSection";
 import { EmotionPicker } from "./EmotionPicker";
@@ -529,10 +529,50 @@ const FocusStep = ({
           })}
         </div>
 
+        {(() => {
+          const sdt = sdtProfile(entry);
+          const maslow = maslowHighest(entry);
+          const sdtTotal = sdt.autonomy + sdt.competence + sdt.relatedness;
+          if (sdtTotal === 0 && !maslow) return null;
+          const dot = (n: number) =>
+            "●".repeat(Math.min(n, 3)) + "○".repeat(Math.max(0, 3 - Math.min(n, 3)));
+          return (
+            <div className="flex flex-wrap items-center gap-3 bg-[#FAE6E1]/50 rounded-xl px-3.5 py-2.5">
+              {sdtTotal > 0 && (
+                <>
+                  <span className="text-[9px] uppercase tracking-[0.2em] text-[#5A3645] font-semibold">
+                    SDT
+                  </span>
+                  <span className="font-mono text-[10.5px] text-[#5A3645]">
+                    autonomy <span className="text-[#C24E6E]">{dot(sdt.autonomy)}</span>{" "}
+                    · competence{" "}
+                    <span className="text-[#C24E6E]">{dot(sdt.competence)}</span> ·
+                    relatedness{" "}
+                    <span className="text-[#C24E6E]">{dot(sdt.relatedness)}</span>
+                  </span>
+                </>
+              )}
+              {maslow && (
+                <span className="ml-auto font-mono text-[10px] text-[#B391A0]">
+                  Maslow · <span className="text-[#5A3645]">{maslow}</span>
+                </span>
+              )}
+            </div>
+          );
+        })()}
+
         <div className="bg-white border border-[#3A1E2A]/5 rounded-xl p-4">
-          <p className="text-[9.5px] uppercase tracking-[0.18em] text-[#C24E6E] font-bold mb-1 flex items-center gap-1">
-            <BloomFlower size={12} petal="#E07A95" smile={false} /> Part · IFS
-          </p>
+          <div className="flex items-baseline justify-between gap-2 mb-1 flex-wrap">
+            <p className="text-[9.5px] uppercase tracking-[0.18em] text-[#C24E6E] font-bold m-0 flex items-center gap-1">
+              <BloomFlower size={12} petal="#E07A95" smile={false} /> Part · IFS
+            </p>
+            <a
+              href="#/parts"
+              className="text-[9.5px] uppercase tracking-[0.18em] text-[#C24E6E] font-semibold hover:underline"
+            >
+              see all parts →
+            </a>
+          </div>
           <p className="text-xs italic text-[#B391A0] mb-3 leading-snug">
             Which named identity is acting here? Type a name (e.g. "The People
             Pleaser") to create it, or pick one you've named before.
