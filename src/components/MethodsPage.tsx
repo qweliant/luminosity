@@ -46,9 +46,9 @@ const LENSES: Lens[] = [
     step: '1',
     name: 'Diagnose',
     framework: 'ACT Workability + Atlas of the Heart',
-    one_line: 'How stuck is this, and what kind of stuck?',
+    one_line: 'Are you stuck serving this value, and what kind of stuck?',
     body:
-      "A 1–5 dot for how well your current life is serving this value — 1 stuck, 5 working. Underneath, pick the closest emotional cluster (the place the friction is coming from). Some clusters — grief, shame, overwhelm, flooding — are cessation states: the app will refuse to draft a prototype from them and offer a compassion sentence instead.",
+      "A 1–5 rating for how well your current life is serving this value. 1 is stuck, 5 is working. Underneath, write a bit about the friction you're experiencing and pick the closest emotional cluster (the place the friction is coming from). Some clusters such as grief, shame, overwhelm, or flooding are cessation states: the app will refuse to draft a prototype from them and offer a compassion sentence instead.",
     citation:
       'Steven Hayes et al., Acceptance and Commitment Therapy · Brené Brown, Atlas of the Heart (2021).',
   },
@@ -58,7 +58,7 @@ const LENSES: Lens[] = [
     framework: 'NVC Universal Needs',
     one_line: "What's starving underneath the friction?",
     body:
-      "Tag one or more universal needs from seven categories: Connection, Physical, Honesty, Play, Peace, Autonomy, Meaning. The vocabulary is deliberately broad — the point isn't precision, it's surfacing what's missing.",
+      "Tag one or more universal needs from seven categories: Connection, Physical, Honesty, Play, Peace, Autonomy, Meaning. The vocabulary is deliberately broad to help surface what's missing.",
     citation:
       'Marshall Rosenberg, Nonviolent Communication: A Language of Life (2003).',
   },
@@ -66,9 +66,9 @@ const LENSES: Lens[] = [
     step: '3',
     name: 'Anchor',
     framework: 'Madanes · 6 Core Human Needs + IFS',
-    one_line: "Which driver does this serve, and who's doing the work?",
+    one_line: "What need does this serve, and who's doing the work?",
     body:
-      "Two questions, stacked. First: one of Comfort, Variety, Significance, Connection, Growth, Contribution. Naming the driver helps you ask whether you're meeting it cleanly, or with a workaround. Second (optional): the Internal Family Systems Part that wrote this entry — name it, and a read-only profile per Part appears on #/parts.",
+      "Consist of two stacked questions. First: one of Comfort, Variety, Significance, Connection, Growth, Contribution. Naming what drives this value helps you ask whether you're meeting it cleanly, or with a workaround. Second (optional): the Internal Family Systems Part that wrote this entry. You name a part and a read-only profile per Part appears on #/parts.",
     citation: 'Chloe Madanes, The 6 Human Needs · Richard C. Schwartz, No Bad Parts (2021).',
   },
   {
@@ -77,7 +77,7 @@ const LENSES: Lens[] = [
     framework: 'Stanford Life Design',
     one_line: 'What kind of problem is this, and what would a small test look like?',
     body:
-      'Three tools from Designing Your Life. First, wayfinding — rate engagement and energy 1–5. Second, problem framing — is this an Open problem you can prototype against, a Stuck problem that needs a reframe first, or a Reality to accept and navigate around? Third, prototyping — name a small experiment (Talk to someone who already lives this, or Do it for a day).',
+      'This step involves three tools from Designing Your Life. First is understanding how your value is serving you. You rate engagement and energy from 1–5. Second comes problem framing. Is this an Open problem you can prototype changes against, a Stuck problem that needs a reframe first, or a Reality to accept and navigate around? Third comes various prototyping. Naming a small experiment (Talk to someone who already lives this, or Do it for a day) or accepting the reality and moving forward.',
     citation: 'Bill Burnett & Dave Evans, Designing Your Life (2016).',
   },
   {
@@ -86,7 +86,7 @@ const LENSES: Lens[] = [
     framework: 'Nagoski · accelerators + brakes',
     one_line: 'What turns this value on, and what shuts it down?',
     body:
-      "Originally a sexual-response model; here, used generically. Name the contexts that let this value thrive, and the contexts that brake it. If another person is part of the friction, optionally turn on the relational lens — a 4-question boundary checklist (Sander T. Jones, Cultivating Connection) that catches whether your Need is a clean boundary for you or an overreaching rule for them.",
+      "Originally a sexual-response model; here, used generically. Name the contexts that let this value thrive, and the contexts that brake it. If another person is part of the friction, optionally turn on the relational lens. This is a 4-question boundary checklist (Sander T. Jones, Cultivating Connection) that catches whether your Need is a clean boundary for you or an overreaching rule for them.",
     citation: 'Emily Nagoski, Come As You Are (2015) · Sander T. Jones, Cultivating Connection.',
   },
   {
@@ -95,7 +95,7 @@ const LENSES: Lens[] = [
     framework: 'Templated draft',
     one_line: 'Compose all of the above into one sentence.',
     body:
-      "Deterministic — not LLM-generated. The synthesizer reads your lens selections and assembles a draft Need sentence you can replace, append to, or ignore. The draft is scaffolding, not a verdict. When the entry is in a cessation state, the synthesizer skips the template entirely and returns a compassion sentence.",
+      "A non-deterministic(not LLM-generated) synthesizer reads your lens selections and assembles a draft Need sentence you can replace, append to, or ignore. The draft is an affirming synthesis, not static observation. The entry may change over time. When the entry is in a cessation state, the synthesizer skips the template entirely and returns a compassion sentence.",
     citation: 'Custom.',
   },
 ];
@@ -149,14 +149,14 @@ const INFLUENCES: Influence[] = [
     author: 'Alicorn · LessWrong, 2009–2011',
     href: 'https://www.lesswrong.com/s/ynMFrq9K5iNMfSZNg/p/9o3Cjjem7AbmmZfBs',
     why:
-      "The longer arc. Practical exercises in noticing your own mental states accurately — without flinching, flattering, or theorizing past what's there.",
+      "The longer arc. Practical exercises in noticing your own mental states accurately without flinching, flattering, or theorizing past what's there.",
   },
   {
     title: 'Ureshiku Naritai',
     author: 'Alicorn · LessWrong, 2024',
     href: 'https://www.lesswrong.com/posts/xnPFYBuaGhpq869mY/ureshiku-naritai',
     why:
-      'A later update — what it actually looked like to try to be happier on purpose, and what stuck.',
+      'A later update on what it actually looked like to try to be happier on purpose, and what stuck.',
   },
 ];
 
@@ -225,7 +225,7 @@ export const MethodsPage = ({ onClose }: { onClose: () => void }) => {
       {/* Fixed TOC rail — pinned to viewport, aligned with main content's left edge */}
       <div className="hidden md:block fixed top-8 inset-x-0 pointer-events-none print:hidden z-10">
         <div className="max-w-6xl mx-auto px-6">
-          <aside className="w-[180px] pointer-events-auto">
+          <aside className="w-45 pointer-events-auto">
             <SectionCaps>Contents</SectionCaps>
             <nav className="mt-3.5 flex flex-col gap-0.5">
               {TOC.map((t) => (
@@ -265,8 +265,8 @@ export const MethodsPage = ({ onClose }: { onClose: () => void }) => {
                 How this works.
               </h1>
               <p className="font-serif italic text-[15px] text-[#5A3645] m-0 max-w-prose leading-relaxed">
-                Luminosity isn't a journal app. It's a scaffolding that walks you from
-                surface friction to a sentence you can act on — or sit with — one lens
+                Luminosity provides scaffolding for needs and values that walks you from
+                surface friction to a sentence you can act on, or sit with, one step
                 at a time.
               </p>
             </div>
@@ -297,9 +297,9 @@ export const MethodsPage = ({ onClose }: { onClose: () => void }) => {
             </div>
             <dl className="mt-3.5 grid grid-cols-[100px_1fr] gap-x-5 gap-y-2.5 text-[13.5px] text-[#5A3645] leading-relaxed m-0">
               {[
-                ['Value', 'the belief or commitment you care about — Compassion, Curiosity, Health.'],
+                ['Value', 'the belief or commitment you care about e.g. Compassion, Curiosity, Health.'],
                 ['Friction', "what's currently in the way of living that value."],
-                ['Need', 'the non-negotiable condition that, if met, would let the value thrive.'],
+                ['Need', 'the non-negotiable conditions that, if met, would let the value thrive.'],
                 ['Workability', 'how well your life is actually serving that value, 1–5.'],
               ].map(([k, v]) => (
                 <React.Fragment key={k}>
@@ -309,7 +309,7 @@ export const MethodsPage = ({ onClose }: { onClose: () => void }) => {
               ))}
             </dl>
             <p className="mt-4 px-3.5 py-2.5 bg-[#FAE6E1]/50 rounded-xl font-serif italic text-[13.5px] text-[#5A3645] leading-relaxed m-0">
-              The aim isn't to enumerate values. It's to find where you're starving and
+              The aim isn't to enumerate values but to find where you're starving and
               name the smallest condition that would feed you.
             </p>
           </section>
@@ -381,10 +381,10 @@ export const MethodsPage = ({ onClose }: { onClose: () => void }) => {
             <h2 className="font-serif text-2xl text-[#3A1E2A] tracking-[-0.01em] mt-1.5 mb-2 leading-tight">
               Who's doing the work?
             </h2>
-            <p className="m-0 mb-3.5 font-serif italic text-[13.5px] text-[#5A3645] leading-relaxed max-w-[580px]">
-              An optional Internal Family Systems tag. Name the part of you that wrote
-              this entry — <em>The Caretaker</em>, <em>The Inner Critic</em>, <em>The
-              People Pleaser</em> — and the app surfaces a read-only profile per Part on{' '}
+            <p className="m-0 mb-3.5 font-serif italic text-[13.5px] text-[#5A3645] leading-relaxed max-w-145">
+              An optional Internal Family Systems tag can name the part of you that wrote
+              this entry. Examples include: <em>The Caretaker</em>, <em>The Inner Critic</em>, <em>The
+              People Pleaser</em>. After naming parts, the app surfaces a read-only profile per Part on{' '}
               <a
                 href="#/parts"
                 className="text-[#C24E6E] underline hover:no-underline"
@@ -396,7 +396,7 @@ export const MethodsPage = ({ onClose }: { onClose: () => void }) => {
             <div className="grid sm:grid-cols-3 gap-2.5">
               {[
                 { rule: 'Single-select', body: 'Each entry expresses one part at a time.' },
-                { rule: 'User-named', body: 'No curated list — typed text becomes a Part.' },
+                { rule: 'User-named', body: 'Typed text becomes a Part. I may later curate a list of recommended parts.' },
                 {
                   rule: 'Read-only profiles',
                   body: 'Author Parts in Focus mode; the #/parts page just reads them back.',
@@ -449,7 +449,7 @@ export const MethodsPage = ({ onClose }: { onClose: () => void }) => {
                 <SectionCaps color="#8B6914">Cessation states</SectionCaps>
               </div>
               <h2 className="font-serif text-[22px] text-[#3A1E2A] tracking-[-0.01em] mt-1 mb-2.5 leading-tight">
-                Some emotions don't ask to be solved.
+                Some emotions shouldn't ask to be solved.
               </h2>
               <p className="m-0 mb-2.5 text-[13.5px] text-[#5A3645] leading-relaxed">
                 When you tag an entry with{' '}
@@ -471,7 +471,7 @@ export const MethodsPage = ({ onClose }: { onClose: () => void }) => {
             <div className="mt-2.5 grid sm:grid-cols-2 gap-2.5">
               {[
                 ['Local-first', "Everything lives in your browser's localStorage. No account, no telemetry, no analytics."],
-                ['Sidecar (optional)', 'The backup sidecar writes timestamped snapshots to a local SQLite file — still on your machine.'],
+                ['Sidecar (optional for those who install from github)', 'The backup sidecar writes timestamped snapshots to a local SQLite file — still on your machine.'],
                 ['Sync (optional)', 'Sync mirrors this ledger between your own browsers over end-to-end encrypted WebRTC.'],
                 ['Nothing leaves', 'No server sees your data. Not for backup, not for sync, not for anything.'],
               ].map(([t, b]) => (
@@ -505,22 +505,22 @@ export const MethodsPage = ({ onClose }: { onClose: () => void }) => {
 
               <div className="relative">
                 <SectionCaps>Influences</SectionCaps>
-                <h2 className="font-serif italic text-[28px] text-[#3A1E2A] tracking-[-0.01em] leading-tight mt-2 mb-3 max-w-[480px]">
+                <h2 className="font-serif italic text-[28px] text-[#3A1E2A] tracking-[-0.01em] leading-tight mt-2 mb-3 max-w-120">
                   A small instance of a larger loop.
                 </h2>
-                <p className="m-0 mb-3 text-[14px] text-[#5A3645] leading-relaxed max-w-[580px]">
+                <p className="m-0 mb-3 text-[14px] text-[#5A3645] leading-relaxed max-w-145">
                   The whole architecture is a small instance of a loop Alicorn named on
                   LessWrong in 2009: <em>Affect, Behavior,</em> and <em>Circumstance</em>{' '}
                   are interdependent, and{' '}
                   <strong className="text-[#C24E6E] font-semibold">luminosity</strong> is
                   the practice of seeing each clearly enough to act on them.
                 </p>
-                <p className="m-0 mb-5 text-[14px] text-[#5A3645] leading-relaxed max-w-[580px]">
+                <p className="m-0 mb-5 text-[14px] text-[#5A3645] leading-relaxed max-w-145">
                   The{' '}
                   <span className="font-serif italic">
                     Value → Friction → Need → Workability
                   </span>{' '}
-                  loop is one slice of that ABC interdependence — Friction names the
+                  loop is one part of that ABC interdependence. Friction names the
                   circumstance, Workability names the behavior, and Need names the
                   affective ground both rest on. The namesake is older than this codebase
                   by sixteen years; the debt is happily acknowledged.
@@ -587,7 +587,7 @@ export const MethodsPage = ({ onClose }: { onClose: () => void }) => {
           </section>
 
           <footer className="pt-5 mt-5 mb-8 border-t border-[#3A1E2A]/10 text-center text-xs text-[#B391A0] font-serif italic">
-            built for clarity · persisted locally · nothing leaves your device
+            built for clarity · persisted locally · nothing leaves your space
           </footer>
         </div>
       </div>

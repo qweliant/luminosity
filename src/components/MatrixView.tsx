@@ -332,11 +332,7 @@ export const MatrixView = ({
                                   >
                                     <Hibiscus size={8} petal={bandBorder(w)} />
                                     <span className="font-serif italic text-[#3A1E2A]">{e.value}</span>
-                                    {partName && (
-                                      <span className="font-serif italic text-[10px] text-[#B391A0]">
-                                        · {partName}
-                                      </span>
-                                    )}
+                                    
                                   </button>
                                 );
                               })}
