@@ -1,5 +1,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import { registerSW } from 'virtual:pwa-register';
 import './style.css';
 import App from './App';
 
@@ -11,4 +12,8 @@ if (container) {
       <App />
     </React.StrictMode>
   );
+}
+
+if (import.meta.env.PROD) {
+  registerSW({ immediate: true });
 }
