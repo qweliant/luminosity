@@ -11,6 +11,7 @@ import {
 
 import type { Mapping } from "./types";
 import { seedPersonalValues } from "./data";
+import { lensCompletion } from "./derive";
 import { useBackup } from "./useBackup";
 import { useEntries } from "./useEntries";
 import { relTime, type Snapshot } from "./backup";
@@ -57,6 +58,16 @@ import {
 
 const norm = (s: string) => s.trim().toLowerCase();
 
+// Local-date key for the daily nudge dismiss. YYYY-MM-DD in the user's
+// timezone, so the nudge resurfaces at local midnight rather than UTC.
+const todayKey = (): string => {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+};
+
 // -----------------------------------------------------------------------------
 // App Root
 // -----------------------------------------------------------------------------
@@ -86,7 +97,7 @@ export const App = () => {
   const [liveP2P, setLiveP2P] = useState(() => isSyncing());
   const [peers, setPeers] = useState<PeerPresence[]>(() => getPeerPresences());
   const [dismissHello, setDismissHello] = useState(
-    () => localStorage.getItem("lumi-nudge-dismissed") === "1",
+    () => localStorage.getItem("lumi-nudge-dismissed") === todayKey(),
   );
 
   // Track the last "ground floor" route so closing the Focus overlay can
@@ -143,6 +154,26 @@ export const App = () => {
   const focusedEntry = focusEntryId
     ? (entries.find((e) => e.id === focusEntryId) ?? null)
     : null;
+
+  // Pick a value for the Lumi nudge. Two pools: entries whose lens stack is
+  // almost-but-not-fully complete (filled within 2 of total) get a "finish
+  // tending" prompt; everything else falls through to a plain random pick.
+  // Bias 70/30 toward almost-completed when any exist so the nudge tends to
+  // point at unfinished work rather than restating a value at random.
+  const nudge = useMemo(() => {
+    const valued = entries.filter((e) => e.value?.trim());
+    if (valued.length === 0) return null;
+    const almost = valued.filter((e) => {
+      const { filled, total } = lensCompletion(e);
+      return filled > 0 && filled < total && filled >= total - 2;
+    });
+    const useAlmost = almost.length > 0 && Math.random() < 0.7;
+    const pool = useAlmost ? almost : valued;
+    const pick = pool[Math.floor(Math.random() * pool.length)];
+    if (!pick) return null;
+    return { entry: pick, kind: useAlmost ? "almost" : "random" } as const;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entries.length]);
 
   // ---------------------------------------------------------------------------
   // Notebook metrics derivations
@@ -242,7 +273,7 @@ export const App = () => {
   };
 
   const hideHelloNudge = () => {
-    localStorage.setItem("lumi-nudge-dismissed", "1");
+    localStorage.setItem("lumi-nudge-dismissed", todayKey());
     setDismissHello(true);
   };
 
@@ -487,7 +518,7 @@ export const App = () => {
               </div>
             </header>
 
-            {!dismissHello && entries.length > 0 && (
+            {!dismissHello && nudge && (
               <div className="mb-6 p-4 bg-[#FAE6E1] rounded-[18px] border border-[#3A1E2A]/10 flex items-center gap-4 relative print:hidden shadow-xs">
                 <LumiBean size={54} />
                 <div className="flex-1">
@@ -495,10 +526,11 @@ export const App = () => {
                     Hi.
                     <span className="text-[#C24E6E] font-bold not-italic">
                       {" "}
-                      {entries[0]?.value || "Your alignment"}
+                      {nudge.entry.value || "Your alignment"}
                     </span>{" "}
-                    feels like a good place to start tending today — ready to
-                    unpack the friction?
+                    {nudge.kind === "almost"
+                      ? "is almost tended — want to finish unpacking the friction?"
+                      : "feels like a good place to start tending today — ready to unpack the friction?"}
                   </div>
                   <div className="mt-1 font-mono text-[9px] text-[#5A3645]/70 tracking-wider">
                     lumi · your gentle nudge
