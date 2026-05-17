@@ -524,10 +524,14 @@ export const App = () => {
                 <div className="flex-1">
                   <div className="font-serif italic text-sm sm:text-base text-[#3A1E2A] leading-snug">
                     Hi.
-                    <span className="text-[#C24E6E] font-bold not-italic">
-                      {" "}
+                    {" "}
+                    <button
+                      type="button"
+                      onClick={() => focusEntry(nudge.entry.id)}
+                      className="text-[#C24E6E] font-bold not-italic hover:underline cursor-pointer"
+                    >
                       {nudge.entry.value || "Your alignment"}
-                    </span>{" "}
+                    </button>{" "}
                     {nudge.kind === "almost"
                       ? "is almost tended — want to finish unpacking the friction?"
                       : "feels like a good place to start tending today — ready to unpack the friction?"}
