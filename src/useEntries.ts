@@ -63,19 +63,46 @@ export const useEntries = (): EntriesStore => {
   }, [parts]);
 
   // INBOUND: remote Yjs updates → React state. Local-origin transactions are
-  // ignored so we don't echo our own writes back through setState.
+  // ignored so we don't echo our own writes back through setState. Order is
+  // anchored to local UI order — Y.Map iteration order is insertion order on
+  // the *originating* peer, which isn't necessarily the user's list order.
+  // Existing entries keep their slot; remote-added entries land at the end.
   useEffect(() => {
     const handleRemoteEntries = (_event: unknown, txn: { local: boolean }) => {
       if (txn.local) return;
-      const next: Mapping[] = [];
-      yEntriesMap.forEach((mapping) => next.push(mapping));
-      setEntries(next);
+      setEntries((prev) => {
+        const next: Mapping[] = [];
+        const seen = new Set<string>();
+        for (const e of prev) {
+          const fresh = yEntriesMap.get(e.id) as Mapping | undefined;
+          if (fresh) {
+            next.push(fresh);
+            seen.add(e.id);
+          }
+        }
+        yEntriesMap.forEach((mapping, id) => {
+          if (!seen.has(id)) next.push(mapping as Mapping);
+        });
+        return next;
+      });
     };
     const handleRemoteParts = (_event: unknown, txn: { local: boolean }) => {
       if (txn.local) return;
-      const next: Part[] = [];
-      yPartsMap.forEach((part) => next.push(part));
-      setParts(next);
+      setParts((prev) => {
+        const next: Part[] = [];
+        const seen = new Set<string>();
+        for (const p of prev) {
+          const fresh = yPartsMap.get(p.id) as Part | undefined;
+          if (fresh) {
+            next.push(fresh);
+            seen.add(p.id);
+          }
+        }
+        yPartsMap.forEach((part, id) => {
+          if (!seen.has(id)) next.push(part as Part);
+        });
+        return next;
+      });
     };
     yEntriesMap.observe(handleRemoteEntries);
     yPartsMap.observe(handleRemoteParts);

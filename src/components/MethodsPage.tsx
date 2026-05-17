@@ -215,35 +215,49 @@ const SectionCaps = ({
 );
 
 export const MethodsPage = ({ onClose }: { onClose: () => void }) => {
+  const handleTocClick = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+    e.preventDefault();
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
-    <main className="relative max-w-6xl mx-auto py-9 px-6 print:py-0 print:px-0 text-[#3A1E2A]">
-      <div aria-hidden className="absolute -top-10 -right-8 opacity-40 pointer-events-none print:hidden">
-        <Hibiscus size={200} petal="#E07A95" />
+    <>
+      {/* Fixed TOC rail — pinned to viewport, aligned with main content's left edge */}
+      <div className="hidden md:block fixed top-8 inset-x-0 pointer-events-none print:hidden z-10">
+        <div className="max-w-6xl mx-auto px-6">
+          <aside className="w-[180px] pointer-events-auto">
+            <SectionCaps>Contents</SectionCaps>
+            <nav className="mt-3.5 flex flex-col gap-0.5">
+              {TOC.map((t) => (
+                <a
+                  key={t.id}
+                  href={`#${t.id}`}
+                  onClick={(e) => handleTocClick(e, t.id)}
+                  className="px-2.5 py-1.5 rounded-lg text-[12.5px] text-[#5A3645] hover:bg-[#FBD9E0]/40 hover:text-[#C24E6E] border-l-2 border-transparent hover:border-[#C24E6E] transition-colors no-underline"
+                >
+                  {t.label}
+                </a>
+              ))}
+            </nav>
+            <div className="mt-4 pt-3 border-t border-dashed border-[#3A1E2A]/10 font-mono text-[9.5px] text-[#B391A0] tracking-[0.08em] leading-relaxed">
+              v2 · last updated
+              <br />May 2026
+            </div>
+          </aside>
+        </div>
       </div>
 
-      <div className="relative grid grid-cols-1 md:grid-cols-[180px_1fr] gap-10">
-        {/* Sticky TOC rail */}
-        <aside className="hidden md:block sticky top-8 self-start print:hidden">
-          <SectionCaps>Contents</SectionCaps>
-          <nav className="mt-3.5 flex flex-col gap-0.5">
-            {TOC.map((t) => (
-              <a
-                key={t.id}
-                href={`#${t.id}`}
-                className="px-2.5 py-1.5 rounded-lg text-[12.5px] text-[#5A3645] hover:bg-[#FBD9E0]/40 hover:text-[#C24E6E] border-l-2 border-transparent hover:border-[#C24E6E] transition-colors no-underline"
-              >
-                {t.label}
-              </a>
-            ))}
-          </nav>
-          <div className="mt-4 pt-3 border-t border-dashed border-[#3A1E2A]/10 font-mono text-[9.5px] text-[#B391A0] tracking-[0.08em] leading-relaxed">
-            v2 · last updated
-            <br />May 2026
-          </div>
-        </aside>
+      <main className="relative max-w-6xl mx-auto py-9 px-6 print:py-0 print:px-0 text-[#3A1E2A]">
+        <div aria-hidden className="absolute -top-10 -right-8 opacity-40 pointer-events-none print:hidden">
+          <Hibiscus size={200} petal="#E07A95" />
+        </div>
 
-        {/* Main column */}
-        <div className="min-w-0">
+        <div className="relative grid grid-cols-1 md:grid-cols-[180px_1fr] gap-10">
+          {/* Spacer matching the fixed nav width — keeps main content aligned */}
+          <div aria-hidden className="hidden md:block" />
+
+          {/* Main column */}
+          <div className="min-w-0">
           <header className="pb-5 mb-7 border-b border-[#3A1E2A]/10 flex justify-between items-start gap-4">
             <div>
               <SectionCaps>Methods</SectionCaps>
@@ -577,6 +591,7 @@ export const MethodsPage = ({ onClose }: { onClose: () => void }) => {
           </footer>
         </div>
       </div>
-    </main>
+      </main>
+    </>
   );
 };
