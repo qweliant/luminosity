@@ -9,14 +9,14 @@ Default to using Bun instead of Node.js.
 - Use `bunx <package> <command>` instead of `npx <package> <command>`
 - Bun automatically loads .env, so don't use dotenv.
 
-## APIs
+## Backend APIs (used by the sidecar at `server.ts`)
 
 - `Bun.serve()` supports WebSockets, HTTPS, and routes. Don't use `express`.
 - `bun:sqlite` for SQLite. Don't use `better-sqlite3`.
 - `Bun.redis` for Redis. Don't use `ioredis`.
 - `Bun.sql` for Postgres. Don't use `pg` or `postgres.js`.
 - `WebSocket` is built-in. Don't use `ws`.
-- Prefer `Bun.file` over `node:fs`'s readFile/writeFile
+- Prefer `Bun.file` over `node:fs`'s readFile/writeFile.
 - Bun.$`ls` instead of execa.
 
 ## Testing
@@ -33,74 +33,8 @@ test("hello world", () => {
 
 ## Frontend
 
-Use HTML imports with `Bun.serve()`. Don't use `vite`. HTML imports fully support React, CSS, Tailwind.
+This repo uses **Vite** as the dev server and bundler (running under Bun). `bun run dev` boots `vite`, `bun run build` produces the production bundle. Don't replace this with Bun's HTML-imports path — the deploy target (Netlify) is wired for Vite output, and we use first-class Vite plugins (`@vitejs/plugin-react`, `@tailwindcss/vite`).
 
-Server:
+Tailwind v4 is CSS-first: no `tailwind.config.js`. Theme tokens and `@source` declarations live in `src/style.css`. Don't add a PostCSS config — the Tailwind Vite plugin is the only path; Lightning CSS handles vendor prefixing.
 
-```ts#index.ts
-import index from "./index.html"
-
-Bun.serve({
-  routes: {
-    "/": index,
-    "/api/users/:id": {
-      GET: (req) => {
-        return new Response(JSON.stringify({ id: req.params.id }));
-      },
-    },
-  },
-  // optional websocket support
-  websocket: {
-    open: (ws) => {
-      ws.send("Hello, world!");
-    },
-    message: (ws, message) => {
-      ws.send(message);
-    },
-    close: (ws) => {
-      // handle close
-    }
-  },
-  development: {
-    hmr: true,
-    console: true,
-  }
-})
-```
-
-HTML files can import .tsx, .jsx or .js files directly and Bun's bundler will transpile & bundle automatically. `<link>` tags can point to stylesheets and Bun's CSS bundler will bundle.
-
-```html#index.html
-<html>
-  <body>
-    <h1>Hello, world!</h1>
-    <script type="module" src="./frontend.tsx"></script>
-  </body>
-</html>
-```
-
-With the following `frontend.tsx`:
-
-```tsx#frontend.tsx
-import React from "react";
-import { createRoot } from "react-dom/client";
-
-// import .css files directly and it works
-import './index.css';
-
-const root = createRoot(document.body);
-
-export default function Frontend() {
-  return <h1>Hello, world!</h1>;
-}
-
-root.render(<Frontend />);
-```
-
-Then, run index.ts
-
-```sh
-bun --hot ./index.ts
-```
-
-For more information, read the Bun API docs in `node_modules/bun-types/docs/**.mdx`.
+The backup sidecar (`server.ts`) is the only place where Bun's server APIs are used directly — see *Backend APIs* above. It's local-only and currently dev-gated in the UI (see [HOWTO.md](HOWTO.md#optional-bun--sqlite-sidecar-development-only)).

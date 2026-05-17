@@ -31,6 +31,43 @@ const fetchOne = db.prepare(
   'SELECT id, created_at, count, payload FROM snapshots WHERE id = ?'
 );
 
+// Retention: keep all snapshots from the last 7 days, then one per day for the
+// last 90 days, then drop the rest. Runs after each insert so the table never
+// grows without bound. SQLite handles small tables cheaply; this can be ~ms.
+const DAY_MS = 86_400_000;
+const HOT_WINDOW_DAYS = 7;
+const DAILY_WINDOW_DAYS = 90;
+const pruneOldRows = db.prepare(
+  'DELETE FROM snapshots WHERE created_at < ?'
+);
+const findDailyDuplicates = db.prepare(`
+  SELECT id FROM snapshots
+  WHERE created_at < ? AND created_at >= ?
+    AND id NOT IN (
+      SELECT MAX(id) FROM snapshots
+      WHERE created_at < ? AND created_at >= ?
+      GROUP BY created_at / ${DAY_MS}
+    )
+`);
+const deleteByIds = (ids: number[]) => {
+  if (ids.length === 0) return;
+  const placeholders = ids.map(() => '?').join(',');
+  db.prepare(`DELETE FROM snapshots WHERE id IN (${placeholders})`).run(...ids);
+};
+const pruneSnapshots = () => {
+  const now = Date.now();
+  const dailyCutoff = now - HOT_WINDOW_DAYS * DAY_MS;
+  const oldCutoff = now - DAILY_WINDOW_DAYS * DAY_MS;
+  pruneOldRows.run(oldCutoff);
+  const dupes = findDailyDuplicates.all(
+    dailyCutoff,
+    oldCutoff,
+    dailyCutoff,
+    oldCutoff,
+  ) as Array<{ id: number }>;
+  deleteByIds(dupes.map(r => r.id));
+};
+
 const corsHeaders = (origin: string | null) => {
   const ok = origin && ALLOWED_ORIGINS.includes(origin);
   return {
@@ -94,6 +131,7 @@ const server = Bun.serve({
           created_at: number;
           count: number;
         };
+        pruneSnapshots();
         return json({ id: row.id, createdAt: row.created_at, count: row.count }, { status: 201, origin });
       },
       OPTIONS: (req) => new Response(null, { status: 204, headers: corsHeaders(req.headers.get('origin')) }),

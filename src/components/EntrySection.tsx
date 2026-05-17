@@ -1,155 +1,13 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Trash2 } from "lucide-react";
 import type { Mapping, Part } from "../types";
-import { EMOTION_PLACES_BY_ID, findEmotion } from "../data";
-import { ifsLayer, IFS_LAYER_LABEL, IFS_LAYER_GLOSS, lensCompletion, isCessationState } from "../derive";
-import { CompletionBar } from "./primitives";
-import { LensPanel } from "./LensPanel";
-
-// --- Bloom C+ SVG Primitives ----------------------------------------------
-
-const BloomFlower = ({
-  size = 20,
-  petal = "#E07A95",
-  eye = "#3A1E2A",
-  smile = true,
-}) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 100 100"
-    className="inline-block align-middle overflow-visible"
-  >
-    {Array.from({ length: 5 }).map((_, i) => (
-      <path
-        key={i}
-        d="M50 50 C 28 38, 22 12, 50 4 C 78 12, 72 38, 50 50 Z"
-        fill={petal}
-        opacity="0.95"
-        stroke="#C24E6E"
-        strokeOpacity="0.2"
-        transform={`rotate(${(i * 360) / 5} 50 50)`}
-      />
-    ))}
-    <circle cx="50" cy="50" r="9" fill="#C24E6E" opacity="0.9" />
-    <circle cx="50" cy="50" r="3" fill="#F7D679" />
-    {smile && (
-      <g>
-        <circle cx="44" cy="48" r="1.6" fill={eye} />
-        <circle cx="52" cy="48" r="1.6" fill={eye} />
-        <path
-          d="M44 53 Q48 56 52 53"
-          stroke="#3A1E2A"
-          strokeWidth="1.5"
-          fill="none"
-          strokeLinecap="round"
-        />
-      </g>
-    )}
-  </svg>
-);
-
-const BrakeMark = ({ size = 12 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 100 100"
-    className="inline-block align-middle"
-  >
-    {[0, 72, 144, 216].map((a, i) => (
-      <path
-        key={i}
-        d="M50 50 C 28 38, 22 12, 50 4 C 78 12, 72 38, 50 50 Z"
-        fill="#B391A0"
-        opacity="0.55"
-        transform={`rotate(${a} 50 50)`}
-      />
-    ))}
-    <circle cx="50" cy="50" r="9" fill="#5A3645" opacity="0.6" />
-    <circle cx="50" cy="50" r="3" fill="#F7D679" opacity="0.7" />
-  </svg>
-);
-
-const BloomWorkability = ({
-  value = 0,
-  onChange,
-}: {
-  value: number;
-  onChange: (v: number) => void;
-}) => (
-  <span className="inline-flex gap-1 items-center bg-[#FAE6E1]/50 px-2 py-1 rounded-full border border-[#3A1E2A]/5">
-    {[1, 2, 3, 4, 5].map((n) => (
-      <button
-        key={n}
-        type="button"
-        onClick={() => onChange(n)}
-        className="focus:outline-none hover:scale-110 transition-transform"
-        title={`Rate workability ${n}/5`}
-      >
-        <BloomFlower
-          size={16}
-          petal={n <= value ? "#E07A95" : "#FBD9E0"}
-          eye={n <= value ? "#3A1E2A" : "#B391A0"}
-          smile={n <= value}
-        />
-      </button>
-    ))}
-  </span>
-);
-
-const parseCompositeNeed = (raw: string) => {
-  if (!raw)
-    return {
-      core: "",
-      reframe: "",
-      prototype: "",
-      accelerators: "",
-      brakes: "",
-    };
-
-  let current = raw;
-
-  // Extract Brakes
-  let brakes = "";
-  const brakesIdx = current.match(/Brakes to watch:\s*/i);
-  if (brakesIdx && brakesIdx.index !== undefined) {
-    brakes = current.slice(brakesIdx.index + brakesIdx[0].length).trim();
-    current = current.slice(0, brakesIdx.index).trim();
-  }
-
-  // Extract Accelerators
-  let accelerators = "";
-  const accIdx = current.match(/Accelerators:\s*/i);
-  if (accIdx && accIdx.index !== undefined) {
-    accelerators = current.slice(accIdx.index + accIdx[0].length).trim();
-    current = current.slice(0, accIdx.index).trim();
-  }
-
-  // Extract Prototype
-  let prototype = "";
-  const protoIdx = current.match(/Prototype\s*(\([^)]*\))?:\s*/i);
-  if (protoIdx && protoIdx.index !== undefined) {
-    prototype = current.slice(protoIdx.index + protoIdx[0].length).trim();
-    current = current.slice(0, protoIdx.index).trim();
-  }
-
-  // Extract Reframe
-  let reframe = "";
-  const refIdx = current.match(/Reframe:\s*/i);
-  if (refIdx && refIdx.index !== undefined) {
-    reframe = current.slice(refIdx.index + refIdx[0].length).trim();
-    current = current.slice(0, refIdx.index).trim();
-  }
-
-  return {
-    core: current.trim(),
-    reframe,
-    prototype,
-    accelerators,
-    brakes,
-  };
-};
-// --- Component Props ------------------------------------------------------
+import { ifsLayer, isCessationState, lensCompletion } from "../derive";
+import { parseCompositeNeed } from "../parsedNeed";
+import { EntryCondensed } from "./EntryCondensed";
+import { EntryCondensedCessation } from "./EntryCondensedCessation";
+import { EntryExpanded } from "./EntryExpanded";
+import { EntryExpandedCessation } from "./EntryExpandedCessation";
+import { EntryPrintSummary } from "./EntryPrintSummary";
 
 interface EntryProps {
   entry: Mapping;
@@ -163,6 +21,12 @@ interface EntryProps {
   onFocus: () => void;
 }
 
+/**
+ * Shell: owns the local expand/collapse state, picks one of four view
+ * variants based on (isExpanded × cessation), and always emits the
+ * print-only summary at the bottom. Derives the small bag of read-only
+ * values each variant needs.
+ */
 export const EntrySection = ({
   entry,
   parts,
@@ -174,841 +38,102 @@ export const EntrySection = ({
   onToggleNvc,
   onFocus,
 }: EntryProps) => {
-  // Drives the transition between Version A (condensed row) and Version B (expanded card)
-  const [isExpanded, setIsExpanded] = useState(() => {
-    // If it's a brand new blank entry, default to expanded so you can write
-    return !entry.value.trim() && !entry.need.trim();
-  });
+  // Brand new blank entries open expanded so the user can write immediately.
+  const [isExpanded, setIsExpanded] = useState(
+    () => !entry.value.trim() && !entry.need.trim(),
+  );
 
- const completion = lensCompletion(entry);
+  const completion = lensCompletion(entry);
+  const cessation = isCessationState(entry);
 
- // Safe split parsing for derived pill counts
- const acceleratorsCount = entry.accelerators
-   ? entry.accelerators.split(",").filter((s) => s.trim()).length
-   : 0;
- const brakesCount = entry.brakes
-   ? entry.brakes.split(",").filter((s) => s.trim()).length
-   : 0;
- const servesDriver = entry.coreNeed
-   ? entry.coreNeed.toLowerCase()
-   : "unmapped";
+  const acceleratorsCount = entry.accelerators
+    ? entry.accelerators.split(",").filter((s) => s.trim()).length
+    : 0;
+  const brakesCount = entry.brakes
+    ? entry.brakes.split(",").filter((s) => s.trim()).length
+    : 0;
+  const servesDriver = entry.coreNeed
+    ? entry.coreNeed.toLowerCase()
+    : "unmapped";
 
- // IFS overlay — derived from workability. Surfaces the part doing the work
- // (Firefighter / Manager / Self) as a calm identity frame alongside the
- // other status pills. Null when the entry hasn't been rated.
- const ifsBand = ifsLayer(entry);
- const partName = entry.partId
-   ? (parts.find((p) => p.id === entry.partId)?.name ?? null)
-   : null;
+  const ifsBand = ifsLayer(entry);
+  const partName = entry.partId
+    ? (parts.find((p) => p.id === entry.partId)?.name ?? null)
+    : null;
 
- // --- SMART AUTO-PARSER FOR MASSIVE COMPOSITE STRINGS ---
- // Safely extracts labeled subsections from legacy pasted text on the fly
- const parsedNeed = (() => {
-   const raw = entry.need || "";
-   let current = raw;
+  const parsedNeed = parseCompositeNeed(entry.need || "");
 
-   let brakes = "";
-   const bMatch = current.match(/Brakes to watch:\s*/i);
-   if (bMatch && bMatch.index !== undefined) {
-     brakes = current.slice(bMatch.index + bMatch[0].length).trim();
-     current = current.slice(0, bMatch.index).trim();
-   }
+  // Scale the Need textarea height to its content. Cap at 12 rows so a giant
+  // paste doesn't push everything off the screen.
+  const dynamicRows = Math.min(
+    12,
+    Math.max(3, Math.ceil((entry.need || "").length / 65)),
+  );
 
-   let accelerators = "";
-   const aMatch = current.match(/Accelerators:\s*/i);
-   if (aMatch && aMatch.index !== undefined) {
-     accelerators = current.slice(aMatch.index + aMatch[0].length).trim();
-     current = current.slice(0, aMatch.index).trim();
-   }
+  const expand = () => setIsExpanded(true);
+  const collapse = () => setIsExpanded(false);
 
-   let prototype = "";
-   const pMatch = current.match(/Prototype\s*(\([^)]*\))?:\s*/i);
-   if (pMatch && pMatch.index !== undefined) {
-     prototype = current.slice(pMatch.index + pMatch[0].length).trim();
-     current = current.slice(0, pMatch.index).trim();
-   }
+  return (
+    <section className="relative group animate-in fade-in slide-in-from-bottom-4 duration-700 print:mb-8 select-none">
+      <button
+        onClick={onDelete}
+        className="absolute -left-12 top-2 bg-white border border-[#3A1E2A]/10 p-1.5 rounded-full text-[#B391A0] hover:text-[#C24E6E] hover:border-[#C24E6E]/30 opacity-0 group-hover:opacity-100 transition-all print:hidden z-10 shadow-xs cursor-pointer"
+        title="Remove mapped value"
+      >
+        <Trash2 size={14} />
+      </button>
 
-   let reframe = "";
-   const rMatch = current.match(/Reframe:\s*/i);
-   if (rMatch && rMatch.index !== undefined) {
-     reframe = current.slice(rMatch.index + rMatch[0].length).trim();
-     current = current.slice(0, rMatch.index).trim();
-   }
+      {!isExpanded ? (
+        cessation ? (
+          <EntryCondensedCessation
+            entry={entry}
+            partName={partName}
+            parsedNeed={parsedNeed}
+            onExpand={expand}
+          />
+        ) : (
+          <EntryCondensed
+            entry={entry}
+            ifsBand={ifsBand}
+            partName={partName}
+            acceleratorsCount={acceleratorsCount}
+            brakesCount={brakesCount}
+            servesDriver={servesDriver}
+            parsedNeed={parsedNeed}
+            onChange={onChange}
+            onExpand={expand}
+          />
+        )
+      ) : cessation ? (
+        <EntryExpandedCessation
+          entry={entry}
+          isDuplicate={isDuplicate}
+          lensOpen={lensOpen}
+          completion={completion}
+          dynamicRows={dynamicRows}
+          onChange={onChange}
+          onToggleLens={onToggleLens}
+          onToggleNvc={onToggleNvc}
+          onCollapse={collapse}
+        />
+      ) : (
+        <EntryExpanded
+          entry={entry}
+          isDuplicate={isDuplicate}
+          lensOpen={lensOpen}
+          completion={completion}
+          dynamicRows={dynamicRows}
+          servesDriver={servesDriver}
+          parsedNeed={parsedNeed}
+          onChange={onChange}
+          onToggleLens={onToggleLens}
+          onToggleNvc={onToggleNvc}
+          onCollapse={collapse}
+          onFocus={onFocus}
+        />
+      )}
 
-   return {
-     core: current.trim(),
-     reframe,
-     prototype,
-     accelerators,
-     brakes,
-     hasExtracted: !!(reframe || prototype || accelerators || brakes),
-   };
- })();
-
- // Dynamically scale the edit canvas height based on raw character length
- const dynamicRows = Math.min(
-   12,
-   Math.max(3, Math.ceil((entry.need || "").length / 65)),
- );
-
- return (
-   <section className="relative group animate-in fade-in slide-in-from-bottom-4 duration-700 print:mb-8 select-none">
-     {/* Delete trigger */}
-     <button
-       onClick={onDelete}
-       className="absolute -left-12 top-2 bg-white border border-[#3A1E2A]/10 p-1.5 rounded-full text-[#B391A0] hover:text-[#C24E6E] hover:border-[#C24E6E]/30 opacity-0 group-hover:opacity-100 transition-all print:hidden z-10 shadow-xs cursor-pointer"
-       title="Remove mapped value"
-     >
-       <Trash2 size={14} />
-     </button>
-
-     {/* --- VERSION A: CONDENSED SCAN ROW (Default State) --- */}
-     {!isExpanded ? (
-       isCessationState(entry) ? (
-         /* CESSATION VARIANT — softens to amber, hides prototype/reframe chips
-            and the focus CTA. The synthesizer already refuses to draft from
-            here; the row matches that stance. Clicking still expands so the
-            entry can be read or edited, but nothing pushes the user to act. */
-         <div
-           onClick={() => setIsExpanded(true)}
-           className="relative overflow-hidden rounded-[18px] border border-[#D6A24A]/30 p-4 sm:p-5 hover:border-[#D6A24A]/60 transition-colors shadow-xs cursor-pointer"
-           style={{
-             background:
-               "linear-gradient(180deg, #FFFAF0 0%, #FDF4F0 100%)",
-           }}
-         >
-           <div
-             aria-hidden
-             className="absolute -top-2 -right-2 w-16 h-16 overflow-hidden opacity-40 pointer-events-none"
-           >
-             <BloomFlower size={60} petal="#F7D679" smile={false} />
-           </div>
-
-           <div className="relative">
-             <div className="flex items-baseline gap-2 mb-1">
-               <span className="text-[13px] text-[#8B6914]">⏸</span>
-               <span className="text-[9px] uppercase tracking-[0.2em] text-[#8B6914] font-bold">
-                 Pause here{entry.emotion ? ` · ${entry.emotion.toLowerCase()}` : ""}
-               </span>
-             </div>
-
-             <div className="flex items-baseline gap-3 mb-3">
-               <h3 className="font-serif text-xl sm:text-2xl text-[#3A1E2A] m-0 flex-1 leading-tight">
-                 {entry.value || (
-                   <span className="text-[#B391A0]/60 italic">Core Value ✿</span>
-                 )}
-               </h3>
-               {partName && (
-                 <span
-                   className="font-serif italic text-[12px] text-[#8B6914] bg-[#FFF1D6] border border-[#D6A24A]/40 px-2.5 py-0.5 rounded-full"
-                   title={`Part · ${partName}`}
-                 >
-                   {partName}
-                 </span>
-               )}
-             </div>
-
-             <div className="grid grid-cols-1 sm:grid-cols-[200px_1fr] gap-4 sm:gap-6 items-start">
-               <div>
-                 <div className="text-[9.5px] uppercase tracking-[0.18em] text-[#B391A0] font-semibold mb-1">
-                   The friction
-                 </div>
-                 <p className="text-xs text-[#5A3645] leading-relaxed line-clamp-2 m-0">
-                   {entry.friction || (
-                     <span className="text-[#B391A0]/60 italic">—</span>
-                   )}
-                 </p>
-               </div>
-               <div>
-                 <div className="text-[9.5px] uppercase tracking-[0.18em] text-[#8B6914] font-semibold mb-1">
-                   What this needs
-                 </div>
-                 <p className="font-serif text-[15px] text-[#3A1E2A] leading-snug m-0">
-                   {parsedNeed.core || entry.need || (
-                     <span className="text-[#B391A0]/60 not-italic font-sans text-xs">
-                       Witness, not solve.
-                     </span>
-                   )}
-                 </p>
-               </div>
-             </div>
-
-             <div className="mt-3 pt-2.5 border-t border-dashed border-[#D6A24A]/30 flex items-center gap-3 flex-wrap">
-               <span className="font-serif italic text-[11.5px] text-[#B391A0]">
-                 prototype + reframe hidden — we don't design from inside this
-               </span>
-               <span className="ml-auto inline-flex items-center gap-1.5 px-3 py-1 text-[9.5px] uppercase tracking-[0.18em] font-semibold text-[#8B6914] border border-[#D6A24A]/50 rounded-full">
-                 <span>⏸</span> stay here with this
-               </span>
-             </div>
-           </div>
-         </div>
-       ) : (
-       <div className="bg-[#FFFFFF] rounded-[18px] border border-[#3A1E2A]/10 p-4 sm:p-5 hover:border-[#E07A95]/40 transition-colors shadow-xs">
-         <div className="flex items-baseline gap-3 mb-2">
-           <BloomFlower size={16} petal="#E07A95" smile={false} />
-           <input
-             className="font-serif text-xl sm:text-2xl text-[#3A1E2A] bg-transparent focus:outline-none placeholder:text-[#B391A0]/50 flex-1 cursor-pointer select-none"
-             value={entry.value}
-             onChange={(e) => onChange({ value: e.target.value })}
-             onClick={() => setIsExpanded(true)}
-             placeholder="Core Value ✿"
-             readOnly
-           />
-           <BloomWorkability
-             value={entry.workability ?? 0}
-             onChange={(n) => onChange({ workability: n })}
-           />
-         </div>
-
-         <div className="grid grid-cols-1 sm:grid-cols-[200px_1fr] gap-4 sm:gap-6 pt-1 items-start">
-           {/* Scannable Friction summary */}
-           <div
-             onClick={() => setIsExpanded(true)}
-             className="cursor-pointer group/col"
-           >
-             <div className="text-[9.5px] uppercase tracking-[0.18em] text-[#B391A0] font-semibold mb-1">
-               Friction
-             </div>
-             <p className="text-xs text-[#5A3645] leading-relaxed line-clamp-2 group-hover/col:text-[#3A1E2A]">
-               {entry.friction || (
-                 <span className="text-[#B391A0]/60 italic">
-                   nothing in the way today ✿
-                 </span>
-               )}
-             </p>
-           </div>
-
-           {/* Scannable Need & Treatment 3 Graceful Fade Indicator */}
-           <div
-             onClick={() => setIsExpanded(true)}
-             className="cursor-pointer group/col flex flex-col justify-between h-full"
-           >
-             <div>
-               <div className="text-[9.5px] uppercase tracking-[0.18em] text-[#C24E6E] font-semibold mb-1 flex items-center gap-1">
-                 Need
-                 <span className="text-[#B391A0] font-normal lowercase tracking-normal">
-                   · serves {servesDriver}
-                 </span>
-               </div>
-
-               {/* Renders clean extracted core statement directly */}
-               <p className="font-serif italic text-sm text-[#3A1E2A] leading-relaxed line-clamp-2 group-hover/col:text-[#C24E6E]">
-                 {parsedNeed.core || entry.need || (
-                   <span className="text-[#B391A0]/60 not-italic font-sans">
-                     Click to start drafting…
-                   </span>
-                 )}
-               </p>
-             </div>
-
-             {/* Smart indicator pill that un-clips long content */}
-             {(entry.need || "").length > 120 && (
-               <div className="mt-2 inline-flex items-center gap-1 bg-[#FBD9E0]/40 text-[#C24E6E] px-2.5 py-1 rounded-full font-sans text-[10px] font-medium self-start group-hover/col:bg-[#FBD9E0]">
-                 <BloomFlower size={10} petal="#E07A95" smile={false} />
-                 <span>
-                   Expand to read the full Need ↓
-                 </span>
-               </div>
-             )}
-
-             {/* Status pill strip */}
-             <div className="mt-3 flex items-center gap-2 flex-wrap font-mono text-[9px] text-[#B391A0] tracking-wider pt-2 border-t border-[#3A1E2A]/5">
-               {ifsBand && (
-                 <span
-                   className="font-serif italic normal-case tracking-normal text-[10px] text-[#5A3645] bg-white border border-[#3A1E2A]/10 px-2 py-0.5 rounded-full"
-                   title={IFS_LAYER_GLOSS[ifsBand]}
-                 >
-                   {IFS_LAYER_LABEL[ifsBand]}
-                 </span>
-               )}
-               {partName && (
-                 <span
-                   className="font-serif italic normal-case tracking-normal text-[10px] text-[#C24E6E] bg-[#FBD9E0]/40 border border-[#FBD9E0] px-2 py-0.5 rounded-full"
-                   title={`Part · ${partName}`}
-                 >
-                   {partName}
-                 </span>
-               )}
-               {(acceleratorsCount > 0 || parsedNeed.accelerators) && (
-                 <span className="text-[#C24E6E] bg-[#FBD9E0]/50 px-2 py-0.5 rounded-full">
-                   {parsedNeed.accelerators
-                     ? "✿ accelerators extracted"
-                     : `${acceleratorsCount} accelerators`}
-                 </span>
-               )}
-               {(brakesCount > 0 || parsedNeed.brakes) && (
-                 <span className="bg-[#FAE6E1] text-[#5A3645] px-2 py-0.5 rounded-full">
-                   {parsedNeed.brakes
-                     ? "⚠ brakes extracted"
-                     : `${brakesCount} brakes`}
-                 </span>
-               )}
-               {(entry.lifeDesign?.reframeNote?.trim() ||
-                 parsedNeed.reframe) && (
-                 <span className="text-[#9CD3B6] font-bold">reframe ✓</span>
-               )}
-               {(entry.lifeDesign?.prototype?.action?.trim() ||
-                 parsedNeed.prototype) && (
-                 <span className="text-[#9CD3B6] font-bold">prototype ✓</span>
-               )}
-               {entry.relational?.active && (
-                 <span
-                   className={`px-2 py-0.5 rounded-full ${entry.relational.source ? "bg-[#FFF5DC] text-[#5A3645]" : "bg-red-50 text-[#C24E6E]"}`}
-                 >
-                   relational ✿
-                 </span>
-               )}
-               <span className="ml-auto text-[#C24E6E] font-sans text-[10px] tracking-normal font-medium group-hover:underline">
-                 expand ↓
-               </span>
-             </div>
-           </div>
-         </div>
-       </div>
-       )
-     ) : isCessationState(entry) ? (
-       /* --- VERSION B (CESSATION): SOFTENED EXPANDED CARD ---
-          Amber chrome instead of pink. Compassion sentence (the need)
-          foregrounded; Prototype + Reframe collapsed into ghost rows that
-          communicate the system's stance rather than render the fields. The
-          synthesizer already refuses to draft from here — this view matches. */
-       <div
-         className="relative overflow-hidden rounded-[18px] border border-[#D6A24A]/30 p-6 shadow-sm"
-         style={{ background: "linear-gradient(180deg, #FFFAF0 0%, #FDF4F0 100%)" }}
-       >
-         <div
-           aria-hidden
-           className="absolute -top-5 -right-5 opacity-35 pointer-events-none"
-         >
-           <BloomFlower size={90} petal="#F7D679" smile={false} />
-         </div>
-
-         <div className="relative">
-           {/* Quiet header */}
-           <div className="flex items-baseline gap-2 mb-1">
-             <span className="text-[14px] text-[#8B6914]">⏸</span>
-             <span className="font-mono text-[9.5px] uppercase tracking-[0.2em] text-[#8B6914] font-bold">
-               Pause here{entry.emotion ? ` · ${entry.emotion.toLowerCase()}` : ""}
-             </span>
-           </div>
-           <input
-             className="font-serif text-2xl sm:text-3xl text-[#3A1E2A] bg-transparent focus:outline-none placeholder:text-[#B391A0]/50 w-full"
-             value={entry.value}
-             onChange={(e) => onChange({ value: e.target.value })}
-             placeholder="Name this core value..."
-           />
-           <p className="font-serif italic text-[13.5px] text-[#5A3645] leading-relaxed max-w-[480px] m-0 mt-2 mb-5">
-             You've tagged this with a cessation state
-             {entry.emotion ? ` — ${entry.emotion.toLowerCase()}, this time` : ""}.
-             The app is going to step back from prescribing anything.
-           </p>
-
-           {isDuplicate && (
-             <p className="-mt-2 mb-3 text-[10px] uppercase tracking-[0.2em] text-[#8B6914] bg-[#FFF1D6] p-2 rounded-lg">
-               ⏸ Duplicate detected — values must carry unique names.
-             </p>
-           )}
-
-           {/* The compassion sentence — the only thing this card foregrounds. */}
-           <div className="bg-white border border-[#D6A24A]/30 rounded-2xl px-5 py-5 mb-5 shadow-xs">
-             <div className="text-[9px] uppercase tracking-[0.2em] text-[#8B6914] font-bold mb-2">
-               What this needs
-             </div>
-             <textarea
-               className="w-full bg-transparent focus:outline-none font-serif text-xl text-[#3A1E2A] leading-snug resize-none placeholder:text-[#B391A0]/40 border border-transparent focus:border-[#D6A24A]/40 rounded-lg p-1 -ml-1"
-               value={entry.need}
-               onChange={(e) => onChange({ need: e.target.value })}
-               placeholder="To be witnessed, not solved..."
-               rows={dynamicRows}
-             />
-             <p className="font-serif italic text-[12px] text-[#B391A0] m-0 mt-2 leading-relaxed">
-               — a compassion sentence, drafted from the cessation template. Edit as you wish.
-             </p>
-           </div>
-
-           {/* Friction stays visible but soft; Prototype + Reframe become ghosts. */}
-           <div className="grid grid-cols-1 sm:grid-cols-[200px_1fr] gap-5 pt-4 border-t border-dashed border-[#D6A24A]/30">
-             <div>
-               <div className="text-[9.5px] uppercase tracking-[0.18em] text-[#B391A0] font-semibold mb-1">
-                 The friction
-               </div>
-               <textarea
-                 className="w-full bg-transparent focus:outline-none text-[12.5px] text-[#5A3645] leading-relaxed resize-none placeholder:text-[#B391A0]/40 border border-transparent focus:border-[#D6A24A]/40 rounded-lg p-1 -ml-1"
-                 value={entry.friction}
-                 onChange={(e) => onChange({ friction: e.target.value })}
-                 placeholder="What feels sticky or exhausting right now?"
-                 rows={3}
-               />
-             </div>
-             <div>
-               <div className="text-[9.5px] uppercase tracking-[0.18em] text-[#B391A0] font-semibold mb-2">
-                 Held quietly · for later
-               </div>
-               <div className="flex flex-col gap-1.5">
-                 <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-dashed border-[#D6A24A]/40">
-                   <span className="text-[13px] text-[#8B6914]">◆</span>
-                   <span className="font-serif italic text-[11.5px] text-[#B391A0]">
-                     Prototype hidden — we don't design from inside this.
-                   </span>
-                 </div>
-                 <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-dashed border-[#D6A24A]/40">
-                   <span className="text-[13px] text-[#8B6914]">↺</span>
-                   <span className="font-serif italic text-[11.5px] text-[#B391A0]">
-                     Reframe hidden — the feeling isn't a problem to reframe.
-                   </span>
-                 </div>
-               </div>
-             </div>
-           </div>
-
-           {/* Softened footer — quiet lens toggle, fold back, and a non-action
-               "stay here with this" pill instead of the usual focus CTA. */}
-           <div className="mt-6 pt-4 border-t border-dashed border-[#D6A24A]/30 flex items-center gap-4 flex-wrap">
-             <button
-               onClick={onToggleLens}
-               className="text-[9.5px] uppercase tracking-[0.22em] text-[#8B6914] hover:text-[#3A1E2A] transition-colors font-semibold cursor-pointer"
-             >
-               {lensOpen ? "⏸ Hide lenses" : "+ Apply lenses (quietly)"}
-             </button>
-             <CompletionBar completion={completion} />
-             <button
-               onClick={() => setIsExpanded(false)}
-               className="text-[9.5px] uppercase tracking-[0.2em] text-[#5A3645] hover:text-[#8B6914] transition-colors ml-auto font-bold cursor-pointer"
-             >
-               fold back ↑
-             </button>
-             <span
-               className="inline-flex items-center gap-1.5 px-3 py-1 text-[9.5px] uppercase tracking-[0.18em] font-semibold text-[#8B6914] border border-[#D6A24A]/60 rounded-full"
-               title="No CTA on purpose. The synthesizer will offer presence, not a plan."
-             >
-               <span>⏸</span> stay here with this
-             </span>
-           </div>
-
-           {lensOpen && (
-             <div className="mt-8 pt-4 border-t border-[#D6A24A]/30 animate-in fade-in duration-200">
-               <LensPanel
-                 entry={entry}
-                 onChange={onChange}
-                 onToggleNvc={onToggleNvc}
-               />
-             </div>
-           )}
-         </div>
-       </div>
-     ) : (
-       /* --- VERSION B: EXPANDED MURAKAMI CANVAS (Active Edit State) --- */
-       <div className="bg-[#FFFFFF] rounded-[18px] border border-[#3A1E2A]/15 p-6 shadow-sm transition-all">
-         {/* Header Row */}
-         <div className="flex items-baseline gap-3 pb-4 mb-5 border-b border-dashed border-[#3A1E2A]/10">
-           <BloomFlower size={20} petal="#E07A95" />
-           <input
-             className="font-serif text-2xl sm:text-3xl text-[#3A1E2A] bg-transparent focus:outline-none placeholder:text-[#B391A0]/50 flex-1"
-             value={entry.value}
-             onChange={(e) => onChange({ value: e.target.value })}
-             placeholder="Name this core value..."
-           />
-           <BloomWorkability
-             value={entry.workability ?? 0}
-             onChange={(n) => onChange({ workability: n })}
-           />
-         </div>
-
-         {isDuplicate && (
-           <p className="-mt-3 mb-4 text-[10px] uppercase tracking-[0.2em] text-red-500 bg-red-50 p-2 rounded-lg print:hidden">
-             ✿ Duplicate detected — values must carry unique names to index
-             properly.
-           </p>
-         )}
-
-         {/* Main Murakami Grid Canvas */}
-         <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-6 sm:gap-8 items-start">
-           {/* LEFT COLUMN: Friction + Accountability Block */}
-           <div className="flex flex-col gap-5">
-             <div>
-               <label className="text-[9.5px] uppercase tracking-[0.18em] text-[#5A3645] font-semibold block mb-1">
-                 The friction
-               </label>
-               <textarea
-                 className="w-full bg-transparent focus:outline-none text-xs sm:text-sm text-[#5A3645] leading-relaxed resize-none placeholder:text-[#B391A0]/40 border border-transparent focus:border-[#FAE6E1] rounded-lg p-1 -ml-1"
-                 value={entry.friction}
-                 onChange={(e) => onChange({ friction: e.target.value })}
-                 placeholder="What feels sticky or exhausting right now?"
-                 rows={3}
-               />
-
-               {/* Step 0: Atlas Granularity Diagnostic Feed */}
-               {entry.emotionCluster &&
-                 (() => {
-                   const place = EMOTION_PLACES_BY_ID[entry.emotionCluster];
-                   const emo = findEmotion(entry.emotionCluster, entry.emotion);
-                   const cessation = !!emo?.cessation;
-                   return (
-                     <div className="mt-1 bg-[#FDF4F0] p-2 rounded-lg border border-[#3A1E2A]/5">
-                       <p
-                         className={`text-[11px] italic ${cessation ? "text-amber-700 font-medium" : "text-[#C24E6E]"}`}
-                       >
-                         {cessation ? "⚠️ Pause here · " : "✿ Closest match · "}
-                         {entry.emotion
-                           ? `${entry.emotion.toLowerCase()} · `
-                           : ""}
-                         <span className="text-[#5A3645] not-italic font-sans text-[10px] block mt-0.5">
-                           {place?.label}
-                         </span>
-                       </p>
-                     </div>
-                   );
-                 })()}
-             </div>
-
-             {/* Sander T. Jones Accountability Debugger Canvas */}
-             {entry.relational?.active && (
-               <div className="bg-[#FAE6E1]/30 p-3.5 rounded-xl border border-dashed border-[#C24E6E]/30">
-                 <div className="flex items-center gap-1.5 mb-2">
-                   <BloomFlower size={12} petal="#C24E6E" smile={false} />
-                   <span className="text-[9px] uppercase tracking-[0.18em] text-[#C24E6E] font-bold">
-                     Accountability
-                   </span>
-                 </div>
-
-                 {entry.relational.source && (
-                   <p className="font-serif italic text-xs text-[#3A1E2A] mb-3 pb-2 border-b border-[#3A1E2A]/5 capitalize">
-                     Source: {entry.relational.source.replace("_", " ")}
-                   </p>
-                 )}
-
-                 {(() => {
-                   const r = entry.relational;
-                   const checks = [
-                     r.focusSelf,
-                     r.intentValue,
-                     r.isRequest,
-                     r.preservesAutonomy,
-                   ];
-                   const passed = checks.filter((c) => c === true).length;
-                   const isEvaluated = checks.some((c) => c !== undefined);
-
-                   return (
-                     <div>
-                       <div className="flex justify-between items-center mb-1 font-mono text-[9px] text-[#5A3645]">
-                         <span>Stress Test</span>
-                         <span
-                           className={
-                             passed === 4
-                               ? "text-[#9CD3B6] font-bold"
-                               : "text-[#C24E6E]"
-                           }
-                         >
-                           {isEvaluated ? `${passed}/4 passed` : "pending"}
-                         </span>
-                       </div>
-                       <div className="text-[10px] text-[#5A3645] font-mono tracking-tighter bg-white/80 p-2 rounded border border-[#3A1E2A]/5">
-                         {passed === 4 ? (
-                           <span className="text-[#1F6E4A] font-sans font-medium">
-                             ✨ Clean boundary statement. Zero coercive demands
-                             leaking out.
-                           </span>
-                         ) : (
-                           <span className="text-[#C24E6E] font-sans italic">
-                             ⚠️ Unvetted Rule: Intercepting demand. Adjust
-                             reframe to honor autonomy.
-                           </span>
-                         )}
-                       </div>
-                     </div>
-                   );
-                 })()}
-               </div>
-             )}
-           </div>
-
-           {/* RIGHT COLUMN: Need Manifesto & Design Constraints */}
-           <div className="flex flex-col gap-4">
-             {/* Primary Need block (Auto-expands based on raw character length) */}
-             <div>
-               <div className="flex items-center gap-1.5 mb-1">
-                 <BloomFlower size={12} petal="#C24E6E" smile={false} />
-                 <label className="text-[9.5px] uppercase tracking-[0.18em] text-[#C24E6E] font-semibold block">
-                   The need manifesto
-                 </label>
-               </div>
-
-               <textarea
-                 className="w-full bg-transparent focus:outline-none font-serif italic text-base sm:text-lg text-[#3A1E2A] leading-relaxed resize-none placeholder:text-[#B391A0]/40 border border-transparent focus:border-[#FAE6E1] rounded-lg p-1 -ml-1 custom-scrollbar"
-                 value={entry.need}
-                 onChange={(e) => onChange({ need: e.target.value })}
-                 placeholder="To honor this value, I non-negotiably require..."
-                 rows={dynamicRows}
-               />
-
-               {/* NVC tags rendered as Murakami candy pills */}
-               {entry.nvcNeeds && entry.nvcNeeds.length > 0 && (
-                 <div className="flex flex-wrap gap-1.5 pt-1">
-                   {entry.nvcNeeds.map((n) => (
-                     <span
-                       key={n}
-                       className="font-sans text-[11px] bg-[#FBD9E0] text-[#C24E6E] px-2.5 py-0.5 rounded-full"
-                     >
-                       {n}
-                     </span>
-                   ))}
-                 </div>
-               )}
-
-               {/* Serves footer */}
-               <div className="mt-2.5 flex items-baseline gap-2 font-sans text-xs text-[#B391A0]">
-                 <span className="text-[8.5px] uppercase tracking-[0.18em] font-bold text-[#5A3645]">
-                   serves →
-                 </span>
-                 <span className="font-serif italic text-sm text-[#C24E6E]">
-                   {servesDriver}
-                 </span>
-               </div>
-             </div>
-
-             {/* Renders Smart Auto-Parsed Labeled Fragments Dynamic Mirrors */}
-             {parsedNeed.hasExtracted && (
-               <div className="bg-[#FAE6E1]/20 p-3.5 rounded-xl border border-dashed border-[#3A1E2A]/10 space-y-3">
-                 <div className="text-[9px] uppercase tracking-[0.2em] text-[#B391A0] font-mono">
-                   ✿ Extracted from your existing Need text
-                 </div>
-
-                 {(parsedNeed.reframe || parsedNeed.prototype) && (
-                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                     {parsedNeed.reframe && (
-                       <div className="bg-[#FFF5DC] p-3 rounded-xl border border-[#3A1E2A]/5">
-                         <div className="text-[9px] uppercase tracking-[0.18em] text-[#5A3645] font-bold mb-1 flex items-center gap-1">
-                           <span>↺</span> Reframe
-                         </div>
-                         <p className="text-xs text-[#3A1E2A] leading-relaxed whitespace-pre-wrap">
-                           {parsedNeed.reframe}
-                         </p>
-                       </div>
-                     )}
-                     {parsedNeed.prototype && (
-                       <div className="bg-[#9CD3B6]/20 p-3 rounded-xl border border-[#3A1E2A]/5">
-                         <div className="text-[9px] uppercase tracking-[0.18em] text-[#1F6E4A] font-bold mb-1 flex items-center gap-1">
-                           <span>◆</span> Prototype
-                         </div>
-                         <p className="text-xs text-[#3A1E2A] leading-relaxed whitespace-pre-wrap">
-                           {parsedNeed.prototype}
-                         </p>
-                       </div>
-                     )}
-                   </div>
-                 )}
-
-                 {(parsedNeed.accelerators || parsedNeed.brakes) && (
-                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-[#3A1E2A]/5">
-                     {parsedNeed.accelerators && (
-                       <div>
-                         <div className="text-[9px] uppercase tracking-[0.18em] text-[#C24E6E] font-bold mb-1">
-                           ✿ Accelerators
-                         </div>
-                         <p className="text-xs font-mono text-[#5A3645]">
-                           {parsedNeed.accelerators}
-                         </p>
-                       </div>
-                     )}
-                     {parsedNeed.brakes && (
-                       <div>
-                         <div className="text-[9px] uppercase tracking-[0.18em] text-[#5A3645] font-bold mb-1">
-                           ⚠ Brakes to watch
-                         </div>
-                         <p className="text-xs font-mono text-[#B391A0]">
-                           {parsedNeed.brakes}
-                         </p>
-                       </div>
-                     )}
-                   </div>
-                 )}
-               </div>
-             )}
-
-             {/* Standard Fallback for Typed Life Design Data */}
-             {!parsedNeed.hasExtracted && (
-               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-[#3A1E2A]/5">
-                 <div className="bg-[#FFF5DC] p-3 rounded-xl border border-[#3A1E2A]/5">
-                   <div className="text-[9px] uppercase tracking-[0.18em] text-[#5A3645] font-bold mb-1 flex items-center gap-1">
-                     <span>↺</span> Reframe
-                   </div>
-                   <p className="text-xs text-[#3A1E2A] leading-relaxed">
-                     {entry.lifeDesign?.reframeNote ||
-                       entry.lifeDesign?.acceptanceNote || (
-                         <span className="text-[#B391A0]/50 italic">
-                           No reframing written yet...
-                         </span>
-                       )}
-                   </p>
-                 </div>
-
-                 <div className="bg-[#9CD3B6]/20 p-3 rounded-xl border border-[#3A1E2A]/5">
-                   <div className="text-[9px] uppercase tracking-[0.18em] text-[#1F6E4A] font-bold mb-1 flex items-center gap-1">
-                     <span>◆</span> Prototype
-                     <span className="font-normal lowercase">
-                       · {entry.lifeDesign?.prototype?.mode ?? "do"}
-                     </span>
-                   </div>
-                   <p className="text-xs text-[#3A1E2A] leading-relaxed">
-                     {entry.lifeDesign?.prototype?.action || (
-                       <span className="text-[#B391A0]/50 italic">
-                         No experiments queued...
-                       </span>
-                     )}
-                   </p>
-                 </div>
-               </div>
-             )}
-
-             {/* Standard Fallback for Simple Nagoski Attributes */}
-             {!parsedNeed.hasExtracted && (
-               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                 <div>
-                   <div className="text-[9px] uppercase tracking-[0.18em] text-[#C24E6E] font-bold mb-1 flex items-center gap-1">
-                     <BloomFlower size={10} petal="#E07A95" smile={false} />
-                     Accelerators
-                   </div>
-                   <p className="text-xs font-mono text-[#5A3645]">
-                     {entry.accelerators ? (
-                       entry.accelerators.split(",").join(" ✿ ")
-                     ) : (
-                       <span className="text-[#B391A0]/40 font-sans italic">
-                         None noted
-                       </span>
-                     )}
-                   </p>
-                 </div>
-
-                 <div>
-                   <div className="text-[9px] uppercase tracking-[0.18em] text-[#5A3645] font-bold mb-1 flex items-center gap-1">
-                     <BrakeMark size={10} /> Brakes to watch
-                   </div>
-                   <p className="text-xs font-mono text-[#B391A0]">
-                     {entry.brakes ? (
-                       entry.brakes.split(",").join(" ✿ ")
-                     ) : (
-                       <span className="text-[#B391A0]/40 font-sans italic">
-                         None noted
-                       </span>
-                     )}
-                   </p>
-                 </div>
-               </div>
-             )}
-           </div>
-         </div>
-
-         {/* Expanded Card Chrome Footer & Integration Hooks */}
-         <div className="mt-6 pt-4 border-t border-dashed border-[#3A1E2A]/10 flex items-center gap-4 flex-wrap print:hidden bg-[#FDF4F0] -mx-6 -mb-6 p-4 rounded-b-[18px]">
-           <button
-             onClick={onToggleLens}
-             className="text-[9.5px] uppercase tracking-[0.25em] text-[#C24E6E] hover:text-[#3A1E2A] transition-colors font-semibold cursor-pointer"
-           >
-             {lensOpen ? "✿ Hide lenses" : "+ Apply lenses"}
-           </button>
-           <CompletionBar completion={completion} />
-
-           {/* Collapse Trigger */}
-           <button
-             onClick={() => setIsExpanded(false)}
-             className="text-[9.5px] uppercase tracking-[0.2em] text-[#5A3645] hover:text-[#C24E6E] transition-colors ml-auto font-bold cursor-pointer"
-           >
-             fold back ↑
-           </button>
-
-           {/* Version C Overlay Hook */}
-           <button
-             onClick={onFocus}
-             className="bg-[#C24E6E] text-white px-3 py-1 rounded-full text-[10px] uppercase tracking-[0.2em] hover:bg-[#3A1E2A] transition-colors shadow-xs cursor-pointer"
-             title="Open this value in focus mode"
-           >
-             focus ✿
-           </button>
-         </div>
-
-         {/* Embedded Lens Editing Panel */}
-         {lensOpen && (
-           <div className="mt-8 pt-4 border-t border-[#3A1E2A]/10 animate-in fade-in duration-200">
-             <LensPanel
-               entry={entry}
-               onChange={onChange}
-               onToggleNvc={onToggleNvc}
-             />
-           </div>
-         )}
-       </div>
-     )}
-
-     {/* --- PRINT-ONLY LEDGER BLOCK --- */}
-     <div className="hidden print:block text-[11px] text-[#5A3645] pt-3 mt-2 border-t border-gray-100 space-y-1 font-serif">
-       {entry.workability ? (
-         <div>Workability: {entry.workability}/5</div>
-       ) : null}
-       {entry.emotionCluster ? (
-         <div>
-           Atlas of the Heart: {entry.emotion ? `${entry.emotion} · ` : ""}
-           {EMOTION_PLACES_BY_ID[entry.emotionCluster]?.label}
-         </div>
-       ) : null}
-       {entry.coreNeed ? <div>Core need: {entry.coreNeed}</div> : null}
-       {entry.lifeDesign?.wayfinding?.engagement ||
-       entry.lifeDesign?.wayfinding?.energy ? (
-         <div>
-           Wayfinding ·
-           {entry.lifeDesign.wayfinding?.engagement
-             ? ` engagement ${entry.lifeDesign.wayfinding.engagement}/5`
-             : ""}
-           {entry.lifeDesign.wayfinding?.engagement &&
-           entry.lifeDesign.wayfinding?.energy
-             ? " ·"
-             : ""}
-           {entry.lifeDesign.wayfinding?.energy
-             ? ` energy ${entry.lifeDesign.wayfinding.energy}/5`
-             : ""}
-         </div>
-       ) : null}
-       {entry.lifeDesign?.problemFrame ? (
-         <div>Problem type: {entry.lifeDesign.problemFrame}</div>
-       ) : null}
-       {entry.lifeDesign?.problemFrame !== "reality" &&
-       entry.lifeDesign?.reframeNote?.trim() ? (
-         <div>Reframe: {entry.lifeDesign.reframeNote}</div>
-       ) : null}
-       {entry.lifeDesign?.problemFrame === "reality" &&
-       entry.lifeDesign?.acceptanceNote?.trim() ? (
-         <div>Acceptance: {entry.lifeDesign.acceptanceNote}</div>
-       ) : null}
-       {entry.lifeDesign?.problemFrame !== "reality" &&
-       entry.lifeDesign?.prototype?.action?.trim() ? (
-         <div>
-           Prototype ({entry.lifeDesign.prototype.mode ?? "do"}):{" "}
-           {entry.lifeDesign.prototype.action}
-         </div>
-       ) : null}
-       {entry.accelerators ? (
-         <div>Accelerators: {entry.accelerators}</div>
-       ) : null}
-       {entry.brakes ? <div>Brakes: {entry.brakes}</div> : null}
-       {entry.relational?.active && entry.relational.source ? (
-         <div>
-           Relational source: {entry.relational.source.replace("_", " ")}
-           {(() => {
-             const r = entry.relational!;
-             const checks = [
-               r.focusSelf,
-               r.intentValue,
-               r.isRequest,
-               r.preservesAutonomy,
-             ];
-             const checked = checks.filter((c) => c === true).length;
-             const total = checks.filter((c) => c !== undefined).length;
-             if (total === 0) return null;
-             return ` · boundary ${checked}/4 (${checked === 4 ? "clean" : "overreaching"})`;
-           })()}
-         </div>
-       ) : null}
-     </div>
-   </section>
- );
+      <EntryPrintSummary entry={entry} />
+    </section>
+  );
 };

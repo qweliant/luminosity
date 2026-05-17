@@ -125,12 +125,34 @@ export const flushDesktopBackup = async (): Promise<boolean> => {
   }
 };
 
-// Bind update flush loop directly to core sync runtime
-ydoc.on("update", () => {
-  // Leverage simple trailing delays to bypass intensive local IO thrashing
-  setTimeout(() => {
-    if (backupDirHandle) {
-      flushDesktopBackup();
+// Bind update flush loop directly to core sync runtime. Trailing-edge debounce —
+// rapid bursts of edits collapse into a single write, and a write in progress
+// won't overlap with the next one (in-flight guard).
+const FLUSH_DEBOUNCE_MS = 2000;
+let flushTimer: ReturnType<typeof setTimeout> | null = null;
+let flushing = false;
+let pending = false;
+
+const scheduleFlush = () => {
+  if (!backupDirHandle) return;
+  if (flushTimer) clearTimeout(flushTimer);
+  flushTimer = setTimeout(async () => {
+    flushTimer = null;
+    if (flushing) {
+      pending = true;
+      return;
     }
-  }, 2000);
-});
+    flushing = true;
+    try {
+      await flushDesktopBackup();
+    } finally {
+      flushing = false;
+      if (pending) {
+        pending = false;
+        scheduleFlush();
+      }
+    }
+  }, FLUSH_DEBOUNCE_MS);
+};
+
+ydoc.on("update", scheduleFlush);

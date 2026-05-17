@@ -24,6 +24,7 @@ export interface BackupState {
 }
 
 export const useBackup = (entries: Mapping[]): BackupState => {
+  const enabled = import.meta.env.DEV;
   const [status, setStatus] = useState<ServerStatus>('unknown');
   const [lastSnapshot, setLastSnapshot] = useState<Snapshot | null>(null);
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
@@ -73,6 +74,7 @@ export const useBackup = (entries: Mapping[]): BackupState => {
 
   // Initial ping + load list, plus periodic re-ping
   useEffect(() => {
+    if (!enabled) return;
     let cancelled = false;
     (async () => {
       const ok = await ping();
@@ -88,10 +90,11 @@ export const useBackup = (entries: Mapping[]): BackupState => {
       cancelled = true;
       clearInterval(iv);
     };
-  }, []);
+  }, [enabled]);
 
   // Debounced auto-backup on entries change
   useEffect(() => {
+    if (!enabled) return;
     if (firstRunRef.current) {
       firstRunRef.current = false;
       return;
@@ -110,7 +113,7 @@ export const useBackup = (entries: Mapping[]): BackupState => {
         debounceRef.current = null;
       }
     };
-  }, [entries, status]);
+  }, [entries, status, enabled]);
 
   return { status, lastSnapshot, snapshots, inFlight, refresh, snapshotNow, restore };
 };

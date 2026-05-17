@@ -7,7 +7,7 @@
 // served as a static bundle and may be opened from `file://` for printing.
 // Hashes work in both contexts.
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 export type Route =
   | { name: 'list' }
@@ -53,12 +53,12 @@ export const useHashRoute = (): [Route, (r: Route) => void] => {
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
 
-  const navigate = (r: Route) => {
+  const navigate = useCallback((r: Route) => {
     const next = routeToHash(r);
     if (location.hash !== next) {
       location.hash = next;
     }
-  };
+  }, []);
 
   return [route, navigate];
 };

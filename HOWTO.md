@@ -119,19 +119,23 @@ This app's whole architecture is a small instance of a larger loop Alicorn named
 - [**The Luminosity sequence**](https://www.lesswrong.com/s/ynMFrq9K5iNMfSZNg/p/9o3Cjjem7AbmmZfBs) — Alicorn (LessWrong, 2009–2011). Practical exercises in noticing your own mental states accurately — without flinching, flattering, or theorizing past what's actually there.
 - [**Ureshiku Naritai**](https://www.lesswrong.com/posts/xnPFYBuaGhpq869mY/ureshiku-naritai) — Alicorn (LessWrong, 2024). A later update on the same project — what it actually looked like to try to be happier on purpose, and what stuck.
 
-## Backup (optional Bun + SQLite sidecar)
+## Backup
 
-The browser's `localStorage` can be wiped by clearing site data, switching browsers, or running incognito. To guard against that, the repo ships a tiny backup server using `Bun.serve()` + `bun:sqlite`.
+The primary backup channel is **Export** (overflow menu → Export) — downloads a JSON file of every entry. Re-import it later via Import → Load a backup. This works in every browser and is the recommended way to keep a safety net.
 
-**Run it:**
+### Optional Bun + SQLite sidecar (development only)
+
+The repo also ships a tiny backup server using `Bun.serve()` + `bun:sqlite`. It is **wired into the app in development only** — the BackupChip in the header and the auto-snapshot loop appear when running under `bun run dev`, and are hidden in production builds. If you'd like the same safety net in a deployed build, you'd need to expose the BackupChip path (currently gated behind `import.meta.env.DEV` in [src/App.tsx](src/App.tsx)) and provide a reachable local URL — typically by running the sidecar on the same machine.
+
+**Run it (alongside `bun run dev`):**
 
 ```sh
 bun run server   # listens on http://localhost:5174
 ```
 
-The DB lives at `data/backups.db` (gitignored). Schema is one table — `snapshots(id, created_at, count, payload)` — where `payload` is the full `Mapping[]` JSON. No migrations: every snapshot is a complete tree, so old snapshots stay readable forever.
+The DB lives at `data/backups.db` (gitignored). Schema is one table — `snapshots(id, created_at, count, payload)` — where `payload` is the full `Mapping[]` JSON. Retention runs after each insert: keep everything from the last 7 days, then one snapshot per day for the last 90 days, then drop. No migrations: every snapshot is a complete tree, so old snapshots stay readable.
 
-**In the app:**
+**In dev, when the sidecar is reachable:**
 
 - A subtle **Backup** chip in the header shows the most recent snapshot ("Last backup: 3m ago") or `Backup offline` if the server isn't running. Clicking it forces a snapshot now.
 - Auto-backup runs **debounced 5s after edits stop** when the server is reachable. If the server is down, the app keeps working — only the safety net is missing.

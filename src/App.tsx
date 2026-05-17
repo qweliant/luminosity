@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import {
   Plus,
   Printer,
@@ -9,389 +9,70 @@ import {
   Users,
 } from "lucide-react";
 
-import { migrateMapping, type LegacyMapping, type Mapping, type Part } from "./types";
+import type { Mapping } from "./types";
 import { seedPersonalValues } from "./data";
 import { useBackup } from "./useBackup";
+import { useEntries } from "./useEntries";
 import { relTime, type Snapshot } from "./backup";
 import { useHashRoute, goBackOr } from "./router";
 import { downloadEntriesAsJson } from "./transfer";
 
+import { AmbientBlooms } from "./components/AmbientBlooms";
 import { BackupChip } from "./components/BackupChip";
-import { EntrySection } from "./components/EntrySection";
-import { FocusOverlay } from "./components/FocusOverlay";
-import { ImportModal } from "./components/ImportModal";
+import { BloomFlower, BloomWordmark, LumiBean } from "./components/bloom";
+import { EntryRow } from "./components/EntryRow";
+import { ErrorBoundary } from "./components/ErrorBoundary";
+import { healthSentence } from "./components/healthSentence";
 import { MatrixView } from "./components/MatrixView";
-import { MethodsPage } from "./components/MethodsPage";
 import { OverflowMenu } from "./components/OverflowMenu";
-import { PartsPage } from "./components/PartsPage";
 import { PrintLedger } from "./components/PrintLedger";
-import { SyncOverlay } from "./components/SyncOverlay";
 
-// Import your shared state mapping services natively
+// Heavy or route/modal-gated chunks. Splitting these out keeps the initial
+// bundle focused on the list view; each piece is fetched the first time the
+// user lands on its route or opens its modal.
+const FocusOverlay = lazy(() =>
+  import("./components/FocusOverlay").then((m) => ({ default: m.FocusOverlay })),
+);
+const ImportModal = lazy(() =>
+  import("./components/ImportModal").then((m) => ({ default: m.ImportModal })),
+);
+const MethodsPage = lazy(() =>
+  import("./components/MethodsPage").then((m) => ({ default: m.MethodsPage })),
+);
+const PartsPage = lazy(() =>
+  import("./components/PartsPage").then((m) => ({ default: m.PartsPage })),
+);
+const SyncOverlay = lazy(() =>
+  import("./components/SyncOverlay").then((m) => ({ default: m.SyncOverlay })),
+);
+
 import { mountSystemDirectory } from "./services/storageDaemon";
-import { yEntriesMap, yPartsMap, ydoc, isSyncing } from "./services/syncEngine";
-
-const STORAGE_KEY = "values-mapper-v2";
-const PARTS_STORAGE_KEY = "values-mapper-parts-v1";
-
-// -----------------------------------------------------------------------------
-// Bloom SVG Accessories & Mascots
-// -----------------------------------------------------------------------------
-
-const BloomFlower = ({
-  size = 28,
-  petal = "#E07A95",
-  eye = "#3A1E2A",
-  smile = true,
-}) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 100 100"
-    className="inline-block align-middle overflow-visible"
-  >
-    {Array.from({ length: 5 }).map((_, i) => (
-      <path
-        key={i}
-        d="M50 50 C 28 38, 22 12, 50 4 C 78 12, 72 38, 50 50 Z"
-        fill={petal}
-        opacity="0.95"
-        stroke="#C24E6E"
-        strokeOpacity="0.2"
-        transform={`rotate(${(i * 360) / 5} 50 50)`}
-      />
-    ))}
-
-    <circle cx="50" cy="50" r="9" fill="#C24E6E" opacity="0.9" />
-    <circle cx="50" cy="50" r="3" fill="#F7D679" />
-
-    {smile && (
-      <g>
-        <circle cx="44" cy="48" r="1.6" fill={eye} />
-        <circle cx="52" cy="48" r="1.6" fill={eye} />
-
-        <path
-          d="M44 53 Q48 56 52 53"
-          stroke="#3A1E2A"
-          strokeWidth="1.5"
-          fill="none"
-          strokeLinecap="round"
-        />
-      </g>
-    )}
-  </svg>
-);
-
-const LumiBean = ({ size = 80 }) => (
-  <svg
-    width={size}
-    height={size * 1.15}
-    viewBox="-10 -15 120 130"
-    className="overflow-visible inline-block"
-  >
-    <ellipse cx="50" cy="108" rx="24" ry="3" fill="#3A1E2A" opacity="0.10" />
-
-    <ellipse
-      cx="50"
-      cy="58"
-      rx="32"
-      ry="36"
-      fill="#FFF5DC"
-      stroke="#3A1E2A"
-      strokeWidth="2"
-    />
-
-    <ellipse cx="50" cy="74" rx="20" ry="14" fill="#FFFDF6" opacity="0.7" />
-
-    <g transform="translate(76 22) rotate(18)">
-      <BloomFlower size={34} petal="#C24E6E" smile={false} />
-    </g>
-
-    <path
-      d="M82 38 Q90 36 92 28 Q86 30 82 38 Z"
-      fill="#9CD3B6"
-      stroke="#3A1E2A"
-      strokeWidth="1"
-      strokeOpacity="0.4"
-    />
-
-    <ellipse cx="30" cy="66" rx="6.5" ry="4" fill="#E07A95" opacity="0.75" />
-    <ellipse cx="70" cy="66" rx="6.5" ry="4" fill="#E07A95" opacity="0.75" />
-
-    <ellipse cx="40" cy="56" rx="3" ry="4" fill="#3A1E2A" />
-    <ellipse cx="60" cy="56" rx="3" ry="4" fill="#3A1E2A" />
-
-    <circle cx="41.2" cy="54.5" r="0.9" fill="#fff" />
-    <circle cx="61.2" cy="54.5" r="0.9" fill="#fff" />
-
-    <path
-      d="M42 71 Q50 77 58 71"
-      stroke="#3A1E2A"
-      strokeWidth="2"
-      fill="none"
-      strokeLinecap="round"
-    />
-
-    <ellipse cx="38" cy="96" rx="7" ry="3" fill="#3A1E2A" />
-    <ellipse cx="62" cy="96" rx="7" ry="3" fill="#3A1E2A" />
-  </svg>
-);
-
-const BloomWordmark = ({ size = 38 }) => (
-  <span
-    className="font-serif font-normal inline-flex items-baseline tracking-[-0.01em] text-[#3A1E2A]"
-    style={{ fontSize: size }}
-  >
-    Lum
-    <span className="relative inline-block mx-[1px]">
-      <span className="invisible">i</span>
-
-      <span aria-hidden className="absolute left-1/2 top-[8%] -translate-x-1/2">
-        <BloomFlower size={size * 0.32} petal="#C24E6E" eye="#3A1E2A" />
-      </span>
-
-      <span
-        aria-hidden
-        className="absolute left-1/2 top-[42%] -translate-x-1/2 w-[2px] rounded-full bg-[#3A1E2A]"
-        style={{ height: size * 0.55 }}
-      />
-    </span>
-    nosity
-  </span>
-);
-
-// -----------------------------------------------------------------------------
-// Pure-Arithmetic Ambient Blooms Engine (Pretext Philosophy)
-// -----------------------------------------------------------------------------
-
-const DynamicAmbientBlooms = () => {
-  const [pageHeight, setPageHeight] = useState(2000);
-
-  useEffect(() => {
-    const container = document.documentElement;
-    const update = () => {
-      setPageHeight(Math.max(container.scrollHeight, window.innerHeight));
-    };
-
-    update();
-    const observer = new ResizeObserver(() => update());
-    observer.observe(document.body);
-    return () => observer.disconnect();
-  }, []);
-
-  const count = Math.floor(pageHeight / 300);
-  const petals = ["#F4ABBC", "#FBD9E0", "#F7D679", "#9CD3B6", "#E07A95"];
-
-  return (
-    <div
-      aria-hidden="true"
-      className="absolute inset-x-0 top-0 pointer-events-none print:hidden z-0"
-    >
-      <style>{`
-        @keyframes gentleFloat {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-12px) rotate(4deg); }
-        }
-        .ambient-bloom {
-          animation: gentleFloat 7s ease-in-out infinite;
-        }
-      `}</style>
-      {Array.from({ length: count }).map((_, i) => {
-        const r1 = Math.abs(Math.sin(i + 1));
-        const r2 = Math.abs(Math.cos(i + 1));
-        const r3 = Math.abs(Math.sin((i + 1) * 2));
-
-        const isLeft = i % 2 === 0;
-        const gutterPos = isLeft ? -30 + r1 * 40 : -20 + r1 * 30;
-        const topPos = 150 + i * 300 + r2 * 100;
-        const size = 45 + Math.floor(r3 * 50);
-        const petal = petals[i % petals.length];
-        const delay = (r1 * 5).toFixed(1);
-
-        if (topPos > pageHeight - 150) return null;
-
-        return (
-          <div
-            key={i}
-            className="absolute opacity-50 ambient-bloom"
-            style={{
-              top: `${topPos}px`,
-              [isLeft ? "left" : "right"]: `${gutterPos}px`,
-              animationDelay: `${delay}s`,
-            }}
-          >
-            <BloomFlower size={size} petal={petal} smile={false} />
-          </div>
-        );
-      })}
-    </div>
-  );
-};
-
-// -----------------------------------------------------------------------------
-// Helpers
-// -----------------------------------------------------------------------------
+import {
+  getPeerPresences,
+  isSyncing,
+  subscribeAwareness,
+  subscribeSyncStatus,
+  type PeerPresence,
+} from "./services/syncEngine";
 
 const norm = (s: string) => s.trim().toLowerCase();
-
-const numWord = (n: number): string => {
-  if (n === 0) return "none";
-  const words = [
-    "zero",
-    "one",
-    "two",
-    "three",
-    "four",
-    "five",
-    "six",
-    "seven",
-    "eight",
-    "nine",
-    "ten",
-    "eleven",
-    "twelve",
-  ];
-  return words[n] ?? String(n);
-};
-const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-const isAre = (n: number) => (n === 1 ? "is" : "are");
-
-// Dynamic narration of the workability distribution. Returns a JSX fragment
-// so we can color the count spans inline. Pure function — easy to test if/when.
-//
-// Buckets:
-//   - stuck    = workability 1
-//   - mixed    = workability 2 or 3 ("in between" in copy)
-//   - working  = workability 4 or 5
-//   - unrated  = entries with no workability set (derived from total - others)
-const healthSentence = (
-  total: number,
-  stuck: number,
-  mixed: number,
-  working: number,
-): React.ReactNode => {
-  const unrated = Math.max(0, total - stuck - mixed - working);
-  const PINK = "#C24E6E";
-  const SAGE = "#5C7F66";
-
-  if (total === 0) return <span>Nothing mapped yet.</span>;
-
-  if (total === 1) {
-    const where =
-      stuck === 1 ? (
-        <>
-          and it's <span style={{ color: PINK }}>stuck</span>
-        </>
-      ) : working === 1 ? (
-        <>
-          and it's <span style={{ color: SAGE }}>working</span>
-        </>
-      ) : mixed === 1 ? (
-        <>currently in between</>
-      ) : (
-        <>not yet rated</>
-      );
-    return <>One value mapped, {where}.</>;
-  }
-
-  // All-one-bucket shortcuts
-  if (stuck === total)
-    return (
-      <>
-        {cap(numWord(total))} values mapped.{" "}
-        <span style={{ color: PINK }}>All stuck</span>.
-      </>
-    );
-  if (working === total)
-    return (
-      <>
-        {cap(numWord(total))} values mapped.{" "}
-        <span style={{ color: SAGE }}>All working</span>.
-      </>
-    );
-  if (mixed === total)
-    return <>{cap(numWord(total))} values mapped. All in between.</>;
-  if (unrated === total)
-    return <>{cap(numWord(total))} values mapped. None rated yet.</>;
-
-  // Build clauses in priority order (extremes first, then middle, then unrated).
-  // Always explicit — no "the rest are" shortcut, since with four possible
-  // buckets the reader can't infer which one is "the rest".
-  const clauses: React.ReactNode[] = [];
-  if (stuck > 0) {
-    clauses.push(
-      <span key="s" style={{ color: PINK }}>
-        {numWord(stuck)} {isAre(stuck)} stuck
-      </span>,
-    );
-  }
-  if (working > 0) {
-    clauses.push(
-      <span key="w" style={{ color: SAGE }}>
-        {numWord(working)} {isAre(working)} working
-      </span>,
-    );
-  }
-  if (mixed > 0) {
-    clauses.push(
-      <span key="m">
-        {numWord(mixed)} {isAre(mixed)} in between
-      </span>,
-    );
-  }
-  if (unrated > 0) {
-    clauses.push(<span key="u">{numWord(unrated)} not yet rated</span>);
-  }
-
-  // Comma-join. The opener already has its own period from the next fragment.
-  const joined = clauses.flatMap((c, i) => (i === 0 ? [c] : [", ", c]));
-  return (
-    <>
-      {cap(numWord(total))} values mapped.{" "}
-      {joined.map((n, i) => (
-        <React.Fragment key={i}>{n}</React.Fragment>
-      ))}
-      .
-    </>
-  );
-};
 
 // -----------------------------------------------------------------------------
 // App Root
 // -----------------------------------------------------------------------------
 
 export const App = () => {
-  // ---------------------------------------------------------------------------
-  // Persistence initialization
-  // ---------------------------------------------------------------------------
-
-  const [entries, setEntries] = useState<Mapping[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    const parsed: LegacyMapping[] = saved ? JSON.parse(saved) : [];
-    const migrated = parsed.map(migrateMapping);
-
-    return migrated;
-  });
-
-  const [parts, setParts] = useState<Part[]>(() => {
-    const saved = localStorage.getItem(PARTS_STORAGE_KEY);
-    if (!saved) return [];
-    try {
-      const parsed = JSON.parse(saved);
-      return Array.isArray(parsed) ? (parsed as Part[]) : [];
-    } catch {
-      return [];
-    }
-  });
-
-  // Preserve baseline application caching states safely
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-  }, [entries]);
-
-  useEffect(() => {
-    localStorage.setItem(PARTS_STORAGE_KEY, JSON.stringify(parts));
-  }, [parts]);
+  const {
+    entries,
+    parts,
+    updateEntry,
+    toggleNvc,
+    addEntries,
+    addBlank,
+    deleteEntry,
+    replaceAll,
+    upsertPart,
+  } = useEntries();
 
   // ---------------------------------------------------------------------------
   // App-level UI state
@@ -403,6 +84,7 @@ export const App = () => {
   const [showImport, setShowImport] = useState(false);
   const [showSync, setShowSync] = useState(false);
   const [liveP2P, setLiveP2P] = useState(() => isSyncing());
+  const [peers, setPeers] = useState<PeerPresence[]>(() => getPeerPresences());
   const [dismissHello, setDismissHello] = useState(
     () => localStorage.getItem("lumi-nudge-dismissed") === "1",
   );
@@ -415,6 +97,18 @@ export const App = () => {
     else if (route.name === "matrix") setLastUnderlay("matrix");
   }, [route]);
 
+  // Subscribe to live sync status so the "Live" header chip reflects the
+  // actual WebRTC connection state instead of a stale snapshot.
+  useEffect(() => subscribeSyncStatus(() => setLiveP2P(isSyncing())), []);
+
+  // Surface "also editing on iPad" when another of the user's own devices
+  // joins the same sync room. See [[sync-model-single-editor]] — this is the
+  // presence surface for our single-editor model.
+  useEffect(
+    () => subscribeAwareness(() => setPeers(getPeerPresences())),
+    [],
+  );
+
   const matrixView =
     route.name === "matrix" ||
     (route.name === "focus" && lastUnderlay === "matrix");
@@ -423,81 +117,28 @@ export const App = () => {
   const showParts = route.name === "parts";
 
   // ---------------------------------------------------------------------------
-  // CRDT TWO-WAY SYNCHRONIZATION BRIDGE
-  // ---------------------------------------------------------------------------
-
-  // 1. INBOUND: Watch shared maps to seamlessly capture incoming WebRTC updates
-  useEffect(() => {
-    const handleRemoteUpdates = (event: any, transaction: any) => {
-      // Prevent local client transaction echoes from triggering interface redraws
-      if (transaction.local) return;
-
-      const updatedMappings: Mapping[] = [];
-      yEntriesMap.forEach((mapping) => {
-        updatedMappings.push(mapping);
-      });
-
-      setEntries(updatedMappings);
-    };
-
-    yEntriesMap.observe(handleRemoteUpdates);
-    return () => yEntriesMap.unobserve(handleRemoteUpdates);
-  }, []);
-
-  // INBOUND (parts): same pattern as entries — observe the shared yParts map
-  // and reflect remote changes into local state.
-  useEffect(() => {
-    const handleRemotePartsUpdates = (_event: any, transaction: any) => {
-      if (transaction.local) return;
-      const updated: Part[] = [];
-      yPartsMap.forEach((part) => updated.push(part));
-      setParts(updated);
-    };
-    yPartsMap.observe(handleRemotePartsUpdates);
-    return () => yPartsMap.unobserve(handleRemotePartsUpdates);
-  }, []);
-
-  // 2. HOST SEEDING: Populate ephemeral maps dynamically upon host connection
-  useEffect(() => {
-    // Check if the user has genuine persisted history rather than unedited session defaults
-    const hasPersistedHistory = localStorage.getItem(STORAGE_KEY) !== null;
-
-    if (hasPersistedHistory && entries.length > 0 && yEntriesMap.size === 0) {
-      ydoc.transact(() => {
-        entries.forEach((mapping) => yEntriesMap.set(mapping.id, mapping));
-      }, "local");
-    }
-  }, [entries]);
-
-  // HOST SEEDING (parts): mirror locally-persisted parts into the Yjs map on
-  // first paint when the shared map is still empty.
-  useEffect(() => {
-    if (parts.length > 0 && yPartsMap.size === 0) {
-      ydoc.transact(() => {
-        parts.forEach((p) => yPartsMap.set(p.id, p));
-      }, "local");
-    }
-  }, [parts]);
-
-  // ---------------------------------------------------------------------------
   // Derived indicator sets
   // ---------------------------------------------------------------------------
 
-  const existingValues = new Set(
-    entries.map((e) => norm(e.value)).filter(Boolean),
+  const existingValues = useMemo(
+    () => new Set(entries.map((e) => norm(e.value)).filter(Boolean)),
+    [entries],
   );
 
-  const duplicateIds = new Set(
-    entries
-      .filter((e) => {
-        const k = norm(e.value);
-        if (!k) return false;
-        return entries.some(
-          (other) => other.id !== e.id && norm(other.value) === k,
-        );
-      })
-      .map((e) => e.id),
-  );
+  const duplicateIds = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const e of entries) {
+      const k = norm(e.value);
+      if (!k) continue;
+      counts.set(k, (counts.get(k) ?? 0) + 1);
+    }
+    const dup = new Set<string>();
+    for (const e of entries) {
+      const k = norm(e.value);
+      if (k && (counts.get(k) ?? 0) > 1) dup.add(e.id);
+    }
+    return dup;
+  }, [entries]);
 
   const focusedEntry = focusEntryId
     ? (entries.find((e) => e.id === focusEntryId) ?? null)
@@ -507,25 +148,31 @@ export const App = () => {
   // Notebook metrics derivations
   // ---------------------------------------------------------------------------
 
-  const countTotal = entries.length;
-  const countStuck = entries.filter((e) => e.workability === 1).length;
-  const countMixed = entries.filter(
-    (e) => e.workability === 2 || e.workability === 3,
-  ).length;
-  const countWorking = entries.filter(
-    (e) => e.workability === 4 || e.workability === 5,
-  ).length;
-
-  const activeLensesCount = entries.reduce((acc, e) => {
-    let c = 0;
-    if (e.workability) c++;
-    if (e.emotionCluster) c++;
-    if (e.coreNeed) c++;
-    if (e.lifeDesign?.problemFrame) c++;
-    if (e.accelerators?.trim()) c++;
-    if (e.relational?.active) c++;
-    return acc + c;
-  }, 0);
+  const { countTotal, countStuck, countMixed, countWorking, activeLensesCount } =
+    useMemo(() => {
+      let stuck = 0;
+      let mixed = 0;
+      let working = 0;
+      let lenses = 0;
+      for (const e of entries) {
+        if (e.workability === 1) stuck++;
+        else if (e.workability === 2 || e.workability === 3) mixed++;
+        else if (e.workability === 4 || e.workability === 5) working++;
+        if (e.workability) lenses++;
+        if (e.emotionCluster) lenses++;
+        if (e.coreNeed) lenses++;
+        if (e.lifeDesign?.problemFrame) lenses++;
+        if (e.accelerators?.trim()) lenses++;
+        if (e.relational?.active) lenses++;
+      }
+      return {
+        countTotal: entries.length,
+        countStuck: stuck,
+        countMixed: mixed,
+        countWorking: working,
+        activeLensesCount: lenses,
+      };
+    }, [entries]);
 
   const maxLenses = countTotal * 6;
 
@@ -533,7 +180,8 @@ export const App = () => {
   // Backup sidecar hooks
   // ---------------------------------------------------------------------------
 
-  const backup = import.meta.env.DEV ? useBackup(entries) : null;
+  const backup = useBackup(entries);
+  const backupEnabled = import.meta.env.DEV;
 
   const handleRestore = async (snap: Snapshot) => {
     const ok = window.confirm(
@@ -543,94 +191,42 @@ export const App = () => {
     );
 
     if (!ok) return;
-    const restored = await backup?.restore(snap.id);
-    if (restored) {
-      // Re-seed updated targets directly into persistent document maps
-      ydoc.transact(() => {
-        yEntriesMap.clear();
-        restored.forEach((mapping) => yEntriesMap.set(mapping.id, mapping));
-      }, "local");
-      setEntries(restored);
-    }
+    const restored = await backup.restore(snap.id);
+    if (restored) replaceAll(restored);
   };
 
   // ---------------------------------------------------------------------------
-  // State mutations (Bridged natively to Local and CRDT map targets)
+  // UI action wrappers — stable refs so memoized rows don't re-render on
+  // unrelated edits.
   // ---------------------------------------------------------------------------
 
-  const updateEntry = (id: string, patch: Partial<Mapping>) => {
-    setEntries((prev) =>
-      prev.map((e) => {
-        if (e.id === id) {
-          const updated = { ...e, ...patch };
-          // Push mutation sets safely to shared CRDT parameters
-          ydoc.transact(() => {
-            yEntriesMap.set(id, updated);
-          }, "local");
-          return updated;
-        }
-        return e;
-      }),
-    );
-  };
-
-  // Resolves a typed Part name to a stable id. Case-insensitive lookup against
-  // existing parts; creates a new one (with a fresh id) when no match exists.
-  // Empty/whitespace names return null and are treated as "clear the tag".
-  const upsertPart = (rawName: string): string | null => {
-    const name = rawName.trim();
-    if (!name) return null;
-    const existing = parts.find(
-      (p) => p.name.trim().toLowerCase() === name.toLowerCase(),
-    );
-    if (existing) return existing.id;
-    const next: Part = {
-      id: crypto.randomUUID(),
-      name,
-      createdAt: Date.now(),
-    };
-    ydoc.transact(() => {
-      yPartsMap.set(next.id, next);
-    }, "local");
-    setParts((prev) => [...prev, next]);
-    return next.id;
-  };
-
-  const toggleNvc = (id: string, need: string) => {
-    const e = entries.find((x) => x.id === id);
-    if (!e) return;
-
-    const cur = e.nvcNeeds ?? [];
-    const updatedNeeds = cur.includes(need)
-      ? cur.filter((n) => n !== need)
-      : [...cur, need];
-
-    updateEntry(id, { nvcNeeds: updatedNeeds });
-  };
-
-  const toggleLens = (id: string) =>
+  const toggleLens = useCallback((id: string) => {
     setOpenLenses((prev) => ({ ...prev, [id]: !prev[id] }));
+  }, []);
+
+  const focusEntry = useCallback(
+    (id: string) => navigate({ name: "focus", id }),
+    [navigate],
+  );
+
+  // If the URL points at a focus entry that doesn't exist (deleted, deep-link
+  // with a stale id, etc.) drop back to the underlay rather than silently
+  // showing nothing.
+  useEffect(() => {
+    if (focusEntryId && !entries.find((e) => e.id === focusEntryId)) {
+      navigate({ name: lastUnderlay });
+    }
+  }, [focusEntryId, entries, lastUnderlay, navigate]);
 
   const handleAddImported = (names: string[]) => {
-    const newEntries: Mapping[] = names.map((name) => ({
-      id: crypto.randomUUID(),
-      value: name,
-      need: "",
-      friction: "",
-    }));
-
-    ydoc.transact(() => {
-      newEntries.forEach((mapping) => yEntriesMap.set(mapping.id, mapping));
-    }, "local");
-
-    setEntries([...entries, ...newEntries]);
-  };
-
-  const handleDeleteEntry = (id: string) => {
-    ydoc.transact(() => {
-      yEntriesMap.delete(id);
-    }, "local");
-    setEntries(entries.filter((e) => e.id !== id));
+    addEntries(
+      names.map((name) => ({
+        id: crypto.randomUUID(),
+        value: name,
+        need: "",
+        friction: "",
+      })),
+    );
   };
 
   const handleLoadBackup = (loaded: Mapping[]) => {
@@ -642,26 +238,7 @@ export const App = () => {
       );
       if (!ok) return;
     }
-    ydoc.transact(() => {
-      yEntriesMap.clear();
-      loaded.forEach((m) => yEntriesMap.set(m.id, m));
-    }, "local");
-    setEntries(loaded);
-  };
-
-  const handleAddBlankSpace = () => {
-    const newEntry: Mapping = {
-      id: crypto.randomUUID(),
-      value: "",
-      need: "",
-      friction: "",
-    };
-
-    ydoc.transact(() => {
-      yEntriesMap.set(newEntry.id, newEntry);
-    }, "local");
-
-    setEntries([...entries, newEntry]);
+    replaceAll(loaded);
   };
 
   const hideHelloNudge = () => {
@@ -675,49 +252,62 @@ export const App = () => {
 
   return (
     <div className="min-h-screen bg-[#FDF4F0] text-[#3A1E2A] selection:bg-[#FBD9E0] font-sans overflow-x-hidden relative">
-      <DynamicAmbientBlooms />
+      <AmbientBlooms />
 
       {focusedEntry && (
-        <FocusOverlay
-          entry={focusedEntry}
-          parts={parts}
-          onUpsertPart={upsertPart}
-          onChange={(patch) => updateEntry(focusedEntry.id, patch)}
-          onToggleNvc={(n) => toggleNvc(focusedEntry.id, n)}
-          onClose={() => goBackOr({ name: lastUnderlay })}
-        />
+        <ErrorBoundary region="focus mode">
+          <Suspense fallback={null}>
+            <FocusOverlay
+              entry={focusedEntry}
+              parts={parts}
+              onUpsertPart={upsertPart}
+              onChange={(patch) => updateEntry(focusedEntry.id, patch)}
+              onToggleNvc={(n) => toggleNvc(focusedEntry.id, n)}
+              onClose={() => goBackOr({ name: lastUnderlay })}
+            />
+          </Suspense>
+        </ErrorBoundary>
       )}
 
-      <ImportModal
-        open={showImport}
-        onClose={() => setShowImport(false)}
-        existingValues={existingValues}
-        onAdd={handleAddImported}
-        onLoadBackup={handleLoadBackup}
-        currentCount={entries.length}
-      />
+      {showImport && (
+        <Suspense fallback={null}>
+          <ImportModal
+            open
+            onClose={() => setShowImport(false)}
+            existingValues={existingValues}
+            onAdd={handleAddImported}
+            onLoadBackup={handleLoadBackup}
+            currentCount={entries.length}
+          />
+        </Suspense>
+      )}
 
-      <SyncOverlay
-        open={showSync}
-        onClose={() => {
-          setShowSync(false);
-          setLiveP2P(isSyncing());
-        }}
-        onMountStorage={mountSystemDirectory}
-      />
+      {showSync && (
+        <Suspense fallback={null}>
+          <SyncOverlay
+            open
+            onClose={() => setShowSync(false)}
+            onMountStorage={mountSystemDirectory}
+          />
+        </Suspense>
+      )}
 
       <PrintLedger entries={entries} />
 
       <div className="print:hidden">
         {showParts ? (
-          <PartsPage
-            parts={parts}
-            entries={entries}
-            onClose={() => goBackOr({ name: lastUnderlay })}
-            onFocus={(id) => navigate({ name: "focus", id })}
-          />
+          <Suspense fallback={null}>
+            <PartsPage
+              parts={parts}
+              entries={entries}
+              onClose={() => goBackOr({ name: lastUnderlay })}
+              onFocus={(id) => navigate({ name: "focus", id })}
+            />
+          </Suspense>
         ) : showMethods ? (
-          <MethodsPage onClose={() => goBackOr({ name: lastUnderlay })} />
+          <Suspense fallback={null}>
+            <MethodsPage onClose={() => goBackOr({ name: lastUnderlay })} />
+          </Suspense>
         ) : (
           <div
             className={`${
@@ -734,7 +324,7 @@ export const App = () => {
                 </div>
 
                 <div className="flex gap-4 items-center flex-wrap text-[10px] uppercase tracking-[0.18em] font-medium">
-                  {import.meta.env.DEV && backup && (
+                  {backupEnabled && (
                     <BackupChip
                       status={backup.status}
                       lastSnapshot={backup.lastSnapshot}
@@ -759,6 +349,20 @@ export const App = () => {
                     />
                     <span>{liveP2P ? "Live" : "Sync"}</span>
                   </button>
+
+                  {liveP2P && peers.length > 0 && (
+                    <span
+                      className="font-serif italic text-[10px] tracking-normal normal-case text-[#B391A0]"
+                      title={
+                        "Other devices in this room: " +
+                        peers.map((p) => p.device).join(", ")
+                      }
+                    >
+                      {peers.length === 1
+                        ? `also on ${peers[0]?.device ?? "another device"}`
+                        : `also on ${peers.length} other devices`}
+                    </span>
+                  )}
 
                   {/* Primary: view toggle */}
                   <button
@@ -974,7 +578,7 @@ export const App = () => {
 
                       <button
                         type="button"
-                        onClick={() => setEntries(seedPersonalValues())}
+                        onClick={() => replaceAll(seedPersonalValues())}
                         className="w-full bg-[#FFF5DC] text-[#3A1E2A] p-3.5 rounded-xl border border-[#3A1E2A]/10 text-left transition-all hover:border-[#E07A95] cursor-pointer flex items-center gap-3"
                       >
                         <span className="bg-[#F7D679] p-1.5 rounded-lg text-[#3A1E2A] shrink-0">
@@ -1003,23 +607,23 @@ export const App = () => {
 
                 {/* Directly target native deletion hooks inside the rendering loop */}
                 {entries.map((entry) => (
-                  <EntrySection
-                    key={entry.id}
-                    entry={entry}
-                    parts={parts}
-                    isDuplicate={duplicateIds.has(entry.id)}
-                    lensOpen={!!openLenses[entry.id]}
-                    onToggleLens={() => toggleLens(entry.id)}
-                    onChange={(patch) => updateEntry(entry.id, patch)}
-                    onDelete={() => handleDeleteEntry(entry.id)}
-                    onToggleNvc={(n) => toggleNvc(entry.id, n)}
-                    onFocus={() => navigate({ name: "focus", id: entry.id })}
-                  />
+                  <ErrorBoundary key={entry.id} region={entry.value || "entry"}>
+                    <EntryRow
+                      entry={entry}
+                      parts={parts}
+                      isDuplicate={duplicateIds.has(entry.id)}
+                      lensOpen={!!openLenses[entry.id]}
+                      onToggleLens={toggleLens}
+                      onUpdate={updateEntry}
+                      onDelete={deleteEntry}
+                      onToggleNvc={toggleNvc}
+                      onFocus={focusEntry}
+                    />
+                  </ErrorBoundary>
                 ))}
 
-                {/* Ensure blank additions populate shared CRDT nodes safely */}
                 <button
-                  onClick={handleAddBlankSpace}
+                  onClick={addBlank}
                   className="w-full py-8 border border-dashed border-[#3A1E2A]/15 rounded-[18px] text-[#B391A0] hover:text-[#C24E6E] hover:bg-white transition-all flex items-center justify-center gap-2 print:hidden group shadow-2xs cursor-pointer"
                 >
                   <Plus
