@@ -21,9 +21,9 @@ export const StepLocate = ({ entry, onToggleNvc }: FocusStepProps) => (
                 key={n}
                 type="button"
                 onClick={() => onToggleNvc(n)}
-                className={`font-serif italic text-xs px-3 py-1 rounded-full border transition-all cursor-pointer ${
+                className={`font-serif italic text-xs px-3 py-2 sm:py-1 min-h-9 sm:min-h-0 inline-flex items-center rounded-full border transition-all cursor-pointer ${
                   sel
-                    ? "border-[#C24E6E] text-white bg-[#C24E6E] shadow-2xs font-normal not-italic font-sans py-1.5 font-medium"
+                    ? "border-[#C24E6E] text-white bg-[#C24E6E] shadow-2xs not-italic font-sans sm:py-1.5 font-medium"
                     : "border-[#3A1E2A]/10 text-[#3A1E2A] bg-white hover:border-[#E07A95] hover:text-[#C24E6E]"
                 }`}
               >

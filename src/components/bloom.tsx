@@ -150,14 +150,14 @@ export const BloomWorkability = ({
   const gap = size >= 20 ? "gap-2" : "gap-1";
   return (
     <span
-      className={`inline-flex ${gap} items-center bg-[#FAE6E1]/50 ${px} ${py} rounded-full border border-[#3A1E2A]/5`}
+      className={`inline-flex ${gap} items-center bg-[#FAE6E1]/50 ${px} ${py} rounded-full border border-[#3A1E2A]/5 min-h-11`}
     >
       {[1, 2, 3, 4, 5].map((n) => (
         <button
           key={n}
           type="button"
           onClick={() => onChange(toggleable && value === n ? 0 : n)}
-          className="focus:outline-none hover:scale-110 transition-transform cursor-pointer p-0.5"
+          className="focus:outline-none hover:scale-110 transition-transform cursor-pointer p-1.5 -m-1 inline-flex items-center justify-center"
           title={`Rate workability ${n}/5`}
         >
           <BloomFlower

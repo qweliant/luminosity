@@ -58,7 +58,9 @@ export const EmotionPicker = ({ entry, onChange, variant = 'compact' }: Props) =
         {EMOTION_PLACES.map((p) => {
           const sel = cluster === p.id;
           const cess = isCessationCluster(p.id);
-          const base = isFocus ? 'text-[12px] px-3 py-1' : 'text-[11px] px-2.5 py-1';
+          const base = isFocus
+            ? 'text-[12px] px-3 py-2 sm:py-1 min-h-9 sm:min-h-0'
+            : 'text-[11px] px-2.5 py-2 sm:py-1 min-h-9 sm:min-h-0';
           let palette = '';
           if (sel && cess) {
             palette =
@@ -125,7 +127,7 @@ export const EmotionPicker = ({ entry, onChange, variant = 'compact' }: Props) =
                   key={e.name}
                   onClick={() => pickEmotion(e.name)}
                   title={e.note}
-                  className={`font-serif italic text-[11.5px] px-2.5 py-0.5 border rounded-full transition-colors cursor-pointer ${palette}`}
+                  className={`font-serif italic text-[11.5px] px-2.5 py-1.5 sm:py-0.5 min-h-9 sm:min-h-0 inline-flex items-center border rounded-full transition-colors cursor-pointer ${palette}`}
                 >
                   {cessation && !sel ? '⏸ ' : ''}
                   {e.name}

@@ -89,16 +89,16 @@ export const FocusOverlay = ({
         <BloomFlower size={180} petal="#FBD9E0" smile={false} />
       </div>
 
-      <div className="max-w-2xl mx-auto py-8 sm:py-14 px-6 min-h-screen flex flex-col relative z-10">
-        <header className="flex justify-between items-start mb-8 gap-4 border-b border-dashed border-[#3A1E2A]/10 pb-4">
-          <div>
+      <div className="max-w-2xl mx-auto py-4 sm:py-14 px-4 sm:px-6 min-h-dvh flex flex-col relative z-10">
+        <header className="flex justify-between items-start mb-4 sm:mb-8 gap-4 border-b border-dashed border-[#3A1E2A]/10 pb-3 sm:pb-4">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 mb-1">
               <BloomFlower size={14} petal="#C24E6E" smile={false} />
               <p className="text-[9.5px] uppercase tracking-[0.25em] text-[#C24E6E] font-bold">
                 Focus mode
               </p>
             </div>
-            <h2 className="text-3xl sm:text-4xl font-serif italic text-[#3A1E2A] leading-tight select-text tracking-[-0.01em]">
+            <h2 className="text-2xl sm:text-4xl font-serif italic text-[#3A1E2A] leading-tight select-text tracking-[-0.01em] truncate">
               {entry.value || (
                 <em className="text-[#B391A0]/60">untitled value</em>
               )}
@@ -107,7 +107,7 @@ export const FocusOverlay = ({
 
           <button
             onClick={onClose}
-            className="text-[#B391A0] hover:text-[#C24E6E] text-2xl font-light p-1 cursor-pointer transition-colors"
+            className="text-[#B391A0] hover:text-[#C24E6E] text-2xl font-light p-2 -m-1 cursor-pointer transition-colors shrink-0 min-h-11 min-w-11 inline-flex items-center justify-center"
             title="Drop focus (Esc)"
             aria-label="Close focus overlay"
           >
@@ -115,7 +115,7 @@ export const FocusOverlay = ({
           </button>
         </header>
 
-        <div className="mb-8 bg-white p-4 rounded-[18px] border border-[#3A1E2A]/10 shadow-xs">
+        <div className="mb-4 sm:mb-8 bg-white p-3 sm:p-4 rounded-[18px] border border-[#3A1E2A]/10 shadow-xs">
           <div className="flex justify-between items-baseline mb-2">
             <p className="font-mono text-[9.5px] text-[#5A3645] uppercase tracking-wider font-bold">
               Step {step} of {total} ·{" "}
@@ -135,7 +135,7 @@ export const FocusOverlay = ({
                   key={name}
                   type="button"
                   onClick={() => setStep((i + 1) as StepIndex)}
-                  className="flex-1 flex flex-col items-center gap-1 group focus:outline-none cursor-pointer"
+                  className="flex-1 flex flex-col items-center gap-1 group focus:outline-none cursor-pointer min-h-11 py-1"
                   title={`Jump to step ${i + 1}: ${name}`}
                 >
                   <BloomFlower
@@ -152,7 +152,7 @@ export const FocusOverlay = ({
                     smile={stepFilled}
                   />
                   <span
-                    className={`text-[8px] font-mono uppercase tracking-tighter block mt-0.5 transition-colors ${
+                    className={`hidden sm:block text-[8px] font-mono uppercase tracking-tighter mt-0.5 transition-colors ${
                       reached
                         ? "text-[#3A1E2A] font-bold"
                         : "text-[#B391A0]/60"
@@ -166,15 +166,18 @@ export const FocusOverlay = ({
           </div>
         </div>
 
-        <div className="mb-8 p-4 bg-[#FAE6E1]/40 rounded-xl border border-dashed border-[#3A1E2A]/10 flex items-start gap-4">
-          <div className="shrink-0 pt-1">
+        <div className="mb-4 sm:mb-8 p-3 sm:p-4 bg-[#FAE6E1]/40 rounded-xl border border-dashed border-[#3A1E2A]/10 flex items-start gap-3 sm:gap-4">
+          <div className="shrink-0 pt-1 hidden sm:block">
             <LumiBean size={48} />
           </div>
-          <div>
+          <div className="shrink-0 pt-0.5 sm:hidden">
+            <LumiBean size={32} />
+          </div>
+          <div className="min-w-0">
             <p className="text-[9px] uppercase tracking-[0.18em] text-[#5A3645] font-mono font-bold mb-0.5">
               Prompt
             </p>
-            <p className="text-sm text-[#3A1E2A] leading-relaxed italic font-serif select-text">
+            <p className="text-[13px] sm:text-sm text-[#3A1E2A] leading-relaxed italic font-serif select-text">
               "{FOCUS_PROMPTS[step - 1]}"
             </p>
           </div>
@@ -190,11 +193,11 @@ export const FocusOverlay = ({
           />
         </div>
 
-        <footer className="flex justify-between items-center pt-6 mt-6 border-t border-dashed border-[#3A1E2A]/10 gap-4 bg-[#FDF4F0]">
+        <footer className="flex justify-between items-center pt-4 sm:pt-6 mt-4 sm:mt-6 border-t border-dashed border-[#3A1E2A]/10 gap-2 sm:gap-4 bg-[#FDF4F0] pb-[env(safe-area-inset-bottom)]">
           <button
             type="button"
             onClick={() => setStep((s) => Math.min(total, s + 1) as StepIndex)}
-            className="font-sans text-xs text-[#5A3645] hover:underline px-2 py-1 font-medium cursor-pointer"
+            className="font-sans text-xs text-[#5A3645] hover:underline px-3 py-2 min-h-11 font-medium cursor-pointer"
             disabled={step === total}
           >
             Skip step
@@ -205,7 +208,7 @@ export const FocusOverlay = ({
               type="button"
               onClick={() => setStep((s) => Math.max(1, s - 1) as StepIndex)}
               disabled={step === 1}
-              className="px-4 py-2 rounded-full font-sans text-xs text-[#5A3645] border border-[#3A1E2A]/10 hover:bg-white transition-all disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed cursor-pointer"
+              className="px-4 py-2.5 min-h-11 rounded-full font-sans text-xs text-[#5A3645] border border-[#3A1E2A]/10 hover:bg-white transition-all disabled:opacity-30 disabled:hover:bg-transparent disabled:cursor-not-allowed cursor-pointer"
             >
               ← Prev
             </button>
@@ -214,7 +217,7 @@ export const FocusOverlay = ({
               <button
                 type="button"
                 onClick={() => setStep((s) => (s + 1) as StepIndex)}
-                className="bg-[#C24E6E] text-white px-5 py-2 rounded-full font-sans text-xs font-medium hover:bg-[#3A1E2A] transition-colors shadow-2xs cursor-pointer inline-flex items-center gap-1"
+                className="bg-[#C24E6E] text-white px-5 py-2.5 min-h-11 rounded-full font-sans text-xs font-medium hover:bg-[#3A1E2A] transition-colors shadow-2xs cursor-pointer inline-flex items-center gap-1"
               >
                 <span>Next step</span> →
               </button>
@@ -222,7 +225,7 @@ export const FocusOverlay = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="bg-[#3A1E2A] text-white px-6 py-2 rounded-full font-sans text-xs font-bold hover:bg-[#C24E6E] transition-colors shadow-xs cursor-pointer inline-flex items-center gap-1"
+                className="bg-[#3A1E2A] text-white px-6 py-2.5 min-h-11 rounded-full font-sans text-xs font-bold hover:bg-[#C24E6E] transition-colors shadow-xs cursor-pointer inline-flex items-center gap-1"
               >
                 <BloomFlower
                   size={12}
