@@ -307,7 +307,7 @@ export const ImportModal = ({
                   …or paste the JSON directly
                 </label>
                 <textarea
-                  className="w-full min-h-[140px] p-3 rounded-lg border border-[#3A1E2A]/10 bg-[#FDF4F0] focus:outline-none focus:border-[#C24E6E] font-mono text-[11px] text-[#3A1E2A] placeholder:text-[#B391A0]/50 resize-none"
+                  className="w-full min-h-[140px] p-3 rounded-lg border border-[#3A1E2A]/10 bg-[#FDF4F0] focus:outline-none focus:border-[#C24E6E] font-mono text-base sm:text-[11px] text-[#3A1E2A] placeholder:text-[#B391A0]/50 resize-none"
                   placeholder='[ { "id": "…", "value": "…", "need": "…", "friction": "…" } ]'
                   value={backupJson}
                   onChange={(e) => tryParseBackup(e.target.value)}

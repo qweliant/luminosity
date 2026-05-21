@@ -92,7 +92,7 @@ export const EntryExpandedCessation = ({
             The friction
           </div>
           <textarea
-            className="w-full bg-transparent focus:outline-none text-[12.5px] text-[#5A3645] leading-relaxed resize-none placeholder:text-[#B391A0]/40 border border-transparent focus:border-[#D6A24A]/40 rounded-lg p-1 -ml-1"
+            className="w-full bg-transparent focus:outline-none text-base sm:text-[12.5px] text-[#5A3645] leading-relaxed resize-none placeholder:text-[#B391A0]/40 border border-transparent focus:border-[#D6A24A]/40 rounded-lg p-1 -ml-1"
             value={entry.friction}
             onChange={(e) => onChange({ friction: e.target.value })}
             placeholder="What feels sticky or exhausting right now?"

@@ -34,17 +34,17 @@ export const EntryCondensed = ({
   onExpand,
 }: Props) => (
   <div className="bg-[#FFFFFF] rounded-[18px] border border-[#3A1E2A]/10 p-4 sm:p-5 hover:border-[#E07A95]/40 transition-colors shadow-xs">
-    <div className="flex items-baseline gap-3 mb-2 flex-wrap sm:flex-nowrap">
+    <div className="flex items-baseline gap-3 mb-2">
       <BloomFlower size={16} petal="#E07A95" smile={false} />
       <input
-        className="font-serif text-xl sm:text-2xl text-[#3A1E2A] bg-transparent focus:outline-none placeholder:text-[#B391A0]/50 flex-1 min-w-0 cursor-pointer select-none order-1 sm:order-0 basis-full sm:basis-auto"
+        className="font-serif text-xl sm:text-2xl text-[#3A1E2A] bg-transparent focus:outline-none placeholder:text-[#B391A0]/50 flex-1 min-w-0 cursor-pointer select-none"
         value={entry.value}
         onChange={(e) => onChange({ value: e.target.value })}
         onClick={onExpand}
         placeholder="Core Value ✿"
         readOnly
       />
-      <div className="shrink-0 order-2 sm:order-0 ml-auto sm:ml-0">
+      <div className="shrink-0">
         <BloomWorkability
           value={entry.workability ?? 0}
           onChange={(n) => onChange({ workability: n })}

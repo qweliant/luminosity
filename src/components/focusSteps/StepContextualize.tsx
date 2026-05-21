@@ -15,7 +15,7 @@ export const StepContextualize = ({ entry, onChange }: FocusStepProps) => (
         <textarea
           autoFocus
           rows={4}
-          className="w-full flex-1 font-mono text-xs text-[#5A3645] bg-transparent focus:outline-none resize-none placeholder:text-[#B391A0]/40 p-1 select-text custom-scrollbar"
+          className="w-full flex-1 font-mono text-base sm:text-xs text-[#5A3645] bg-transparent focus:outline-none resize-none placeholder:text-[#B391A0]/40 p-1 select-text custom-scrollbar"
           value={entry.accelerators ?? ""}
           onChange={(e) => onChange({ accelerators: e.target.value })}
           placeholder="Comma-separated triggers that let this value thrive..."
@@ -28,7 +28,7 @@ export const StepContextualize = ({ entry, onChange }: FocusStepProps) => (
         </p>
         <textarea
           rows={4}
-          className="w-full flex-1 font-mono text-xs text-[#B391A0] bg-transparent focus:outline-none resize-none placeholder:text-[#B391A0]/40 p-1 select-text custom-scrollbar"
+          className="w-full flex-1 font-mono text-base sm:text-xs text-[#B391A0] bg-transparent focus:outline-none resize-none placeholder:text-[#B391A0]/40 p-1 select-text custom-scrollbar"
           value={entry.brakes ?? ""}
           onChange={(e) => onChange({ brakes: e.target.value })}
           placeholder="Comma-separated inhibitors that shut it down..."

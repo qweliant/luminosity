@@ -348,7 +348,7 @@ export const LensPanel = ({
             </div>
             <textarea
               rows={2}
-              className="w-full text-[12.5px] bg-[#FAE6E1]/40 border border-[#3A1E2A]/10 rounded-lg focus:outline-none focus:border-[#C24E6E] py-1.5 px-2 placeholder:text-[#B391A0]/50 resize-none"
+              className="w-full text-base sm:text-[12.5px] bg-[#FAE6E1]/40 border border-[#3A1E2A]/10 rounded-lg focus:outline-none focus:border-[#C24E6E] py-1.5 px-2 placeholder:text-[#B391A0]/50 resize-none"
               value={entry.accelerators ?? ""}
               onChange={(e) => onChange({ accelerators: e.target.value })}
               placeholder="Conditions that let this thrive…"
@@ -361,7 +361,7 @@ export const LensPanel = ({
             </div>
             <textarea
               rows={2}
-              className="w-full text-[12.5px] bg-[#FAE6E1]/40 border border-[#3A1E2A]/10 rounded-lg focus:outline-none focus:border-[#5A3645] py-1.5 px-2 placeholder:text-[#B391A0]/50 resize-none"
+              className="w-full text-base sm:text-[12.5px] bg-[#FAE6E1]/40 border border-[#3A1E2A]/10 rounded-lg focus:outline-none focus:border-[#5A3645] py-1.5 px-2 placeholder:text-[#B391A0]/50 resize-none"
               value={entry.brakes ?? ""}
               onChange={(e) => onChange({ brakes: e.target.value })}
               placeholder="What shuts it down…"

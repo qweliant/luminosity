@@ -44,15 +44,15 @@ export const EntryExpanded = ({
 }: Props) => (
   <div className="bg-[#FFFFFF] rounded-[18px] border border-[#3A1E2A]/15 p-6 shadow-sm transition-all">
     {/* Header row */}
-    <div className="flex items-baseline gap-3 pb-4 mb-5 border-b border-dashed border-[#3A1E2A]/10 flex-wrap sm:flex-nowrap">
+    <div className="flex items-baseline gap-3 pb-4 mb-5 border-b border-dashed border-[#3A1E2A]/10">
       <BloomFlower size={20} petal="#E07A95" />
       <input
-        className="font-serif text-2xl sm:text-3xl text-[#3A1E2A] bg-transparent focus:outline-none placeholder:text-[#B391A0]/50 flex-1 min-w-0 order-1 sm:order-0 basis-full sm:basis-auto"
+        className="font-serif text-2xl sm:text-3xl text-[#3A1E2A] bg-transparent focus:outline-none placeholder:text-[#B391A0]/50 flex-1 min-w-0"
         value={entry.value}
         onChange={(e) => onChange({ value: e.target.value })}
         placeholder="Name this core value..."
       />
-      <div className="shrink-0 order-2 sm:order-0 ml-auto sm:ml-0">
+      <div className="shrink-0">
         <BloomWorkability
           value={entry.workability ?? 0}
           onChange={(n) => onChange({ workability: n })}
@@ -75,7 +75,7 @@ export const EntryExpanded = ({
             The friction
           </label>
           <textarea
-            className="w-full bg-transparent focus:outline-none text-xs sm:text-sm text-[#5A3645] leading-relaxed resize-none placeholder:text-[#B391A0]/40 border border-transparent focus:border-[#FAE6E1] rounded-lg p-1 -ml-1"
+            className="w-full bg-transparent focus:outline-none text-base sm:text-sm text-[#5A3645] leading-relaxed resize-none placeholder:text-[#B391A0]/40 border border-transparent focus:border-[#FAE6E1] rounded-lg p-1 -ml-1"
             value={entry.friction}
             onChange={(e) => onChange({ friction: e.target.value })}
             placeholder="What feels sticky or exhausting right now?"

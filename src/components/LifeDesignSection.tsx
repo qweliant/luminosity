@@ -293,7 +293,7 @@ export const LifeDesignSection = ({
                 </span>
               </label>
               <input
-                className="w-full font-serif italic text-[14px] bg-white border border-[#3A1E2A]/10 focus:outline-none focus:border-[#8B6914] rounded-lg py-2 px-3 placeholder:text-[#B391A0]/60"
+                className="w-full font-serif italic text-base sm:text-[14px] bg-white border border-[#3A1E2A]/10 focus:outline-none focus:border-[#8B6914] rounded-lg py-2 px-3 placeholder:text-[#B391A0]/60"
                 value={current.acceptanceNote ?? ""}
                 onChange={(e) => setAcceptance(e.target.value)}
                 placeholder="This is a fact of life. How will you navigate around it?"
@@ -311,7 +311,7 @@ export const LifeDesignSection = ({
                 </span>
               </label>
               <input
-                className="w-full text-[13.5px] bg-white border border-[#3A1E2A]/10 focus:outline-none focus:border-[#C24E6E] rounded-lg py-2 px-3 placeholder:text-[#B391A0]/60"
+                className="w-full text-base sm:text-[13.5px] bg-white border border-[#3A1E2A]/10 focus:outline-none focus:border-[#C24E6E] rounded-lg py-2 px-3 placeholder:text-[#B391A0]/60"
                 value={current.reframeNote ?? ""}
                 onChange={(e) => setReframe(e.target.value)}
                 placeholder="The shift that turns the wall into a problem."
@@ -400,7 +400,7 @@ export const LifeDesignSection = ({
 
                 {/* Free-text action */}
                 <input
-                  className="w-full text-[13.5px] bg-white border border-[#3A1E2A]/10 focus:outline-none focus:border-[#5C7F66] rounded-lg py-2 px-3 placeholder:text-[#B391A0]/60"
+                  className="w-full text-base sm:text-[13.5px] bg-white border border-[#3A1E2A]/10 focus:outline-none focus:border-[#5C7F66] rounded-lg py-2 px-3 placeholder:text-[#B391A0]/60"
                   value={current.prototype?.action ?? ""}
                   onChange={(e) => setPrototypeAction(e.target.value)}
                   placeholder={
