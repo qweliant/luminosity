@@ -85,7 +85,7 @@ export const EntryCondensedCessation = ({
 
       <div className="mt-3 pt-2.5 border-t border-dashed border-[#D6A24A]/30 flex items-center gap-3 flex-wrap">
         <span className="font-serif italic text-[11.5px] text-[#B391A0]">
-          prototype + reframe hidden — we don't design from inside this
+          planning + reframe hidden — we don't design from inside this
         </span>
         <span className="ml-auto inline-flex items-center gap-1.5 px-3 py-1 text-[9.5px] uppercase tracking-[0.18em] font-semibold text-[#8B6914] border border-[#D6A24A]/50 rounded-full">
           <span>⏸</span> stay here with this

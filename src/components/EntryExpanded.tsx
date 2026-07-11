@@ -5,14 +5,15 @@ import { EMOTION_PLACES_BY_ID, findEmotion } from "../data";
 import { BloomFlower, BrakeMark, BloomWorkability } from "./bloom";
 import { CompletionBar } from "./primitives";
 import { LensPanel } from "./LensPanel";
+import { UnblendFrame } from "./UnblendFrame";
 
 interface Props {
   entry: Mapping;
+  partName: string | null;
   isDuplicate: boolean;
   lensOpen: boolean;
   completion: LensCompletion;
   dynamicRows: number;
-  servesDriver: string;
   parsedNeed: ParsedNeed;
   onChange: (patch: Partial<Mapping>) => void;
   onToggleLens: () => void;
@@ -22,26 +23,34 @@ interface Props {
 }
 
 /**
- * Active-edit expanded card. Left column: friction + Atlas diagnostic +
- * relational accountability block. Right column: the editable Need plus
- * either parsed-out extracted fragments (legacy text) or the typed
- * Reframe/Prototype fallback grid + Nagoski accelerators/brakes. Footer:
- * lens toggle, completion bar, fold-back, and the Focus CTA.
+ * Active-edit expanded card. Left column: friction + feeling picker +
+ * relational block. Right column: the editable Need plus either parsed-out
+ * extracted fragments (legacy text) or the typed reframe/test fallback grid +
+ * accelerators/brakes. Footer: step toggle, completion bar, fold-back, and
+ * the Focus CTA.
  */
 export const EntryExpanded = ({
   entry,
+  partName,
   isDuplicate,
   lensOpen,
   completion,
   dynamicRows,
-  servesDriver,
   parsedNeed,
   onChange,
   onToggleLens,
   onToggleNvc,
   onCollapse,
   onFocus,
-}: Props) => (
+}: Props) => {
+  const emo = findEmotion(entry.emotionCluster, entry.emotion);
+  const place = entry.emotionCluster
+    ? EMOTION_PLACES_BY_ID[entry.emotionCluster]
+    : undefined;
+  const emotionLabel = entry.emotion ?? place?.label ?? null;
+  const unblendCessation = !!emo?.cessation;
+
+  return (
   <div className="bg-[#FFFFFF] rounded-[18px] border border-[#3A1E2A]/15 p-6 shadow-sm transition-all">
     {/* Header row */}
     <div className="flex items-baseline gap-3 pb-4 mb-5 border-b border-dashed border-[#3A1E2A]/10">
@@ -74,13 +83,19 @@ export const EntryExpanded = ({
           <label className="text-[9.5px] uppercase tracking-[0.18em] text-[#5A3645] font-semibold block mb-1">
             The friction
           </label>
-          <textarea
-            className="w-full bg-transparent focus:outline-none text-base sm:text-sm text-[#5A3645] leading-relaxed resize-none placeholder:text-[#B391A0]/40 border border-transparent focus:border-[#FAE6E1] rounded-lg p-1 -ml-1"
-            value={entry.friction}
-            onChange={(e) => onChange({ friction: e.target.value })}
-            placeholder="What feels sticky or exhausting right now?"
-            rows={3}
-          />
+          <UnblendFrame
+            partName={partName}
+            emotionLabel={emotionLabel}
+            cessation={unblendCessation}
+          >
+            <textarea
+              className="w-full bg-transparent focus:outline-none text-base sm:text-sm text-[#5A3645] leading-relaxed resize-none placeholder:text-[#B391A0]/40 border border-transparent focus:border-[#FAE6E1] rounded-lg p-1 -ml-1"
+              value={entry.friction}
+              onChange={(e) => onChange({ friction: e.target.value })}
+              placeholder="What feels sticky or exhausting right now?"
+              rows={3}
+            />
+          </UnblendFrame>
 
           {entry.emotionCluster &&
             (() => {
@@ -198,14 +213,6 @@ export const EntryExpanded = ({
             </div>
           )}
 
-          <div className="mt-2.5 flex items-baseline gap-2 font-sans text-xs text-[#B391A0]">
-            <span className="text-[8.5px] uppercase tracking-[0.18em] font-bold text-[#5A3645]">
-              serves →
-            </span>
-            <span className="font-serif italic text-sm text-[#C24E6E]">
-              {servesDriver}
-            </span>
-          </div>
         </div>
 
         {parsedNeed.hasExtracted && (
@@ -229,7 +236,7 @@ export const EntryExpanded = ({
                 {parsedNeed.prototype && (
                   <div className="bg-[#9CD3B6]/20 p-3 rounded-xl border border-[#3A1E2A]/5">
                     <div className="text-[9px] uppercase tracking-[0.18em] text-[#1F6E4A] font-bold mb-1 flex items-center gap-1">
-                      <span>◆</span> Prototype
+                      <span>◆</span> To try
                     </div>
                     <p className="text-xs text-[#3A1E2A] leading-relaxed whitespace-pre-wrap">
                       {parsedNeed.prototype}
@@ -284,7 +291,7 @@ export const EntryExpanded = ({
 
             <div className="bg-[#9CD3B6]/20 p-3 rounded-xl border border-[#3A1E2A]/5">
               <div className="text-[9px] uppercase tracking-[0.18em] text-[#1F6E4A] font-bold mb-1 flex items-center gap-1">
-                <span>◆</span> Prototype
+                <span>◆</span> To try
                 <span className="font-normal lowercase">
                   · {entry.lifeDesign?.prototype?.mode ?? "do"}
                 </span>
@@ -373,4 +380,5 @@ export const EntryExpanded = ({
       </div>
     )}
   </div>
-);
+  );
+};

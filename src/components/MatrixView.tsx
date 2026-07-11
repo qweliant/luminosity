@@ -1,23 +1,18 @@
-// 2-axis Alignment Matrix: 6 Core Human Needs (rows) × 5 ACT Workability bands
-// (columns). Each populated cell is faintly tinted by workability and renders
-// values as clickable chips that route into Focus mode. A single tray catches
-// values that don't fit either axis yet.
+// 2-axis map: deeper needs (rows) × how-it's-going bands (columns). Each
+// populated cell is faintly tinted and renders values as clickable chips that
+// route into Focus mode. A single tray catches values that don't fit either
+// axis yet.
 //
 // Two layouts, switched on breakpoint:
 //   - Desktop (md and up): the full 2D table, so you can scan rows and columns
 //     side by side.
 //   - Mobile: a horizontal scroll-snap carousel where each card is one
-//     Workability band, with the six Core Needs stacked inside. Preserves the
-//     mental model without crushing 30 chips into one viewport width.
+//     band, with the six deeper needs stacked inside. Preserves the mental
+//     model without crushing 30 chips into one viewport width.
 
 import React from 'react';
 import type { Mapping, Part } from '../types';
 import { CORE_NEEDS, CORE_NEEDS_DETAIL } from '../data';
-import {
-  ifsLayerForBand,
-  IFS_LAYER_LABEL,
-  IFS_LAYER_GLOSS,
-} from '../derive';
 
 const WORKABILITY_COLS = [1, 2, 3, 4, 5] as const;
 
@@ -126,10 +121,10 @@ export const MatrixView = ({
     <main className="space-y-8 print:space-y-4">
       <div className="space-y-1">
         <p className="text-[10px] uppercase tracking-[0.25em] text-[#C24E6E] font-bold">
-          Alignment Matrix · Core Need × Workability
+          Your map · deeper need × how it's going
         </p>
         <p className="font-serif italic text-[13px] text-[#5A3645] leading-snug">
-          Click any value to open it in Focus. The lower-left is your action zone.
+          Click any value to open it. The stuck ones on the left are where the work is.
         </p>
       </div>
 
@@ -165,17 +160,6 @@ export const MatrixView = ({
                         <span className="text-[10px] uppercase tracking-[0.2em] text-[#5A3645] font-semibold">
                           {bandLabel(w)}
                         </span>
-                        {(() => {
-                          const layer = ifsLayerForBand(w);
-                          return layer ? (
-                            <span
-                              className="font-serif italic text-[11px] text-[#C24E6E]"
-                              title={IFS_LAYER_GLOSS[layer]}
-                            >
-                              · {IFS_LAYER_LABEL[layer]}
-                            </span>
-                          ) : null;
-                        })()}
                       </div>
                       <span className="text-[10px] uppercase tracking-[0.18em] text-[#B391A0] font-semibold">
                         {bandTotal} {bandTotal === 1 ? 'value' : 'values'}
@@ -267,24 +251,6 @@ export const MatrixView = ({
                       </div>
                     </th>
                   ))}
-                </tr>
-                <tr>
-                  <th />
-                  {WORKABILITY_COLS.map(w => {
-                    const layer = ifsLayerForBand(w);
-                    return (
-                      <th key={w} className="pb-3 text-center font-normal">
-                        {layer ? (
-                          <span
-                            className="font-serif italic text-[11px] text-[#C24E6E]"
-                            title={IFS_LAYER_GLOSS[layer]}
-                          >
-                            {IFS_LAYER_LABEL[layer]}
-                          </span>
-                        ) : null}
-                      </th>
-                    );
-                  })}
                 </tr>
               </thead>
               <tbody>
@@ -389,7 +355,7 @@ export const MatrixView = ({
             </span>
           </div>
           <p className="m-0 mb-3 font-serif italic text-[12px] text-[#B391A0] leading-relaxed">
-            Missing Core Need or Workability. Tap to set.
+            Missing a deeper need or a how's-it-going rating. Tap to set.
           </p>
           <div className="flex flex-wrap gap-1.5">
             {unplaced.map(e => {

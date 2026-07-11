@@ -27,6 +27,7 @@ import { healthSentence } from "./components/healthSentence";
 import { MatrixView } from "./components/MatrixView";
 import { OverflowMenu } from "./components/OverflowMenu";
 import { PrintLedger } from "./components/PrintLedger";
+import { TendToday } from "./components/TendToday";
 
 // Heavy or route/modal-gated chunks. Splitting these out keeps the initial
 // bundle focused on the list view; each piece is fetched the first time the
@@ -78,6 +79,7 @@ export const App = () => {
     parts,
     updateEntry,
     toggleNvc,
+    togglePracticedToday,
     addEntries,
     addBlank,
     deleteEntry,
@@ -411,19 +413,19 @@ export const App = () => {
                   <button
                     onClick={() => navigate({ name: "methods" })}
                     className="hover:text-[#C24E6E] transition-colors flex items-center text-[#B391A0] cursor-pointer"
-                    title="How the lenses work, and the frameworks behind them"
+                    title="What this is, and why I made it"
                   >
                     <BookOpen size={15} className="inline mr-1" />
-                    methods
+                    how it works
                   </button>
 
                   <button
                     onClick={() => navigate({ name: "parts" })}
                     className="hover:text-[#C24E6E] transition-colors flex items-center text-[#B391A0] cursor-pointer"
-                    title="IFS profiles — the parts of you that are doing the work"
+                    title="The recurring inner voices you've named"
                   >
                     <Users size={15} className="inline mr-1" />
-                    parts
+                    voices
                   </button>
 
                   {/* Archival actions — collapsed */}
@@ -508,7 +510,7 @@ export const App = () => {
                   </div>
                   <div className="col-span-2 sm:col-span-1 pt-2 sm:pt-0 sm:border-l border-[#3A1E2A]/5 sm:pl-3">
                     <div className="font-mono text-[8.5px] text-[#B391A0] tracking-[0.16em] uppercase">
-                      lenses
+                      steps done
                     </div>
                     <div className="font-serif text-xl text-[#3A1E2A] mt-0.5">
                       {activeLensesCount}/{maxLenses || 30}
@@ -547,6 +549,14 @@ export const App = () => {
                   dismiss ✿
                 </button>
               </div>
+            )}
+
+            {!matrixView && (
+              <TendToday
+                entries={entries}
+                onLog={togglePracticedToday}
+                onFocus={focusEntry}
+              />
             )}
 
             {matrixView ? (

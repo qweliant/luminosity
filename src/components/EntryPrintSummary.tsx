@@ -9,7 +9,7 @@ import { EMOTION_PLACES_BY_ID } from "../data";
  */
 export const EntryPrintSummary = ({ entry }: { entry: Mapping }) => (
   <div className="hidden print:block text-[11px] text-[#5A3645] pt-3 mt-2 border-t border-gray-100 space-y-1 font-serif">
-    {entry.workability ? <div>Workability: {entry.workability}/5</div> : null}
+    {entry.workability ? <div>How it's going: {entry.workability}/5</div> : null}
     {entry.emotionCluster ? (
       <div>
         Atlas of the Heart: {entry.emotion ? `${entry.emotion} · ` : ""}

@@ -1,7 +1,7 @@
-// Two-level picker for Brené Brown · Atlas of the Heart. The user names a
-// "place we go" (cluster) and then optionally narrows to a specific emotion
-// inside it. Cluster alone is enough to fill the Diagnose step; the emotion
-// sub-pick refines the routing hint and, for cessation emotions, drives the
+// Two-level feeling picker. The user names a broad place the friction is
+// coming from (cluster) and then optionally narrows to a specific feeling
+// inside it. Cluster alone is enough to fill the first step; the sub-pick
+// refines the hint and, for the "pause here" feelings, drives the
 // short-circuit in deriveNeed().
 
 import React from 'react';
@@ -48,10 +48,7 @@ export const EmotionPicker = ({ entry, onChange, variant = 'compact' }: Props) =
       <p
         className={`text-[11px] text-[#5A3645] ${isFocus ? 'mb-2' : 'mb-1'} font-serif italic leading-relaxed`}
       >
-        Where's the friction coming from? Pick the closest match — you can change it later.{' '}
-        <span className="not-italic font-sans text-[9.5px] uppercase tracking-[0.18em] text-[#C24E6E] font-semibold">
-          Atlas of the Heart
-        </span>
+        Where's the friction coming from? Pick the closest match — you can change it later.
       </p>
 
       <div className="flex flex-wrap gap-1.5">
@@ -136,7 +133,7 @@ export const EmotionPicker = ({ entry, onChange, variant = 'compact' }: Props) =
             })}
           </div>
           <p className="text-[9px] uppercase tracking-[0.2em] text-[#5A3645] font-semibold">
-            Routing ·{' '}
+            Points toward ·{' '}
             <span className="font-serif italic text-[11px] text-[#5A3645] normal-case tracking-normal font-normal">
               {place.routeNote}
             </span>

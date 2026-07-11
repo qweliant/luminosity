@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { migrateMapping, type LegacyMapping, type Mapping, type Part } from "./types";
+import { dayKey } from "./derive";
 import { yEntriesMap, yPartsMap, ydoc } from "./services/syncEngine";
 
 const STORAGE_KEY = "values-mapper-v2";
@@ -33,6 +34,7 @@ export interface EntriesStore {
   parts: Part[];
   updateEntry: (id: string, patch: Partial<Mapping>) => void;
   toggleNvc: (id: string, need: string) => void;
+  togglePracticedToday: (id: string) => void;
   addEntries: (entries: Mapping[]) => void;
   addBlank: () => void;
   deleteEntry: (id: string) => void;
@@ -154,6 +156,26 @@ export const useEntries = (): EntriesStore => {
     );
   }, []);
 
+  // Reinforcement loop: mark (or un-mark) this value as *lived* today. One
+  // tap per local day; a second tap on the same day removes today's marks, so
+  // a mis-tap is fully reversible — no penalty, no streak to protect. Mirrors
+  // toggleNvc's in-updater write so the append is never based on stale state.
+  const togglePracticedToday = useCallback((id: string) => {
+    setEntries((prev) =>
+      prev.map((e) => {
+        if (e.id !== id) return e;
+        const log = e.practiced ?? [];
+        const today = dayKey(Date.now());
+        const practiced = log.some((ts) => dayKey(ts) === today)
+          ? log.filter((ts) => dayKey(ts) !== today)
+          : [...log, Date.now()];
+        const updated = { ...e, practiced };
+        ydoc.transact(() => yEntriesMap.set(id, updated), "local");
+        return updated;
+      }),
+    );
+  }, []);
+
   const addEntries = useCallback((newEntries: Mapping[]) => {
     if (newEntries.length === 0) return;
     ydoc.transact(() => {
@@ -212,6 +234,7 @@ export const useEntries = (): EntriesStore => {
     parts,
     updateEntry,
     toggleNvc,
+    togglePracticedToday,
     addEntries,
     addBlank,
     deleteEntry,

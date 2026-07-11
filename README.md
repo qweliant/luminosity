@@ -143,7 +143,7 @@ Persisted as `Mapping[]` under `localStorage` key `values-mapper-v2`. Parts live
 - `sdtProfile(entry)` — derived Self-Determination Theory profile (autonomy/competence/relatedness counts) from NVC tags + core need.
 - `maslowHighest(entry)` — derived highest-active Maslow layer from NVC tags.
 - `relationalFreedoms(entry)` — Jones · 13 Fundamental Freedoms touched by the NVC selections, only when the relational lens is active.
-- `ifsLayer(entry)` / `ifsLayerForBand(w)` — IFS overlay on the workability band: 1-2 → Firefighter, 3 → Manager, 4-5 → Self. Surfaced as a label on the Matrix band headers and a chip in the list-view status pill strip. Pure derivation — no schema change.
+- `ifsLayer(entry)` / `ifsLayerForBand(w)` — protector/self overlay on the workability band: 1-3 → protector, 4-5 → self. No longer surfaced in the UI (the plain-voice pass removed the chip); retained as pure derivation and for tests.
 
 Pure, no React, no I/O. Add new derived indicators here.
 

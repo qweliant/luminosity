@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { workabilityColor } from '../types';
-import type { LensCompletion, SdtProfile } from '../derive';
+import type { LensCompletion } from '../derive';
 
 // --- LensRow ---------------------------------------------------------------
 // Tracking-wide tiny-caps section header used inside the inline lens panel.
@@ -27,7 +27,7 @@ export const WorkabilityDots = ({
   onChange: (n: number) => void;
   showLabel?: boolean;
 }) => (
-  <div className="flex gap-0.5 items-center" title={`Workability: ${value || '–'}/5`}>
+  <div className="flex gap-0.5 items-center" title={`How it's going: ${value || '–'}/5`}>
     {[1, 2, 3, 4, 5].map(n => {
       const filled = n <= value;
       const color = workabilityColor(value);
@@ -35,7 +35,7 @@ export const WorkabilityDots = ({
         <button
           key={n}
           onClick={() => onChange(value === n ? 0 : n)}
-          aria-label={`Workability ${n}`}
+          aria-label={`How it's going ${n}`}
           className="p-2 -m-1 group/dot transition-all hover:scale-110"
         >
           <span
@@ -113,23 +113,5 @@ export const CompletionBar = ({ completion }: { completion: LensCompletion }) =>
         {allDone ? 'complete' : `${completion.filled}/${completion.total}`}
       </span>
     </div>
-  );
-};
-
-// --- SdtFootnote ------------------------------------------------------------
-// Read-only Self-Determination Theory profile (autonomy / competence /
-// relatedness), derived from NVC tags + core need. No input; appears under
-// the Madanes step when at least one signal exists.
-
-export const SdtFootnote = ({ profile }: { profile: SdtProfile }) => {
-  const total = profile.autonomy + profile.competence + profile.relatedness;
-  if (total === 0) return null;
-  const dot = (n: number) => '●'.repeat(Math.min(n, 3)) + '○'.repeat(Math.max(0, 3 - Math.min(n, 3)));
-  return (
-    <p className="text-[10px] uppercase tracking-[0.2em] text-pink-700 mt-3">
-      SDT · autonomy <span className="text-pink-500">{dot(profile.autonomy)}</span>
-      &nbsp;·&nbsp;competence <span className="text-pink-500">{dot(profile.competence)}</span>
-      &nbsp;·&nbsp;relatedness <span className="text-pink-500">{dot(profile.relatedness)}</span>
-    </p>
   );
 };

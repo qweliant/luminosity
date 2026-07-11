@@ -1,10 +1,9 @@
-// Part Profiles · #/parts
+// Voices · #/parts
 //
-// Read-only IFS view: groups entries by their assigned Part, surfacing the
-// Core Needs in play and the most recent Need drafts. No create/edit/delete
-// here by design — parts are authored inside Focus mode (step 3, alongside
-// Madanes Core Need). This page exists to read them back as identity
-// portraits, not to manage them.
+// Read-only view: groups entries by the recurring inner voice you named them
+// with, surfacing the deeper needs in play, how each voice usually feels, and
+// the recent Need drafts. No create/edit/delete here by design — voices are
+// named while journaling. This page just reads them back as patterns.
 
 import React from 'react';
 import type { Mapping, Part } from '../types';
@@ -14,6 +13,19 @@ interface PartGroup {
   entries: Mapping[];
   coreNeeds: string[]; // distinct, in insertion order
 }
+
+// Plain "usually …" read from a voice's average how-it's-going rating. Kept
+// coarse on purpose — direction, not a score. Null when nothing's rated.
+const usuallyLabel = (entries: Mapping[]): string | null => {
+  const rated = entries
+    .map((e) => e.workability ?? 0)
+    .filter((w) => w >= 1 && w <= 5);
+  if (rated.length === 0) return null;
+  const avg = rated.reduce((s, w) => s + w, 0) / rated.length;
+  if (avg < 2.5) return 'usually stuck';
+  if (avg < 3.5) return 'often mixed';
+  return 'usually working';
+};
 
 const Hibiscus = ({
   size = 28,
@@ -117,6 +129,7 @@ const PartCard = ({
 }) => {
   const { part, entries, coreNeeds } = group;
   const visible = entries.slice(0, large ? 6 : 3);
+  const usually = usuallyLabel(entries);
   return (
     <article
       className={`relative overflow-hidden bg-white rounded-2xl border border-[#3A1E2A]/10 border-l-[3px] border-l-[#E07A95] shadow-xs ${
@@ -139,6 +152,11 @@ const PartCard = ({
           <span className="text-[10px] uppercase tracking-[0.2em] text-[#C24E6E] font-semibold">
             {entries.length} {entries.length === 1 ? 'entry' : 'entries'}
           </span>
+          {usually && (
+            <span className="text-[9px] uppercase tracking-[0.18em] text-[#5A3645] bg-[#FAE6E1]/70 rounded-full px-2 py-0.5 font-semibold">
+              {usually}
+            </span>
+          )}
         </header>
 
         {coreNeeds.length > 0 && (
@@ -224,14 +242,14 @@ export const PartsPage = ({
           <LumiBean size={72} />
           <div className="min-w-0">
             <p className="text-[10px] uppercase tracking-[0.25em] text-[#C24E6E] font-bold mb-2">
-              Part Profiles
+              Voices
             </p>
             <h1 className="font-serif italic text-4xl tracking-[-0.01em] leading-[1.05] m-0">
-              Who's doing the work?
+              The voices you've named.
             </h1>
             <p className="font-serif italic text-sm text-[#5A3645] mt-2 max-w-prose leading-relaxed m-0">
-              An Internal Family Systems reading of your ledger — the identities you've
-              named, the Core Needs they tend to, and the sentences they've written.
+              The recurring inner characters showing up across your entries — what tends
+              to come up under each, how they usually feel, and the sentences they've written.
             </p>
           </div>
         </div>
@@ -246,9 +264,9 @@ export const PartsPage = ({
       {hasAnyParts && (
         <div className="relative mb-6 p-5 bg-white rounded-2xl border border-[#3A1E2A]/10 grid grid-cols-2 sm:grid-cols-4 gap-5 shadow-xs">
           {[
-            ['parts named', String(parts.length)],
-            ['entries assigned', String(assignedCount)],
-            ['untagged', String(untagged.length)],
+            ['voices named', String(parts.length)],
+            ['entries linked', String(assignedCount)],
+            ['unlinked', String(untagged.length)],
             ['most active', mostActive],
           ].map(([label, value]) => (
             <div key={label} className="min-w-0">
@@ -266,12 +284,12 @@ export const PartsPage = ({
       {!hasAnyParts ? (
         <section className="relative bg-white rounded-2xl border border-[#3A1E2A]/10 p-8 text-center shadow-xs">
           <p className="font-serif italic text-lg text-[#3A1E2A] leading-snug mb-3 m-0">
-            No Parts named yet.
+            No voices named yet.
           </p>
           <p className="text-sm text-[#5A3645] leading-relaxed max-w-md mx-auto m-0">
-            Open any value in Focus mode and look for the <em>Part</em> field at the
-            Anchor step. Type a name — "The People Pleaser", "The Inner Critic", "The
-            Caretaker" — and it will appear here as a profile.
+            Open any value in Focus mode and look for the <em>recurring voice</em> field
+            on the "Deeper need" step. Type a name — "The People Pleaser", "The Inner
+            Critic", "The Caretaker" — and it will show up here.
           </p>
         </section>
       ) : (
@@ -294,14 +312,14 @@ export const PartsPage = ({
         <section className="relative mt-6 p-5 bg-[#FAE6E1]/50 rounded-2xl border border-dashed border-[#3A1E2A]/20">
           <div className="flex items-center gap-3 mb-2">
             <p className="text-[10px] uppercase tracking-[0.2em] text-[#5A3645] font-semibold m-0">
-              Not yet assigned to a Part
+              Not yet linked to a voice
             </p>
             <span className="font-mono text-[10px] text-[#B391A0]">
               {untagged.length} {untagged.length === 1 ? 'entry' : 'entries'}
             </span>
           </div>
           <p className="m-0 mb-3 font-serif italic text-[12.5px] text-[#B391A0] leading-relaxed">
-            Assign one in Focus mode if you'd like them to surface here.
+            Name a voice in Focus mode if you'd like them to surface here.
           </p>
           <div className="flex flex-wrap gap-1.5">
             {untagged.map((e) => (
@@ -318,7 +336,7 @@ export const PartsPage = ({
       )}
 
       <footer className="relative pt-5 mt-8 border-t border-dashed border-[#3A1E2A]/10 text-center text-xs text-[#B391A0] font-serif italic">
-        Read-only · author Parts in Focus mode.
+        Read-only · name voices while journaling in Focus mode.
       </footer>
     </main>
   );

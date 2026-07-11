@@ -116,8 +116,12 @@ const atlasBias = (entry: Mapping): string | null => {
 };
 
 // Cessation prose — when Overwhelm, Shame, Flooding, or any We're Hurting
-// emotion is named, the Need is *not* a prototype. Brown's research is
-// unambiguous: prescribing action in these states is harmful.
+// emotion is named, the Need is *not* a prototype. Three lines of evidence
+// converge here: Brown (Atlas of the Heart) on overwhelm specifically — the
+// only reset is doing nothing; window-of-tolerance / affect regulation
+// (Siegel) — the thinking brain must come back online before problem-solving;
+// and self-compassion (Neff) — prescribing action from shame triggers the
+// abstinence-violation spiral rather than change.
 const CESSATION_PROSE: Record<string, string> = {
   Overwhelm:
     'This is overwhelm — cognitive, emotional, and physical processing is shut down. The need is cessation: silence, space, and disengagement until the nervous system resets. Do not plan from here.',
@@ -141,9 +145,9 @@ export const deriveNeed = (entry: Mapping): string => {
   const accel = entry.accelerators?.trim();
   const brakes = entry.brakes?.trim();
 
-  // Cessation short-circuit. When in a state Brown's research says cannot
-  // be planned from, return the compassion sentence and stop — bypassing
-  // NVC / Madanes / Stanford / Nagoski entirely.
+  // Cessation short-circuit. When in a state the evidence says cannot be
+  // planned from (see CESSATION_PROSE), return the compassion sentence and
+  // stop — bypassing NVC / core-needs / Stanford / Nagoski entirely.
   if (isCessationState(entry) && entry.emotion && CESSATION_PROSE[entry.emotion]) {
     return CESSATION_PROSE[entry.emotion]!;
   }
@@ -244,40 +248,38 @@ export const maslowHighest = (entry: Mapping): MaslowLevel | null => {
 
 // --- IFS overlay · derived parts layer --------------------------------------
 // Internal Family Systems reading of the ACT workability band. The premise:
-// low-workability values aren't broken — they're *protected*. A 1 or 2 means
-// a Firefighter is doing the work of containing pain; a 3 means a Manager is
-// holding the situation together at cost; a 4 or 5 means the Self has room
-// to lead. Pure derivation, no schema change. Surfaced as a quiet label.
+// low-workability values aren't broken — they're *protected*. A low band means
+// a protector is doing the work; a high band means the Self has room to lead.
 //
-// Not "Firefighter alarmed" — the whole point of the IFS frame is that the
-// part is doing protective work and deserves recognition, not a red flag.
-export type IfsLayer = 'firefighter' | 'manager' | 'self';
+// VALIDITY NOTE: we deliberately do NOT split low bands into "Firefighter" vs
+// "Manager". In IFS those name a protector's *strategy* (reactive/relief vs.
+// proactive/control), which is orthogonal to how well the value is working — a
+// rigidly "working" value can be a white-knuckling manager; a stuck one could
+// be either. Inferring the subtype from a 1–5 number conflated two axes and
+// over-claimed. The subtype belongs to the entry/part content, not the band,
+// so we surface a single non-committal "Protector" instead.
+export type IfsLayer = 'protector' | 'self';
 
 export const ifsLayerForBand = (w: number | undefined): IfsLayer | null => {
   if (!w || w < 1 || w > 5) return null;
-  if (w <= 2) return 'firefighter';
-  if (w === 3) return 'manager';
-  return 'self';
+  return w >= 4 ? 'self' : 'protector';
 };
 
 export const ifsLayer = (entry: Mapping): IfsLayer | null =>
   ifsLayerForBand(entry.workability);
 
 export const IFS_LAYER_LABEL: Record<IfsLayer, string> = {
-  firefighter: 'Firefighter',
-  manager: 'Manager',
+  protector: 'Protector',
   self: 'Self',
 };
 
 // One-line gloss for chip hover and band headers. Editorial, kind — frames
 // each part as doing necessary work, not as a problem to be solved.
 export const IFS_LAYER_GLOSS: Record<IfsLayer, string> = {
-  firefighter:
-    'A Firefighter is on duty here — protecting you from contact with this. The work is to thank it, not override it.',
-  manager:
-    'A Manager is holding this together. Capable, but carrying the cost. Notice what it is preventing.',
+  protector:
+    'A protector is active here — this value is being guarded, not failing. Whether it works by vigilant control or by reactive relief shows in how you meet it, not in the number. The work is to thank it, not override it.',
   self:
-    'Self is leading here. Curious, calm, connected. Worth naming what makes that possible.',
+    'Self may have room to lead here — curious, calm, connected. Worth naming what makes that possible.',
 };
 
 export const sdtProfile = (entry: Mapping): SdtProfile => {
@@ -301,4 +303,60 @@ export const sdtProfile = (entry: Mapping): SdtProfile => {
       break;
   }
   return profile;
+};
+
+// --- Reinforcement loop · committed action + lived evidence -----------------
+// The missing action limb. Discovery/diagnosis is centripetal; this is the
+// centrifugal half that carries a value back into daily choices. Two grounded
+// mechanisms:
+//   1. Committed action as a Gollwitzer implementation intention ("when X,
+//      I will Y") — meta-analytic d ≈ 0.65 for closing the intention→behavior
+//      gap (Commitment lives on the Mapping).
+//   2. Positive-evidence logging — behavioral-activation / self-monitoring
+//      reactivity: marking a value *lived* strengthens it. `practiced` is a
+//      log of epoch-ms timestamps, one per "lived it" tap.
+//
+// We report DIRECTION (counts, recency), never a breakable streak: a snapped
+// streak triggers the abstinence-violation ("what-the-hell") spiral, which is
+// the opposite of what self-compassion research prescribes — and consistent
+// with the cessation ethic above.
+
+export const hasCommitment = (entry: Mapping): boolean =>
+  !!entry.commitment?.action?.trim();
+
+// Local-day key (YYYY-MM-DD in the viewer's timezone) so a "lived it" tap
+// belongs to the calendar day the user experienced, not a UTC boundary.
+export const dayKey = (ts: number): string => {
+  const d = new Date(ts);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
+export const practicedToday = (entry: Mapping, now: number = Date.now()): boolean => {
+  const key = dayKey(now);
+  return (entry.practiced ?? []).some((ts) => dayKey(ts) === key);
+};
+
+// Distinct calendar days this value was ever marked lived.
+export const livedDays = (entry: Mapping): number => {
+  const days = new Set<string>();
+  for (const ts of entry.practiced ?? []) days.add(dayKey(ts));
+  return days.size;
+};
+
+// Distinct days lived within the trailing window (default 7) — the "direction"
+// figure surfaced to the user. No streak, no zeroing on a miss.
+export const livedInWindow = (
+  entry: Mapping,
+  windowDays = 7,
+  now: number = Date.now(),
+): number => {
+  const cutoff = now - windowDays * 86_400_000;
+  const days = new Set<string>();
+  for (const ts of entry.practiced ?? []) {
+    if (ts >= cutoff) days.add(dayKey(ts));
+  }
+  return days.size;
 };

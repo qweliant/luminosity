@@ -9,11 +9,15 @@ import {
   deriveNeed,
   formatList,
   hasAnyLensData,
+  hasCommitment,
   ifsLayer,
   ifsLayerForBand,
   isCessationState,
   lensCompletion,
+  livedDays,
+  livedInWindow,
   maslowHighest,
+  practicedToday,
   relationalFreedoms,
   sdtProfile,
 } from './derive';
@@ -454,18 +458,16 @@ describe('relationalFreedoms', () => {
 });
 
 // --- ifsLayer --------------------------------------------------------------
-// IFS overlay on the ACT workability band. Pure derivation: bands 1-2 →
-// Firefighter, 3 → Manager, 4-5 → Self. No schema change; null when the
-// entry hasn't been rated.
+// IFS overlay on the ACT workability band. Pure derivation: bands 1-3 →
+// Protector (a single non-committal layer — we don't infer firefighter-vs-
+// manager from a number), 4-5 → Self. No schema change; null when the entry
+// hasn't been rated.
 
 describe('ifsLayerForBand', () => {
-  test('1 and 2 → firefighter', () => {
-    expect(ifsLayerForBand(1)).toBe('firefighter');
-    expect(ifsLayerForBand(2)).toBe('firefighter');
-  });
-
-  test('3 → manager', () => {
-    expect(ifsLayerForBand(3)).toBe('manager');
+  test('1, 2 and 3 → protector', () => {
+    expect(ifsLayerForBand(1)).toBe('protector');
+    expect(ifsLayerForBand(2)).toBe('protector');
+    expect(ifsLayerForBand(3)).toBe('protector');
   });
 
   test('4 and 5 → self', () => {
@@ -482,12 +484,66 @@ describe('ifsLayerForBand', () => {
 
 describe('ifsLayer', () => {
   test('mirrors ifsLayerForBand for rated entries', () => {
-    expect(ifsLayer(baseEntry({ workability: 1 }))).toBe('firefighter');
-    expect(ifsLayer(baseEntry({ workability: 3 }))).toBe('manager');
+    expect(ifsLayer(baseEntry({ workability: 1 }))).toBe('protector');
+    expect(ifsLayer(baseEntry({ workability: 3 }))).toBe('protector');
     expect(ifsLayer(baseEntry({ workability: 5 }))).toBe('self');
   });
 
   test('unrated entry → null', () => {
     expect(ifsLayer(baseEntry())).toBeNull();
+  });
+});
+
+// --- reinforcement loop -----------------------------------------------------
+// Committed action + lived-evidence log. Direction, never streaks: livedInWindow
+// counts distinct days in the trailing window; a gap doesn't zero anything.
+
+const DAY = 86_400_000;
+// Fixed local midday so ±1 day always crosses a calendar boundary (no DST edge).
+const NOW = new Date(2026, 5, 15, 12, 0, 0).getTime();
+
+describe('hasCommitment', () => {
+  test('false when unset or whitespace, true when action present', () => {
+    expect(hasCommitment(baseEntry())).toBe(false);
+    expect(
+      hasCommitment(
+        baseEntry({ commitment: { cue: 'x', action: '   ', mode: 'do', createdAt: NOW } }),
+      ),
+    ).toBe(false);
+    expect(
+      hasCommitment(
+        baseEntry({ commitment: { cue: '', action: 'text a friend', mode: 'talk', createdAt: NOW } }),
+      ),
+    ).toBe(true);
+  });
+});
+
+describe('practicedToday', () => {
+  test('true only when a timestamp falls on the local day of `now`', () => {
+    expect(practicedToday(baseEntry({ practiced: [NOW] }), NOW)).toBe(true);
+    expect(practicedToday(baseEntry({ practiced: [NOW - DAY] }), NOW)).toBe(false);
+    expect(practicedToday(baseEntry(), NOW)).toBe(false);
+  });
+});
+
+describe('livedDays', () => {
+  test('counts distinct calendar days, de-duping same-day taps', () => {
+    expect(livedDays(baseEntry({ practiced: [NOW, NOW - 60_000] }))).toBe(1);
+    expect(livedDays(baseEntry({ practiced: [NOW, NOW - DAY, NOW - 2 * DAY] }))).toBe(3);
+    expect(livedDays(baseEntry())).toBe(0);
+  });
+});
+
+describe('livedInWindow', () => {
+  test('counts distinct days inside the trailing window, excludes older', () => {
+    const e = baseEntry({ practiced: [NOW, NOW - 3 * DAY, NOW - 10 * DAY] });
+    expect(livedInWindow(e, 7, NOW)).toBe(2); // 10-days-ago falls outside
+    expect(livedInWindow(e, 14, NOW)).toBe(3);
+  });
+
+  test('a gap does not reset the count (direction, not streak)', () => {
+    // lived 6 days ago and today, nothing between — still counts both.
+    const e = baseEntry({ practiced: [NOW, NOW - 6 * DAY] });
+    expect(livedInWindow(e, 7, NOW)).toBe(2);
   });
 });

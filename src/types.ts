@@ -67,6 +67,29 @@ export interface Mapping {
   // entry (e.g. "The People Pleaser"). Single-select by design — an entry
   // expresses one part at a time. References Part.id in the parts store.
   partId?: string;
+
+  // --- Reinforcement loop (ACT committed action) ---------------------------
+  // The action limb the diagnostic funnel was missing. Spawned from the
+  // synthesized Need in Focus step 6. Optional — entries written before this
+  // existed simply leave both unset, so no migration is needed.
+  commitment?: Commitment;
+
+  // Positive-evidence log: epoch-ms timestamps, one per "lived it" tap. Kept
+  // as a flat array on the Mapping so the whole-object LWW sync stays simple.
+  // NOTE: concurrent multi-device edits can clobber the log under LWW; that is
+  // acceptable under the single-editor sync model (see notes in useEntries).
+  practiced?: number[];
+}
+
+// ACT committed action, expressed as a Gollwitzer implementation intention:
+// a situational cue bound to one tiny, specific behavior in service of the
+// value. `mode` reuses the Stanford prototype modes (talk = a conversation,
+// do = an experiment).
+export interface Commitment {
+  cue: string;      // the "when" — the trigger/situation that fires the action
+  action: string;   // the "I will" — one small, concrete behavior
+  mode: PrototypeMode;
+  createdAt: number;
 }
 
 // IFS · user-named identities. Parts live in their own top-level store

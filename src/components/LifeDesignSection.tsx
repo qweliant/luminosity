@@ -26,7 +26,7 @@ const PROBLEM_TYPES: Array<{
   {
     id: "open",
     name: "Open",
-    blurb: "A real problem you can prototype against.",
+    blurb: "A real problem you can test something against.",
   },
   {
     id: "stuck",
@@ -318,7 +318,7 @@ export const LifeDesignSection = ({
               />
               {prototypeLocked && (
                 <p className="font-serif italic text-[11.5px] text-[#B391A0] m-0 mt-1.5">
-                  Until this is filled, the prototype below is locked.
+                  Until this is filled, the test below is locked.
                 </p>
               )}
             </div>
@@ -337,7 +337,7 @@ export const LifeDesignSection = ({
                 {/* Two equal mode cards */}
                 <div
                   role="radiogroup"
-                  aria-label="Prototype mode"
+                  aria-label="What to try"
                   className="grid grid-cols-2 gap-2"
                 >
                   {[

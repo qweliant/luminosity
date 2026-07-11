@@ -11,19 +11,19 @@ export interface FocusStepProps {
 }
 
 export const FOCUS_STEPS = [
-  "Diagnose",
-  "Locate",
-  "Anchor",
+  "Check in",
+  "What's missing",
+  "Deeper need",
   "Reframe",
-  "Contextualize",
-  "Synthesize",
+  "Contexts",
+  "Sum up",
 ] as const;
 
 export const FOCUS_PROMPTS = [
-  "How well is your current environment serving this value, and what is in the way?",
+  "How well is your life serving this value right now, and what's in the way?",
   "What's starving underneath the friction? Tag what's missing.",
-  "Which fundamental driver does this value serve?",
-  "Where does this value live in your engagement and energy? Frame the problem and design a prototype.",
-  "Which contexts accelerate this value, and which brake it?",
-  "Compose all of the above into a single Need sentence.",
+  "What deeper need is this value really serving?",
+  "Where does this sit for your energy and interest? Name what kind of problem it is, then sketch one small thing to try.",
+  "Which situations bring this value out, and which shut it down?",
+  "Pull all of the above into a single sentence for what you need.",
 ] as const;

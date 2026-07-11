@@ -1,5 +1,6 @@
 import { deriveNeed, isCessationState } from "../../derive";
 import { BloomFlower, CloudFriend } from "../bloom";
+import { CommitmentCard } from "../CommitmentCard";
 import type { FocusStepProps } from "./types";
 
 // Step 6 — deterministic synthesis. Two flavors:
@@ -26,9 +27,11 @@ export const StepSynthesize = ({ entry, onChange }: FocusStepProps) => {
               "{draft}"
             </p>
             <p className="text-xs text-[#5A3645] leading-snug">
-              Brown's research on these states is unambiguous: prescribing
-              action from inside them causes the nervous system to freeze. The
-              sentence above is the only Need that fits honestly right now.
+              The evidence on these states converges: until arousal settles back
+              inside the window of tolerance, the thinking brain can't design,
+              and prescribing action from shame tends to spiral rather than
+              change anything. The sentence above is the only Need that fits
+              honestly right now.
             </p>
 
             <button
@@ -91,6 +94,11 @@ export const StepSynthesize = ({ entry, onChange }: FocusStepProps) => {
           placeholder="Refine or compose the non-negotiable condition exactly as you wish it to read..."
         />
       </div>
+
+      {/* Committed action — the reinforcement on-ramp. Withheld in cessation
+          states: those ask for rest, not a plan (same ethic as the draft
+          short-circuit above). */}
+      {!cessation && <CommitmentCard entry={entry} onChange={onChange} />}
     </div>
   );
 };

@@ -158,7 +158,7 @@ export const BloomWorkability = ({
           type="button"
           onClick={() => onChange(toggleable && value === n ? 0 : n)}
           className="focus:outline-none hover:scale-110 transition-transform cursor-pointer p-1.5 -m-1 inline-flex items-center justify-center"
-          title={`Rate workability ${n}/5`}
+          title={`Rate how it's going ${n}/5`}
         >
           <BloomFlower
             size={size}

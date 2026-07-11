@@ -204,9 +204,6 @@ export const PrintLedger = ({ entries }: { entries: Mapping[] }) => {
       <div className="space-y-8">
         {activeEntries.map((e) => {
           const parsed = parseNeedForPrint(e.need);
-          const servesDriver = e.coreNeed
-            ? e.coreNeed.toLowerCase()
-            : "unmapped driver";
           const hasNvc = e.nvcNeeds && e.nvcNeeds.length > 0;
 
           // Pull emotional granularity detail safely
@@ -253,13 +250,9 @@ export const PrintLedger = ({ entries }: { entries: Mapping[] }) => {
 
                   {e.workability ? (
                     <span className="font-mono text-[9px] text-[#5A3645] ml-2 tracking-wider bg-[#FAF8F6] px-2 py-0.5 border border-[#3A1E2A]/10 rounded">
-                      workability {e.workability}/5
+                      how it's going {e.workability}/5
                     </span>
                   ) : null}
-                </div>
-
-                <div className="font-mono text-[9px] text-[#C24E6E] tracking-widest uppercase font-bold">
-                  serves {servesDriver}
                 </div>
               </div>
 

@@ -1,6 +1,7 @@
-// The "how this works" page. Renders the same framework prose that lives in
-// HOWTO.md in a more navigable form, with anchor links per lens. Reached via
-// the "Methods" link in the header or by direct URL (#/methods).
+// The "how it works" page (#/methods). A plain, first-person note: what this
+// is, why I made it, and how the flow works — no citations, no framework
+// badges. The one place credit is given is the "what shaped this" section at
+// the bottom, kept small on purpose.
 
 import React from 'react';
 
@@ -32,98 +33,55 @@ const Hibiscus = ({
   </svg>
 );
 
-interface Lens {
+interface Step {
   step: string;
   name: string;
-  framework: string;
   one_line: string;
   body: string;
-  citation: string;
 }
 
-const LENSES: Lens[] = [
+const STEPS: Step[] = [
   {
     step: '1',
-    name: 'Diagnose',
-    framework: 'ACT Workability + Atlas of the Heart',
-    one_line: 'Are you stuck serving this value, and what kind of stuck?',
+    name: 'Check in',
+    one_line: "How's it going, and what's in the way?",
     body:
-      "A 1–5 rating for how well your current life is serving this value. 1 is stuck, 5 is working. Underneath, write a bit about the friction you're experiencing and pick the closest emotional cluster (the place the friction is coming from). Some clusters such as grief, shame, overwhelm, or flooding are cessation states: the app will refuse to draft a prototype from them and offer a compassion sentence instead.",
-    citation:
-      'Steven Hayes et al., Acceptance and Commitment Therapy · Brené Brown, Atlas of the Heart (2021).',
+      "Rate 1–5 how well your life is serving this value right now (1 is stuck, 5 is working). Then jot down what's in the way, and pick the feeling closest to where the friction's coming from. A few feelings — grief, shame, overwhelm, flooding — are \"pause here\" states: when you pick one, the app won't try to hand you a plan.",
   },
   {
     step: '2',
-    name: 'Locate',
-    framework: 'NVC Universal Needs',
+    name: "What's missing",
     one_line: "What's starving underneath the friction?",
     body:
-      "Tag one or more universal needs from seven categories: Connection, Physical, Honesty, Play, Peace, Autonomy, Meaning. The vocabulary is deliberately broad to help surface what's missing.",
-    citation:
-      'Marshall Rosenberg, Nonviolent Communication: A Language of Life (2003).',
+      "Tag the plain human needs that feel unmet — things like rest, belonging, honesty, choice, growth. Naming what's missing tends to be more useful than naming what's wrong.",
   },
   {
     step: '3',
-    name: 'Anchor',
-    framework: 'Madanes · 6 Core Human Needs + IFS',
-    one_line: "What need does this serve, and who's doing the work?",
+    name: 'Deeper need',
+    one_line: "What's this really in service of?",
     body:
-      "Consist of two stacked questions. First: one of Comfort, Variety, Significance, Connection, Growth, Contribution. Naming what drives this value helps you ask whether you're meeting it cleanly, or with a workaround. Second (optional): the Internal Family Systems Part that wrote this entry. You name a part and a read-only profile per Part appears on #/parts.",
-    citation: 'Chloe Madanes, The 6 Human Needs · Richard C. Schwartz, No Bad Parts (2021).',
+      "Pick the deeper thing this value serves — comfort, variety, feeling like you matter, connection, growth, contributing. And if it helps, name the recurring inner voice behind the entry (e.g. \"The Caretaker\").",
   },
   {
     step: '4',
     name: 'Reframe',
-    framework: 'Stanford Life Design',
-    one_line: 'What kind of problem is this, and what would a small test look like?',
+    one_line: 'What kind of problem is this, and what could you try?',
     body:
-      'This step involves three tools from Designing Your Life. First is understanding how your value is serving you. You rate engagement and energy from 1–5. Second comes problem framing. Is this an Open problem you can prototype changes against, a Stuck problem that needs a reframe first, or a Reality to accept and navigate around? Third comes various prototyping. Naming a small experiment (Talk to someone who already lives this, or Do it for a day) or accepting the reality and moving forward.',
-    citation: 'Bill Burnett & Dave Evans, Designing Your Life (2016).',
+      "Some problems you can act on, some are stuck and need a fresh angle first, and some are just facts of life to make peace with. Name which, then sketch the smallest thing you could actually try or ask.",
   },
   {
     step: '5',
-    name: 'Contextualize',
-    framework: 'Nagoski · accelerators + brakes',
-    one_line: 'What turns this value on, and what shuts it down?',
+    name: 'Contexts',
+    one_line: 'What brings this out, and what shuts it down?',
     body:
-      "Originally a sexual-response model; here, used generically. Name the contexts that let this value thrive, and the contexts that brake it. If another person is part of the friction, optionally turn on the relational lens. This is a 4-question boundary checklist (Sander T. Jones, Cultivating Connection) that catches whether your Need is a clean boundary for you or an overreaching rule for them.",
-    citation: 'Emily Nagoski, Come As You Are (2015) · Sander T. Jones, Cultivating Connection.',
+      "Note the situations that let this value show up, and the ones that quietly kill it. Optionally, if another person's involved, a short honesty check on whether you're making a clean request or a demand.",
   },
   {
     step: '6',
-    name: 'Synthesize',
-    framework: 'Templated draft',
-    one_line: 'Compose all of the above into one sentence.',
+    name: 'Sum up',
+    one_line: 'Pull it all into one sentence.',
     body:
-      "A non-deterministic(not LLM-generated) synthesizer reads your lens selections and assembles a draft Need sentence you can replace, append to, or ignore. The draft is an affirming synthesis, not static observation. The entry may change over time. When the entry is in a cessation state, the synthesizer skips the template entirely and returns a compassion sentence.",
-    citation: 'Custom.',
-  },
-];
-
-interface Derived {
-  name: string;
-  blurb: string;
-  citation: string;
-}
-
-const DERIVED: Derived[] = [
-  {
-    name: 'SDT profile',
-    blurb:
-      "Self-Determination Theory's three innate needs — autonomy, competence, relatedness — derived from your NVC tags and core need. A balance check, not a score.",
-    citation: 'Edward Deci & Richard Ryan.',
-  },
-  {
-    name: 'Maslow · highest active layer',
-    blurb:
-      "The highest layer of Maslow's hierarchy your NVC selections reach. A quick sanity check that you're not piling everything onto self-actualization while shelter or belonging are unmet.",
-    citation: 'Abraham Maslow (1943).',
-  },
-  {
-    name: 'Jones · freedoms at stake',
-    blurb:
-      "When the relational lens is on, the 13 Fundamental Freedoms your NVC tags touch — which relational rights are in play.",
-    citation: 'Sander T. Jones.',
+      "The app drafts a single sentence for what you need from everything above — take it, tweak it, or write your own. From here you can turn it into one tiny committed action to actually carry it out. In a \"pause here\" state it won't push a plan; it offers something kinder instead.",
   },
 ];
 
@@ -141,7 +99,7 @@ const INFLUENCES: Influence[] = [
     author: 'Alicorn · LessWrong, 2009',
     href: 'https://www.lesswrong.com/posts/rLuZ6XrGpgjk9BNpX/the-abc-s-of-luminosity',
     why:
-      'The namesake. Names the loop this app is a small instance of, and gives "luminosity" its working meaning: introspective accuracy as a trainable skill.',
+      'The namesake, and where "luminosity" gets its meaning here: getting better at noticing your own inner states accurately.',
     primary: true,
   },
   {
@@ -149,54 +107,25 @@ const INFLUENCES: Influence[] = [
     author: 'Alicorn · LessWrong, 2009–2011',
     href: 'https://www.lesswrong.com/s/ynMFrq9K5iNMfSZNg/p/9o3Cjjem7AbmmZfBs',
     why:
-      "The longer arc. Practical exercises in noticing your own mental states accurately without flinching, flattering, or theorizing past what's there.",
+      "The longer version — practical exercises in seeing what's actually there without flinching or flattering it.",
   },
   {
     title: 'Ureshiku Naritai',
     author: 'Alicorn · LessWrong, 2024',
     href: 'https://www.lesswrong.com/posts/xnPFYBuaGhpq869mY/ureshiku-naritai',
     why:
-      'A later update on what it actually looked like to try to be happier on purpose, and what stuck.',
-  },
-];
-
-interface OmittedFramework {
-  name: string;
-  why: string;
-}
-
-const OMITTED: OmittedFramework[] = [
-  {
-    name: "Schwartz's Theory of Basic Values",
-    why: 'Academically rigorous, but its 10 universal value types overlap Madanes for our purposes.',
-  },
-  {
-    name: 'VIA Character Strengths',
-    why: 'Useful as a discovery tool, but its 24 strengths duplicate Madanes here.',
-  },
-  {
-    name: 'Ikigai',
-    why: 'Better suited to vocational design than daily-needs surfacing.',
-  },
-  {
-    name: 'Polyvagal Theory',
-    why: 'Nagoski accelerators/brakes already covers the practical surface.',
-  },
-  {
-    name: 'Logotherapy / "Will to Meaning"',
-    why: 'Captured implicitly via the Madanes Significance and Contribution drivers.',
+      'A later look back at what trying to be happier on purpose actually looked like, and what stuck.',
   },
 ];
 
 const TOC = [
+  { id: 'why', label: 'Why I made this' },
   { id: 'loop', label: 'The loop' },
-  { id: 'lenses', label: 'The six lenses' },
-  { id: 'parts', label: 'Parts · IFS' },
-  { id: 'derived', label: 'Derived indicators' },
-  { id: 'cessation', label: 'Cessation states' },
+  { id: 'steps', label: 'The six steps' },
+  { id: 'voices', label: 'Voices' },
+  { id: 'cessation', label: 'Pause-here states' },
   { id: 'privacy', label: 'Privacy' },
-  { id: 'influences', label: 'Influences' },
-  { id: 'omitted', label: 'Frameworks not used' },
+  { id: 'influences', label: 'What shaped this' },
 ];
 
 const SectionCaps = ({
@@ -239,10 +168,6 @@ export const MethodsPage = ({ onClose }: { onClose: () => void }) => {
                 </a>
               ))}
             </nav>
-            <div className="mt-4 pt-3 border-t border-dashed border-[#3A1E2A]/10 font-mono text-[9.5px] text-[#B391A0] tracking-[0.08em] leading-relaxed">
-              v2 · last updated
-              <br />May 2026
-            </div>
           </aside>
         </div>
       </div>
@@ -258,339 +183,277 @@ export const MethodsPage = ({ onClose }: { onClose: () => void }) => {
 
           {/* Main column */}
           <div className="min-w-0">
-          <header className="pb-5 mb-7 border-b border-[#3A1E2A]/10 flex justify-between items-start gap-4">
-            <div>
-              <SectionCaps>Methods</SectionCaps>
-              <h1 className="font-serif italic text-[38px] tracking-[-0.01em] leading-[1.1] mt-1.5 mb-1.5">
-                How this works.
-              </h1>
-              <p className="font-serif italic text-[15px] text-[#5A3645] m-0 max-w-prose leading-relaxed">
-                Luminosity provides scaffolding for needs and values that walks you from
-                surface friction to a sentence you can act on, or sit with, one step
-                at a time.
+            <header className="pb-5 mb-7 border-b border-[#3A1E2A]/10 flex justify-between items-start gap-4">
+              <div>
+                <SectionCaps>How it works</SectionCaps>
+                <h1 className="font-serif italic text-[38px] tracking-[-0.01em] leading-[1.1] mt-1.5 mb-1.5">
+                  A small thing I made.
+                </h1>
+                <p className="font-serif italic text-[15px] text-[#5A3645] m-0 max-w-prose leading-relaxed">
+                  It walks a value from the friction that's in the way to a sentence
+                  you can act on, or just sit with — one small step at a time.
+                </p>
+              </div>
+              <button
+                onClick={onClose}
+                className="text-xs uppercase tracking-[0.2em] text-[#5A3645] hover:text-[#C24E6E] transition-colors print:hidden cursor-pointer shrink-0"
+              >
+                ← back
+              </button>
+            </header>
+
+            {/* WHY */}
+            <section id="why" className="mb-10 scroll-mt-8">
+              <SectionCaps>Why I made this</SectionCaps>
+              <div className="mt-3 px-6 py-5 bg-white rounded-2xl border border-[#3A1E2A]/10 shadow-xs">
+                <p className="m-0 text-[14px] text-[#5A3645] leading-relaxed max-w-145">
+                  I'm not a therapist, and I didn't consult one. I made this for myself —
+                  to line up my days with what I actually care about without getting
+                  overwhelmed. It borrows ideas from books and posts that helped me
+                  (listed at the bottom). Anything I got wrong in how I used them is on me.
+                  Take what's useful, ignore the rest.
+                </p>
+              </div>
+            </section>
+
+            {/* THE LOOP */}
+            <section id="loop" className="mb-10 scroll-mt-8">
+              <SectionCaps>The loop</SectionCaps>
+              <div className="mt-3 px-6 py-4 bg-white rounded-2xl border border-[#3A1E2A]/10 flex items-center gap-4 flex-wrap shadow-xs">
+                {['Value', 'Friction', 'Need'].map((w, i) => (
+                  <React.Fragment key={w}>
+                    <span
+                      className={`font-serif italic text-[22px] tracking-[-0.005em] leading-tight ${
+                        i === 2 ? 'text-[#C24E6E]' : 'text-[#3A1E2A]'
+                      }`}
+                    >
+                      {w}
+                    </span>
+                    {i < 2 && <span className="text-[#B391A0] text-base">→</span>}
+                  </React.Fragment>
+                ))}
+              </div>
+              <dl className="mt-3.5 grid grid-cols-[110px_1fr] gap-x-5 gap-y-2.5 text-[13.5px] text-[#5A3645] leading-relaxed m-0">
+                {[
+                  ['Value', 'the belief or commitment you care about — e.g. Compassion, Curiosity, Health.'],
+                  ['Friction', "what's currently in the way of living it."],
+                  ['Need', 'the conditions that, if met, would let the value thrive.'],
+                  ['How it’s going', 'a simple 1–5 gut read on how well your life is actually serving it.'],
+                ].map(([k, v]) => (
+                  <React.Fragment key={k}>
+                    <dt className="font-serif italic text-[14px] text-[#3A1E2A] m-0">{k}</dt>
+                    <dd className="m-0">{v}</dd>
+                  </React.Fragment>
+                ))}
+              </dl>
+              <p className="mt-4 px-3.5 py-2.5 bg-[#FAE6E1]/50 rounded-xl font-serif italic text-[13.5px] text-[#5A3645] leading-relaxed m-0">
+                The aim isn't to list values — it's to find where you're starving and name
+                the smallest thing that would feed you.
               </p>
-            </div>
-            <button
-              onClick={onClose}
-              className="text-xs uppercase tracking-[0.2em] text-[#5A3645] hover:text-[#C24E6E] transition-colors print:hidden cursor-pointer shrink-0"
-            >
-              ← back
-            </button>
-          </header>
+            </section>
 
-          {/* THE LOOP */}
-          <section id="loop" className="mb-10 scroll-mt-8">
-            <SectionCaps>The loop</SectionCaps>
-            <div className="mt-3 px-6 py-4 bg-white rounded-2xl border border-[#3A1E2A]/10 flex items-center gap-4 flex-wrap shadow-xs">
-              {['Value', 'Friction', 'Need', 'Workability'].map((w, i) => (
-                <React.Fragment key={w}>
-                  <span
-                    className={`font-serif italic text-[22px] tracking-[-0.005em] leading-tight ${
-                      i === 2 ? 'text-[#C24E6E]' : 'text-[#3A1E2A]'
-                    }`}
+            {/* THE SIX STEPS */}
+            <section id="steps" className="mb-10 scroll-mt-8">
+              <SectionCaps>The six steps</SectionCaps>
+              <h2 className="font-serif text-2xl text-[#3A1E2A] tracking-[-0.01em] mt-1.5 mb-4 leading-tight">
+                Six small steps, one at a time.
+              </h2>
+              <div className="grid gap-2">
+                {STEPS.map((l) => (
+                  <article
+                    key={l.step}
+                    className="bg-white rounded-xl border border-[#3A1E2A]/10 border-l-[3px] border-l-[#FBD9E0] px-4 py-3.5 grid grid-cols-[auto_1fr_auto] gap-4 items-center"
                   >
-                    {w}
-                  </span>
-                  {i < 3 && <span className="text-[#B391A0] text-base">→</span>}
-                </React.Fragment>
-              ))}
-            </div>
-            <dl className="mt-3.5 grid grid-cols-[100px_1fr] gap-x-5 gap-y-2.5 text-[13.5px] text-[#5A3645] leading-relaxed m-0">
-              {[
-                ['Value', 'the belief or commitment you care about e.g. Compassion, Curiosity, Health.'],
-                ['Friction', "what's currently in the way of living that value."],
-                ['Need', 'the non-negotiable conditions that, if met, would let the value thrive.'],
-                ['Workability', 'how well your life is actually serving that value, 1–5.'],
-              ].map(([k, v]) => (
-                <React.Fragment key={k}>
-                  <dt className="font-serif italic text-[14px] text-[#3A1E2A] m-0">{k}</dt>
-                  <dd className="m-0">{v}</dd>
-                </React.Fragment>
-              ))}
-            </dl>
-            <p className="mt-4 px-3.5 py-2.5 bg-[#FAE6E1]/50 rounded-xl font-serif italic text-[13.5px] text-[#5A3645] leading-relaxed m-0">
-              The aim isn't to enumerate values but to find where you're starving and
-              name the smallest condition that would feed you.
-            </p>
-          </section>
+                    <span className="font-mono text-[11px] text-[#B391A0] text-center w-3.5">
+                      {l.step}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="font-serif text-[17px] text-[#3A1E2A] mb-0.5">
+                        {l.name}
+                      </div>
+                      <p className="m-0 font-serif italic text-[13px] text-[#5A3645] leading-snug">
+                        {l.one_line}
+                      </p>
+                    </div>
+                    <Hibiscus size={14} petal="#E07A95" />
+                  </article>
+                ))}
+              </div>
+              <details className="mt-3 group">
+                <summary className="cursor-pointer text-[10px] uppercase tracking-[0.2em] text-[#5A3645] hover:text-[#C24E6E] transition-colors font-semibold list-none flex items-center gap-1.5">
+                  <span className="inline-block transition-transform group-open:rotate-90">›</span>
+                  A little more on each
+                </summary>
+                <div className="mt-4 space-y-5">
+                  {STEPS.map((l) => (
+                    <div key={l.step} className="pl-4 border-l-2 border-[#FBD9E0]">
+                      <div className="flex items-baseline gap-2.5 mb-1 flex-wrap">
+                        <span className="font-mono text-xs text-[#B391A0]">{l.step}</span>
+                        <h3 className="font-serif italic text-lg text-[#3A1E2A] m-0">
+                          {l.name}
+                        </h3>
+                      </div>
+                      <p className="text-[13px] text-[#3A1E2A] leading-relaxed m-0">
+                        {l.body}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            </section>
 
-          {/* THE SIX LENSES */}
-          <section id="lenses" className="mb-10 scroll-mt-8">
-            <SectionCaps>The six lenses</SectionCaps>
-            <h2 className="font-serif text-2xl text-[#3A1E2A] tracking-[-0.01em] mt-1.5 mb-4 leading-tight">
-              Each step is a small framework, deliberately stacked.
-            </h2>
-            <div className="grid gap-2">
-              {LENSES.map((l) => (
-                <article
-                  key={l.step}
-                  className="bg-white rounded-xl border border-[#3A1E2A]/10 border-l-[3px] border-l-[#FBD9E0] px-4 py-3.5 grid grid-cols-[auto_1fr_auto] gap-4 items-center"
-                >
-                  <span className="font-mono text-[11px] text-[#B391A0] text-center w-3.5">
-                    {l.step}
-                  </span>
-                  <div className="min-w-0">
-                    <div className="flex items-baseline gap-2.5 flex-wrap mb-0.5">
-                      <span className="font-serif text-[17px] text-[#3A1E2A]">
-                        {l.name}
-                      </span>
-                      <span className="text-[9px] uppercase tracking-[0.2em] text-[#C24E6E] font-semibold">
-                        {l.framework}
-                      </span>
-                    </div>
-                    <p className="m-0 font-serif italic text-[13px] text-[#5A3645] leading-snug">
-                      {l.one_line}
+            {/* VOICES */}
+            <section id="voices" className="mb-10 scroll-mt-8">
+              <SectionCaps>Voices</SectionCaps>
+              <h2 className="font-serif text-2xl text-[#3A1E2A] tracking-[-0.01em] mt-1.5 mb-2 leading-tight">
+                The recurring inner characters.
+              </h2>
+              <p className="m-0 mb-3.5 font-serif italic text-[13.5px] text-[#5A3645] leading-relaxed max-w-145">
+                Optionally, you can name the inner voice behind an entry — <em>The Caretaker</em>,{' '}
+                <em>The Inner Critic</em>, <em>The People Pleaser</em>. Once you've named a few,
+                the{' '}
+                <a href="#/parts" className="text-[#C24E6E] underline hover:no-underline">
+                  voices page
+                </a>{' '}
+                groups your entries under each and shows what tends to come up — which ones
+                usually feel stuck, and what deeper need keeps surfacing.
+              </p>
+              <div className="grid sm:grid-cols-3 gap-2.5">
+                {[
+                  { rule: 'One at a time', body: 'Each entry names at most one voice.' },
+                  { rule: 'You name them', body: 'No preset list — whatever you type becomes a voice.' },
+                  { rule: 'Just for reading back', body: 'Name them while journaling; the voices page only reads them back.' },
+                ].map((c) => (
+                  <div
+                    key={c.rule}
+                    className="px-3.5 py-3 bg-[#FAE6E1]/50 rounded-xl border border-dashed border-[#3A1E2A]/15"
+                  >
+                    <p className="m-0 text-[9px] uppercase tracking-[0.2em] text-[#5A3645] font-semibold">
+                      {c.rule}
                     </p>
-                  </div>
-                  <Hibiscus size={14} petal="#E07A95" />
-                </article>
-              ))}
-            </div>
-            <details className="mt-3 group">
-              <summary className="cursor-pointer text-[10px] uppercase tracking-[0.2em] text-[#5A3645] hover:text-[#C24E6E] transition-colors font-semibold list-none flex items-center gap-1.5">
-                <span className="inline-block transition-transform group-open:rotate-90">›</span>
-                Expand full descriptions
-              </summary>
-              <div className="mt-4 space-y-5">
-                {LENSES.map((l) => (
-                  <div key={l.step} className="pl-4 border-l-2 border-[#FBD9E0]">
-                    <div className="flex items-baseline gap-2.5 mb-1 flex-wrap">
-                      <span className="font-mono text-xs text-[#B391A0]">{l.step}</span>
-                      <h3 className="font-serif italic text-lg text-[#3A1E2A] m-0">
-                        {l.name}
-                      </h3>
-                      <span className="text-[9px] uppercase tracking-[0.2em] text-[#C24E6E] font-semibold">
-                        {l.framework}
-                      </span>
-                    </div>
-                    <p className="text-[13px] text-[#3A1E2A] leading-relaxed m-0 mb-1">
-                      {l.body}
-                    </p>
-                    <p className="text-[10px] uppercase tracking-[0.2em] text-[#B391A0] m-0">
-                      {l.citation}
+                    <p className="m-0 mt-1 text-[12px] text-[#5A3645] leading-relaxed">
+                      {c.body}
                     </p>
                   </div>
                 ))}
               </div>
-            </details>
-          </section>
+            </section>
 
-          {/* PARTS · IFS */}
-          <section id="parts" className="mb-10 scroll-mt-8">
-            <SectionCaps>Parts · IFS</SectionCaps>
-            <h2 className="font-serif text-2xl text-[#3A1E2A] tracking-[-0.01em] mt-1.5 mb-2 leading-tight">
-              Who's doing the work?
-            </h2>
-            <p className="m-0 mb-3.5 font-serif italic text-[13.5px] text-[#5A3645] leading-relaxed max-w-145">
-              An optional Internal Family Systems tag can name the part of you that wrote
-              this entry. Examples include: <em>The Caretaker</em>, <em>The Inner Critic</em>, <em>The
-              People Pleaser</em>. After naming parts, the app surfaces a read-only profile per Part on{' '}
-              <a
-                href="#/parts"
-                className="text-[#C24E6E] underline hover:no-underline"
-              >
-                #/parts
-              </a>
-              .
-            </p>
-            <div className="grid sm:grid-cols-3 gap-2.5">
-              {[
-                { rule: 'Single-select', body: 'Each entry expresses one part at a time.' },
-                { rule: 'User-named', body: 'Typed text becomes a Part. I may later curate a list of recommended parts.' },
-                {
-                  rule: 'Read-only profiles',
-                  body: 'Author Parts in Focus mode; the #/parts page just reads them back.',
-                },
-              ].map((c) => (
-                <div
-                  key={c.rule}
-                  className="px-3.5 py-3 bg-[#FAE6E1]/50 rounded-xl border border-dashed border-[#3A1E2A]/15"
-                >
-                  <p className="m-0 text-[9px] uppercase tracking-[0.2em] text-[#5A3645] font-semibold">
-                    {c.rule}
-                  </p>
-                  <p className="m-0 mt-1 text-[12px] text-[#5A3645] leading-relaxed">
-                    {c.body}
-                  </p>
+            {/* CESSATION / PAUSE-HERE */}
+            <section id="cessation" className="mb-10 scroll-mt-8">
+              <div className="bg-[#FFF5DC]/70 border border-[#D6A24A]/30 rounded-2xl px-6 py-5">
+                <div className="flex items-center gap-2.5 mb-1">
+                  <span className="text-base text-[#8B6914]">⏸</span>
+                  <SectionCaps color="#8B6914">Pause-here states</SectionCaps>
                 </div>
-              ))}
-            </div>
-            <p className="mt-3 font-mono text-[9.5px] text-[#B391A0] tracking-[0.18em] uppercase m-0">
-              Richard C. Schwartz · No Bad Parts (2021).
-            </p>
-          </section>
-
-          {/* DERIVED */}
-          <section id="derived" className="mb-10 scroll-mt-8">
-            <SectionCaps>Derived indicators</SectionCaps>
-            <h2 className="font-serif text-2xl text-[#3A1E2A] tracking-[-0.01em] mt-1.5 mb-3 leading-tight">
-              Computed from your selections — you never set them directly.
-            </h2>
-            <div className="grid gap-3">
-              {DERIVED.map((d) => (
-                <div key={d.name} className="pl-3.5 border-l-2 border-[#FBD9E0]">
-                  <div className="font-serif text-base text-[#3A1E2A]">{d.name}</div>
-                  <p className="m-0 mt-0.5 mb-1 text-[13px] text-[#5A3645] leading-relaxed">
-                    {d.blurb}
-                  </p>
-                  <p className="m-0 text-[9px] uppercase tracking-[0.2em] text-[#B391A0]">
-                    {d.citation}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* CESSATION */}
-          <section id="cessation" className="mb-10 scroll-mt-8">
-            <div className="bg-[#FFF5DC]/70 border border-[#D6A24A]/30 rounded-2xl px-6 py-5">
-              <div className="flex items-center gap-2.5 mb-1">
-                <span className="text-base text-[#8B6914]">⏸</span>
-                <SectionCaps color="#8B6914">Cessation states</SectionCaps>
-              </div>
-              <h2 className="font-serif text-[22px] text-[#3A1E2A] tracking-[-0.01em] mt-1 mb-2.5 leading-tight">
-                Some emotions shouldn't ask to be solved.
-              </h2>
-              <p className="m-0 mb-2.5 text-[13.5px] text-[#5A3645] leading-relaxed">
-                When you tag an entry with{' '}
-                <em>grief, shame, overwhelm, flooding, anguish, despair, hopelessness,</em>{' '}
-                or <em>sadness</em>, the synthesizer refuses to draft a prototype and
-                returns a compassion sentence instead.
-              </p>
-              <p className="m-0 text-[13.5px] text-[#5A3645] leading-relaxed">
-                This is deliberate. Brown's research on these states is unambiguous:
-                prescribing action from inside them is harmful. The app will offer
-                presence, not a plan.
-              </p>
-            </div>
-          </section>
-
-          {/* PRIVACY */}
-          <section id="privacy" className="mb-10 scroll-mt-8">
-            <SectionCaps>Privacy</SectionCaps>
-            <div className="mt-2.5 grid sm:grid-cols-2 gap-2.5">
-              {[
-                ['Local-first', "Everything lives in your browser's localStorage. No account, no telemetry, no analytics."],
-                ['Sidecar (optional for those who install from github)', 'The backup sidecar writes timestamped snapshots to a local SQLite file — still on your machine.'],
-                ['Sync (optional)', 'Sync mirrors this ledger between your own browsers over end-to-end encrypted WebRTC.'],
-                ['Nothing leaves', 'No server sees your data. Not for backup, not for sync, not for anything.'],
-              ].map(([t, b]) => (
-                <div
-                  key={t}
-                  className="px-3.5 py-3 bg-white rounded-xl border border-[#3A1E2A]/10"
-                >
-                  <p className="m-0 text-[9px] uppercase tracking-[0.2em] text-[#3A1E2A] font-semibold">
-                    {t}
-                  </p>
-                  <p className="m-0 mt-1 text-[12.5px] text-[#5A3645] leading-relaxed">
-                    {b}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* INFLUENCES — hero treatment */}
-          <section id="influences" className="mb-10 scroll-mt-8">
-            <div
-              className="relative overflow-hidden rounded-[18px] border border-[#FBD9E0] px-7 py-7"
-              style={{
-                background:
-                  'linear-gradient(180deg, #FAE6E1 0%, #FFFFFF 100%)',
-              }}
-            >
-              <div aria-hidden className="absolute -top-5 -right-5 opacity-60 pointer-events-none">
-                <Hibiscus size={120} petal="#E07A95" />
-              </div>
-
-              <div className="relative">
-                <SectionCaps>Influences</SectionCaps>
-                <h2 className="font-serif italic text-[28px] text-[#3A1E2A] tracking-[-0.01em] leading-tight mt-2 mb-3 max-w-120">
-                  A small instance of a larger loop.
+                <h2 className="font-serif text-[22px] text-[#3A1E2A] tracking-[-0.01em] mt-1 mb-2.5 leading-tight">
+                  Some feelings shouldn't be asked to be solved.
                 </h2>
-                <p className="m-0 mb-3 text-[14px] text-[#5A3645] leading-relaxed max-w-145">
-                  The whole architecture is a small instance of a loop Alicorn named on
-                  LessWrong in 2009: <em>Affect, Behavior,</em> and <em>Circumstance</em>{' '}
-                  are interdependent, and{' '}
-                  <strong className="text-[#C24E6E] font-semibold">luminosity</strong> is
-                  the practice of seeing each clearly enough to act on them.
+                <p className="m-0 mb-2.5 text-[13.5px] text-[#5A3645] leading-relaxed">
+                  When you tag an entry with{' '}
+                  <em>grief, shame, overwhelm, flooding, anguish, despair, hopelessness,</em>{' '}
+                  or <em>sadness</em>, the app won't try to draft a plan — it returns a
+                  kinder sentence instead.
                 </p>
-                <p className="m-0 mb-5 text-[14px] text-[#5A3645] leading-relaxed max-w-145">
-                  The{' '}
-                  <span className="font-serif italic">
-                    Value → Friction → Need → Workability
-                  </span>{' '}
-                  loop is one part of that ABC interdependence. Friction names the
-                  circumstance, Workability names the behavior, and Need names the
-                  affective ground both rest on. The namesake is older than this codebase
-                  by sixteen years; the debt is happily acknowledged.
+                <p className="m-0 text-[13.5px] text-[#5A3645] leading-relaxed">
+                  That's on purpose. From what I've read — and honestly from experience —
+                  trying to problem-solve from inside those states usually backfires. Better
+                  to be with it first, and come back to the planning later.
                 </p>
-
-                <ul className="grid gap-2.5 list-none m-0 p-0">
-                  {INFLUENCES.map((i) => (
-                    <li key={i.href}>
-                      <a
-                        href={i.href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`block px-4 py-3.5 rounded-xl border transition-colors no-underline ${
-                          i.primary
-                            ? 'bg-[#FBD9E0]/40 border-[#E07A95] hover:bg-[#FBD9E0]/60'
-                            : 'bg-white border-[#3A1E2A]/10 hover:border-[#E07A95]'
-                        }`}
-                      >
-                        <div className="flex items-baseline gap-2.5 flex-wrap">
-                          <span
-                            className={`font-serif italic text-[17px] leading-tight ${
-                              i.primary ? 'text-[#C24E6E]' : 'text-[#3A1E2A]'
-                            }`}
-                          >
-                            {i.title}
-                          </span>
-                          <span className="text-[9px] uppercase tracking-[0.2em] text-[#B391A0] font-semibold">
-                            {i.author}
-                          </span>
-                          <span className="ml-auto text-[11px] text-[#C24E6E] font-medium">
-                            ↗
-                          </span>
-                        </div>
-                        <p className="m-0 mt-1.5 text-[13px] text-[#5A3645] leading-relaxed max-w-[560px]">
-                          {i.why}
-                        </p>
-                      </a>
-                    </li>
-                  ))}
-                </ul>
               </div>
-            </div>
-          </section>
+            </section>
 
-          {/* OMITTED */}
-          <section id="omitted" className="mb-7 scroll-mt-8">
-            <SectionCaps>Frameworks deliberately not used</SectionCaps>
-            <h2 className="font-serif text-[22px] text-[#3A1E2A] tracking-[-0.01em] mt-1.5 mb-2 leading-tight">
-              Worth knowing — but redundant, or too heavy, for this surface.
-            </h2>
-            <div className="mt-3 grid sm:grid-cols-2 gap-2">
-              {OMITTED.map((o) => (
-                <div
-                  key={o.name}
-                  className="px-3.5 py-2.5 bg-white rounded-xl border border-[#3A1E2A]/10"
-                >
-                  <span className="font-serif text-sm text-[#3A1E2A]">{o.name}</span>
-                  <p className="m-0 mt-0.5 text-[12px] text-[#5A3645] leading-relaxed">
-                    {o.why}
-                  </p>
+            {/* PRIVACY */}
+            <section id="privacy" className="mb-10 scroll-mt-8">
+              <SectionCaps>Privacy</SectionCaps>
+              <div className="mt-2.5 grid sm:grid-cols-2 gap-2.5">
+                {[
+                  ['Local-first', "Everything lives in your browser's localStorage. No account, no telemetry, no analytics."],
+                  ['Sidecar (optional, if you install from GitHub)', 'The backup sidecar writes timestamped snapshots to a local SQLite file — still on your machine.'],
+                  ['Sync (optional)', 'Sync mirrors this between your own browsers over end-to-end encrypted WebRTC.'],
+                  ['Nothing leaves', 'No server sees your data. Not for backup, not for sync, not for anything.'],
+                ].map(([t, b]) => (
+                  <div
+                    key={t}
+                    className="px-3.5 py-3 bg-white rounded-xl border border-[#3A1E2A]/10"
+                  >
+                    <p className="m-0 text-[9px] uppercase tracking-[0.2em] text-[#3A1E2A] font-semibold">
+                      {t}
+                    </p>
+                    <p className="m-0 mt-1 text-[12.5px] text-[#5A3645] leading-relaxed">
+                      {b}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* WHAT SHAPED THIS */}
+            <section id="influences" className="mb-10 scroll-mt-8">
+              <div
+                className="relative overflow-hidden rounded-[18px] border border-[#FBD9E0] px-7 py-7"
+                style={{ background: 'linear-gradient(180deg, #FAE6E1 0%, #FFFFFF 100%)' }}
+              >
+                <div aria-hidden className="absolute -top-5 -right-5 opacity-60 pointer-events-none">
+                  <Hibiscus size={120} petal="#E07A95" />
                 </div>
-              ))}
-            </div>
-          </section>
 
-          <footer className="pt-5 mt-5 mb-8 border-t border-[#3A1E2A]/10 text-center text-xs text-[#B391A0] font-serif italic">
-            built for clarity · persisted locally · nothing leaves your space
-          </footer>
+                <div className="relative">
+                  <SectionCaps>What shaped this</SectionCaps>
+                  <h2 className="font-serif italic text-[28px] text-[#3A1E2A] tracking-[-0.01em] leading-tight mt-2 mb-3 max-w-120">
+                    Where the name — and the idea — came from.
+                  </h2>
+                  <p className="m-0 mb-5 text-[14px] text-[#5A3645] leading-relaxed max-w-145">
+                    "Luminosity" comes from a set of posts by Alicorn on LessWrong about
+                    getting better at seeing your own inner states clearly. This app is my
+                    small, concrete take on that idea. A handful of self-help and psychology
+                    books shaped the individual steps too — but the through-line is below.
+                  </p>
+
+                  <ul className="grid gap-2.5 list-none m-0 p-0">
+                    {INFLUENCES.map((i) => (
+                      <li key={i.href}>
+                        <a
+                          href={i.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`block px-4 py-3.5 rounded-xl border transition-colors no-underline ${
+                            i.primary
+                              ? 'bg-[#FBD9E0]/40 border-[#E07A95] hover:bg-[#FBD9E0]/60'
+                              : 'bg-white border-[#3A1E2A]/10 hover:border-[#E07A95]'
+                          }`}
+                        >
+                          <div className="flex items-baseline gap-2.5 flex-wrap">
+                            <span
+                              className={`font-serif italic text-[17px] leading-tight ${
+                                i.primary ? 'text-[#C24E6E]' : 'text-[#3A1E2A]'
+                              }`}
+                            >
+                              {i.title}
+                            </span>
+                            <span className="text-[9px] uppercase tracking-[0.2em] text-[#B391A0] font-semibold">
+                              {i.author}
+                            </span>
+                            <span className="ml-auto text-[11px] text-[#C24E6E] font-medium">
+                              ↗
+                            </span>
+                          </div>
+                          <p className="m-0 mt-1.5 text-[13px] text-[#5A3645] leading-relaxed max-w-[560px]">
+                            {i.why}
+                          </p>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </section>
+
+            <footer className="pt-5 mt-5 mb-8 border-t border-[#3A1E2A]/10 text-center text-xs text-[#B391A0] font-serif italic">
+              made for myself · kept on your device · nothing leaves your space
+            </footer>
+          </div>
         </div>
-      </div>
       </main>
     </>
   );

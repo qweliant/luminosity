@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Trash2 } from "lucide-react";
 import type { Mapping, Part } from "../types";
-import { ifsLayer, isCessationState, lensCompletion } from "../derive";
+import { isCessationState, lensCompletion } from "../derive";
 import { parseCompositeNeed } from "../parsedNeed";
 import { EntryCondensed } from "./EntryCondensed";
 import { EntryCondensedCessation } from "./EntryCondensedCessation";
@@ -52,11 +52,7 @@ export const EntrySection = ({
   const brakesCount = entry.brakes
     ? entry.brakes.split(",").filter((s) => s.trim()).length
     : 0;
-  const servesDriver = entry.coreNeed
-    ? entry.coreNeed.toLowerCase()
-    : "unmapped";
 
-  const ifsBand = ifsLayer(entry);
   const partName = entry.partId
     ? (parts.find((p) => p.id === entry.partId)?.name ?? null)
     : null;
@@ -94,11 +90,9 @@ export const EntrySection = ({
         ) : (
           <EntryCondensed
             entry={entry}
-            ifsBand={ifsBand}
             partName={partName}
             acceleratorsCount={acceleratorsCount}
             brakesCount={brakesCount}
-            servesDriver={servesDriver}
             parsedNeed={parsedNeed}
             onChange={onChange}
             onExpand={expand}
@@ -119,11 +113,11 @@ export const EntrySection = ({
       ) : (
         <EntryExpanded
           entry={entry}
+          partName={partName}
           isDuplicate={isDuplicate}
           lensOpen={lensOpen}
           completion={completion}
           dynamicRows={dynamicRows}
-          servesDriver={servesDriver}
           parsedNeed={parsedNeed}
           onChange={onChange}
           onToggleLens={onToggleLens}

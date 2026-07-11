@@ -1,10 +1,10 @@
-// IFS Part selector — a tiny combobox that doubles as a create-on-type
-// field. Lives inside Focus mode step 3 (Anchor). Constraints:
-//   - Single-select: an entry references exactly one Part (or none).
-//   - User-named: no curated list — the typed text becomes a Part if it
+// Recurring-voice selector — a tiny combobox that doubles as a create-on-type
+// field. Lives inside Focus mode step 3. Constraints:
+//   - Single-select: an entry references exactly one voice (or none).
+//   - User-named: no curated list — the typed text becomes a voice if it
 //     doesn't already exist. Lookups are case-insensitive.
 //   - No edit/delete UI here. Clearing the selection just detaches; the
-//     Part itself stays in the store, visible on #/parts.
+//     voice itself stays in the store, visible on the voices page.
 
 import React, { useMemo, useState } from 'react';
 import type { Part } from '../types';
@@ -50,7 +50,7 @@ export const PartSelector = ({
         <div className="flex items-center justify-between gap-3 p-3 rounded-lg border border-[#C24E6E] bg-[#FBD9E0]/30">
           <div className="flex items-baseline gap-2 flex-wrap">
             <span className="text-[10px] uppercase tracking-[0.18em] text-[#C24E6E] font-bold">
-              Part
+              Voice
             </span>
             <span className="font-serif italic text-base text-[#3A1E2A]">
               {selected.name}
@@ -66,7 +66,7 @@ export const PartSelector = ({
         </div>
       ) : (
         <p className="text-xs italic text-[#B391A0]">
-          No Part assigned to this entry.
+          No voice named for this entry.
         </p>
       )}
 
@@ -81,7 +81,7 @@ export const PartSelector = ({
               commit();
             }
           }}
-          placeholder='Name a Part — e.g. "The Caretaker"'
+          placeholder='Name a voice — e.g. "The Caretaker"'
           className="flex-1 px-3 py-2 text-base sm:text-sm bg-white border border-[#3A1E2A]/10 rounded-lg focus:outline-none focus:border-[#C24E6E] placeholder:text-[#B391A0]/60"
         />
         <button

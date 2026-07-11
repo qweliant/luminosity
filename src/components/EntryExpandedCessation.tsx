@@ -107,7 +107,7 @@ export const EntryExpandedCessation = ({
             <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-dashed border-[#D6A24A]/40">
               <span className="text-[13px] text-[#8B6914]">◆</span>
               <span className="font-serif italic text-[11.5px] text-[#B391A0]">
-                Prototype hidden — we don't design from inside this.
+                A plan is hidden — we don't design from inside this.
               </span>
             </div>
             <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-dashed border-[#D6A24A]/40">

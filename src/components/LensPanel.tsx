@@ -6,13 +6,7 @@ import {
   CORE_NEEDS_DETAIL,
   VALUE_DETAILS,
 } from "../data";
-import {
-  deriveNeed,
-  hasAnyLensData,
-  maslowHighest,
-  relationalFreedoms,
-  sdtProfile,
-} from "../derive";
+import { deriveNeed, hasAnyLensData } from "../derive";
 import { LifeDesignSection } from "./LifeDesignSection";
 import { RelationalSection } from "./RelationalSection";
 import { EmotionPicker } from "./EmotionPicker";
@@ -90,8 +84,8 @@ const BloomWorkability = ({
             type="button"
             onClick={() => onChange(value === n ? 0 : n)}
             className="focus:outline-none hover:scale-110 transition-transform cursor-pointer"
-            title={`Workability ${n}/5`}
-            aria-label={`Workability ${n} of 5`}
+            title={`How it's going ${n}/5`}
+            aria-label={`How it's going ${n} of 5`}
           >
             <BloomFlower
               size={14}
@@ -109,16 +103,14 @@ const BloomWorkability = ({
 };
 
 // Each lens step is rail-marked with a pink dashed border and ends in a
-// dashed divider. Step number is mono; framework attribution is tiny caps.
+// dashed divider. Step number is mono; the step name is serif.
 const LensStep = ({
   n,
   name,
-  framework,
   children,
 }: {
   n: string;
   name: string;
-  framework: string;
   children: React.ReactNode;
 }) => (
   <div className="pl-5 pb-5 mb-5 border-l-2 border-[#FBD9E0] border-b border-dashed border-[#3A1E2A]/10 last:border-b-0 last:mb-0 last:pb-0">
@@ -127,37 +119,9 @@ const LensStep = ({
       <span className="font-serif text-lg text-[#3A1E2A] leading-none">
         {name}
       </span>
-      <span className="text-[9px] uppercase tracking-[0.18em] text-[#C24E6E] font-semibold">
-        {framework}
-      </span>
     </div>
     {children}
   </div>
-);
-
-// Three-dot scale for SDT profile (autonomy / competence / relatedness).
-const SdtDots = ({ n }: { n: number }) => (
-  <span className="inline-flex gap-[2px] ml-0.5 align-middle">
-    {[1, 2, 3].map((i) => (
-      <span
-        key={i}
-        className="inline-block w-[5px] h-[5px] rounded-full"
-        style={{ background: i <= n ? "#E07A95" : "#FBD9E0" }}
-      />
-    ))}
-  </span>
-);
-
-const SdtFootnote = ({
-  profile,
-}: {
-  profile: { autonomy: number; competence: number; relatedness: number };
-}) => (
-  <p className="font-mono text-[10px] text-[#5A3645] mt-2 leading-relaxed">
-    SDT · autonomy <SdtDots n={profile.autonomy} /> · competence{" "}
-    <SdtDots n={profile.competence} /> · relatedness{" "}
-    <SdtDots n={profile.relatedness} />
-  </p>
 );
 
 // --- Component -------------------------------------------------------------
@@ -174,9 +138,6 @@ export const LensPanel = ({
   const [draftPreview, setDraftPreview] = useState<string | null>(null);
   const detail = VALUE_DETAILS[entry.value.toLowerCase().trim()];
   const lensReady = hasAnyLensData(entry);
-  const sdt = sdtProfile(entry);
-  const maslow = maslowHighest(entry);
-  const freedoms = relationalFreedoms(entry);
 
   const handleSynthesize = () => {
     const draft = deriveNeed(entry);
@@ -218,11 +179,11 @@ export const LensPanel = ({
         </div>
       )}
 
-      {/* Step 1 — Diagnose */}
-      <LensStep n="1" name="Diagnose" framework="ACT + Atlas of the Heart">
+      {/* Step 1 — Check in */}
+      <LensStep n="1" name="Check in">
         <div className="mb-3">
           <p className="text-[9.5px] uppercase tracking-[0.18em] text-[#5A3645] font-semibold mb-2">
-            Workability
+            How's it going
           </p>
           <BloomWorkability
             value={entry.workability ?? 0}
@@ -234,8 +195,8 @@ export const LensPanel = ({
         </div>
       </LensStep>
 
-      {/* Step 2 — Locate (NVC) */}
-      <LensStep n="2" name="Locate" framework="NVC Universal Needs">
+      {/* Step 2 — What's missing */}
+      <LensStep n="2" name="What's missing">
         <p className="text-[11.5px] text-[#5A3645] mb-3 font-serif italic">
           Tag what's starving underneath the friction.
         </p>
@@ -272,10 +233,10 @@ export const LensPanel = ({
         </div>
       </LensStep>
 
-      {/* Step 3 — Anchor (Madanes) */}
-      <LensStep n="3" name="Anchor" framework="Madanes 6 Core Human Needs">
+      {/* Step 3 — Deeper need */}
+      <LensStep n="3" name="Deeper need">
         <p className="text-[11.5px] text-[#5A3645] mb-3 font-serif italic">
-          Which fundamental driver does this value serve?
+          What deeper need is this value really serving?
         </p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {CORE_NEEDS.map((n) => {
@@ -305,29 +266,10 @@ export const LensPanel = ({
             );
           })}
         </div>
-        {(entry.coreNeed || maslow || freedoms.length > 0) && (
-          <div className="mt-3 p-3 bg-[#FAE6E1]/40 rounded-xl border border-[#3A1E2A]/5">
-            <SdtFootnote profile={sdt} />
-            {maslow && (
-              <p className="font-mono text-[10px] text-[#5A3645] mt-1">
-                Maslow · highest active layer:{" "}
-                <span className="text-[#C24E6E]">{maslow}</span>
-              </p>
-            )}
-            {freedoms.length > 0 && (
-              <p className="font-mono text-[10px] text-[#5A3645] mt-1">
-                Jones · freedoms at stake:{" "}
-                <span className="text-[#C24E6E]">
-                  {freedoms.join(" · ").toLowerCase()}
-                </span>
-              </p>
-            )}
-          </div>
-        )}
       </LensStep>
 
       {/* Step 4 — Reframe (delegates to LifeDesignSection) */}
-      <LensStep n="4" name="Reframe" framework="Stanford Life Design">
+      <LensStep n="4" name="Reframe">
         <LifeDesignSection
           ld={entry.lifeDesign}
           onChange={(next) => onChange({ lifeDesign: next })}
@@ -335,10 +277,10 @@ export const LensPanel = ({
         />
       </LensStep>
 
-      {/* Step 5 — Contextualize (Nagoski + Jones) */}
-      <LensStep n="5" name="Contextualize" framework="Nagoski + Jones">
+      {/* Step 5 — Contexts */}
+      <LensStep n="5" name="Contexts">
         <p className="text-[11.5px] text-[#5A3645] mb-3 font-serif italic">
-          Which contexts accelerate this value, and which brake it?
+          Which situations bring this value out, and which shut it down?
         </p>
         <div className="grid md:grid-cols-2 gap-4">
           <div>
@@ -382,10 +324,7 @@ export const LensPanel = ({
         <div className="flex items-baseline gap-2 mb-3 flex-wrap">
           <span className="font-mono text-[11px] text-[#B391A0]">6</span>
           <span className="font-serif text-lg text-[#3A1E2A] leading-none">
-            Synthesize
-          </span>
-          <span className="text-[9px] uppercase tracking-[0.18em] text-[#C24E6E] font-semibold">
-            Templated draft
+            Sum up
           </span>
         </div>
 
@@ -401,11 +340,11 @@ export const LensPanel = ({
             }`}
           >
             <BloomFlower size={11} petal={lensReady ? "#FFFFFF" : "#B391A0"} />
-            Compose draft
+            Draft a sentence
           </button>
           {!lensReady && (
             <span className="text-[11px] text-[#B391A0] italic font-serif">
-              set at least one lens above to enable synthesis
+              fill in at least one step above first
             </span>
           )}
         </div>

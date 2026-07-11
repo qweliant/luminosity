@@ -1,16 +1,13 @@
 import type { Mapping } from "../types";
-import type { IfsLayer } from "../derive";
 import type { ParsedNeed } from "../parsedNeed";
 import { BloomFlower, BloomWorkability } from "./bloom";
 import { EntryStatusPills } from "./EntryStatusPills";
 
 interface Props {
   entry: Mapping;
-  ifsBand: IfsLayer | null;
   partName: string | null;
   acceleratorsCount: number;
   brakesCount: number;
-  servesDriver: string;
   parsedNeed: ParsedNeed;
   onChange: (patch: Partial<Mapping>) => void;
   onExpand: () => void;
@@ -24,11 +21,9 @@ interface Props {
  */
 export const EntryCondensed = ({
   entry,
-  ifsBand,
   partName,
   acceleratorsCount,
   brakesCount,
-  servesDriver,
   parsedNeed,
   onChange,
   onExpand,
@@ -73,9 +68,6 @@ export const EntryCondensed = ({
         <div>
           <div className="text-[9.5px] uppercase tracking-[0.18em] text-[#C24E6E] font-semibold mb-1 flex items-center gap-1">
             Need
-            <span className="text-[#B391A0] font-normal lowercase tracking-normal">
-              · serves {servesDriver}
-            </span>
           </div>
 
           <p className="font-serif italic text-sm text-[#3A1E2A] leading-relaxed line-clamp-2 group-hover/col:text-[#C24E6E]">
@@ -96,7 +88,6 @@ export const EntryCondensed = ({
 
         <EntryStatusPills
           entry={entry}
-          ifsBand={ifsBand}
           partName={partName}
           acceleratorsCount={acceleratorsCount}
           brakesCount={brakesCount}
