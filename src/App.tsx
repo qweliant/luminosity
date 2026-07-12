@@ -7,6 +7,8 @@ import {
   BookOpen,
   Download,
   Users,
+  LayoutGrid,
+  List,
 } from "lucide-react";
 
 import type { Mapping } from "./types";
@@ -356,7 +358,7 @@ export const App = () => {
                   </span>
                 </div>
 
-                <div className="flex gap-4 items-center flex-wrap text-[10px] uppercase tracking-[0.18em] font-medium">
+                <div className="flex gap-0.5 sm:gap-4 items-center flex-wrap text-[10px] uppercase tracking-[0.18em] font-medium">
                   {backupEnabled && (
                     <BackupChip
                       status={backup.status}
@@ -368,24 +370,27 @@ export const App = () => {
                     />
                   )}
 
-                  {/* Primary: live state */}
+                  {/* Primary: live state — icon-only on mobile, labelled on desktop */}
                   <button
                     onClick={() => setShowSync(true)}
-                    className={`hover:text-[#C24E6E] transition-colors flex items-center gap-1 cursor-pointer ${
+                    className={`inline-flex items-center justify-center gap-1.5 min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 px-1 sm:px-0 hover:text-[#C24E6E] transition-colors cursor-pointer ${
                       liveP2P ? "text-[#9CD3B6] font-bold" : "text-[#B391A0]"
                     }`}
                     title="Mirror this ledger to another browser. Nothing leaves your devices."
+                    aria-label={liveP2P ? "Sync — live" : "Sync"}
                   >
                     <Radio
-                      size={15}
-                      className={`inline ${liveP2P ? "animate-pulse" : ""}`}
+                      size={17}
+                      className={liveP2P ? "animate-pulse" : ""}
                     />
-                    <span>{liveP2P ? "Live" : "Sync"}</span>
+                    <span className="hidden sm:inline">
+                      {liveP2P ? "Live" : "Sync"}
+                    </span>
                   </button>
 
                   {liveP2P && peers.length > 0 && (
                     <span
-                      className="font-serif italic text-[10px] tracking-normal normal-case text-[#B391A0]"
+                      className="hidden sm:inline font-serif italic text-[10px] tracking-normal normal-case text-[#B391A0]"
                       title={
                         "Other devices in this room: " +
                         peers.map((p) => p.device).join(", ")
@@ -402,30 +407,37 @@ export const App = () => {
                     onClick={() =>
                       navigate({ name: matrixView ? "list" : "matrix" })
                     }
-                    className={`hover:text-[#C24E6E] transition-colors flex items-center cursor-pointer ${
+                    className={`inline-flex items-center justify-center gap-1.5 min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 px-1 sm:px-0 hover:text-[#C24E6E] transition-colors cursor-pointer ${
                       matrixView ? "text-[#C24E6E] font-bold" : "text-[#B391A0]"
                     }`}
+                    title={matrixView ? "Back to the list" : "See the map"}
+                    aria-label={matrixView ? "List view" : "Matrix view"}
                   >
-                    {matrixView ? "✿ List view" : "Matrix"}
+                    {matrixView ? <List size={17} /> : <LayoutGrid size={16} />}
+                    <span className="hidden sm:inline">
+                      {matrixView ? "List view" : "Matrix"}
+                    </span>
                   </button>
 
                   {/* Reading surfaces — keep discoverable */}
                   <button
                     onClick={() => navigate({ name: "methods" })}
-                    className="hover:text-[#C24E6E] transition-colors flex items-center text-[#B391A0] cursor-pointer"
+                    className="inline-flex items-center justify-center gap-1.5 min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 px-1 sm:px-0 hover:text-[#C24E6E] transition-colors text-[#B391A0] cursor-pointer"
                     title="What this is, and why I made it"
+                    aria-label="How it works"
                   >
-                    <BookOpen size={15} className="inline mr-1" />
-                    how it works
+                    <BookOpen size={16} />
+                    <span className="hidden sm:inline">how it works</span>
                   </button>
 
                   <button
                     onClick={() => navigate({ name: "parts" })}
-                    className="hover:text-[#C24E6E] transition-colors flex items-center text-[#B391A0] cursor-pointer"
+                    className="inline-flex items-center justify-center gap-1.5 min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 px-1 sm:px-0 hover:text-[#C24E6E] transition-colors text-[#B391A0] cursor-pointer"
                     title="The recurring inner voices you've named"
+                    aria-label="Voices"
                   >
-                    <Users size={15} className="inline mr-1" />
-                    voices
+                    <Users size={16} />
+                    <span className="hidden sm:inline">voices</span>
                   </button>
 
                   {/* Archival actions — collapsed */}

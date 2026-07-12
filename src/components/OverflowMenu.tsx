@@ -5,6 +5,7 @@
 // its own relative wrapper so it sits flush under the ⋯ button.
 
 import React, { useEffect, useRef, useState } from "react";
+import { MoreHorizontal } from "lucide-react";
 
 export interface OverflowItem {
   label: string;
@@ -39,7 +40,7 @@ export const OverflowMenu = ({ items }: { items: OverflowItem[] }) => {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className={`hover:text-[#C24E6E] transition-colors flex items-center text-[#B391A0] cursor-pointer ${
+        className={`inline-flex items-center justify-center gap-1 min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 px-1 sm:px-0 rounded-full sm:rounded-none hover:text-[#C24E6E] transition-colors cursor-pointer ${
           open
             ? "text-[#C24E6E] bg-[#FBD9E0]/40"
             : "text-[#5A3645] hover:text-[#C24E6E]"
@@ -49,7 +50,8 @@ export const OverflowMenu = ({ items }: { items: OverflowItem[] }) => {
         aria-expanded={open}
         title="Import · Export · Print"
       >
-        archive
+        <MoreHorizontal size={18} className="sm:hidden" />
+        <span className="hidden sm:inline">archive</span>
       </button>
 
       {open && (
