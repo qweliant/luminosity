@@ -189,7 +189,7 @@ export const ImportModal = ({
   return (
     <div className="fixed inset-0 bg-[#FAE6E1]/80 backdrop-blur-xs z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
       {/* Main Murakami Rounded Box */}
-      <div className="w-full max-w-2xl max-h-[85vh] flex flex-col bg-[#FDF4F0] border border-[#3A1E2A]/15 rounded-[18px] p-6 sm:p-8 shadow-xl relative overflow-hidden">
+      <div className="w-full max-w-2xl max-h-[85dvh] flex flex-col bg-[#FDF4F0] border border-[#3A1E2A]/15 rounded-[18px] p-6 sm:p-8 shadow-xl relative overflow-hidden">
         {/* Ambient background decoration */}
         <div
           aria-hidden="true"
@@ -255,7 +255,7 @@ export const ImportModal = ({
         </div>
 
         {/* Inner Scroll Canvas */}
-        <div className="flex-1 overflow-y-auto pr-2 space-y-6 relative z-10 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto overscroll-contain pr-2 space-y-6 relative z-10 custom-scrollbar">
           {tab === "paste" ? (
             <div className="flex flex-col h-full animate-in fade-in duration-150">
               <label className="text-[10px] uppercase tracking-[0.18em] text-[#5A3645] font-semibold mb-2 block">

@@ -75,7 +75,7 @@ export const FocusOverlay = ({
   const StepComponent = STEP_COMPONENTS[step];
 
   return (
-    <div className="fixed inset-0 bg-[#FDF4F0] z-50 overflow-y-auto print:hidden animate-in fade-in duration-300 select-none">
+    <div className="fixed inset-0 bg-[#FDF4F0] z-50 overflow-y-auto overscroll-contain print:hidden animate-in fade-in duration-300 select-none">
       <div
         aria-hidden="true"
         className="absolute right-[-30px] top-[-30px] opacity-60 pointer-events-none"
@@ -89,7 +89,7 @@ export const FocusOverlay = ({
         <BloomFlower size={180} petal="#FBD9E0" smile={false} />
       </div>
 
-      <div className="max-w-2xl mx-auto py-4 sm:py-14 px-4 sm:px-6 min-h-dvh flex flex-col relative z-10">
+      <div className="max-w-2xl mx-auto pt-[max(1rem,env(safe-area-inset-top))] pb-4 sm:py-14 px-4 sm:px-6 min-h-dvh flex flex-col relative z-10">
         <header className="flex justify-between items-start mb-4 sm:mb-8 gap-4 border-b border-dashed border-[#3A1E2A]/10 pb-3 sm:pb-4">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 mb-1">

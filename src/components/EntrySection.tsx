@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Trash2 } from "lucide-react";
 import type { Mapping, Part } from "../types";
 import { isCessationState, lensCompletion } from "../derive";
@@ -69,14 +69,34 @@ export const EntrySection = ({
   const expand = () => setIsExpanded(true);
   const collapse = () => setIsExpanded(false);
 
+  // Delete is destructive and has no undo, so it's a two-tap arm/confirm.
+  // Position: on mobile an always-visible corner control (the old hover-in-the-
+  // left-gutter button sat off-screen and never appeared on touch); on desktop
+  // (sm+) it reverts to the subtle hover-reveal in the left gutter.
+  const [armDelete, setArmDelete] = useState(false);
+  useEffect(() => {
+    if (!armDelete) return;
+    const t = setTimeout(() => setArmDelete(false), 3000);
+    return () => clearTimeout(t);
+  }, [armDelete]);
+
   return (
     <section className="relative group animate-in fade-in slide-in-from-bottom-4 duration-700 print:mb-8 select-none">
       <button
-        onClick={onDelete}
-        className="absolute -left-12 top-2 bg-white border border-[#3A1E2A]/10 p-1.5 rounded-full text-[#B391A0] hover:text-[#C24E6E] hover:border-[#C24E6E]/30 opacity-0 group-hover:opacity-100 transition-all print:hidden z-10 shadow-xs cursor-pointer"
-        title="Remove mapped value"
+        onClick={() => (armDelete ? onDelete() : setArmDelete(true))}
+        onBlur={() => setArmDelete(false)}
+        className={`absolute z-10 inline-flex items-center justify-center transition-all print:hidden shadow-xs cursor-pointer border rounded-full
+          -top-2.5 -right-2.5 sm:top-2 sm:right-auto sm:-left-12
+          opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100
+          ${
+            armDelete
+              ? "bg-[#C24E6E] text-white border-[#C24E6E] px-3 min-h-10 sm:min-h-8 text-[10px] font-bold uppercase tracking-wider"
+              : "bg-white text-[#B391A0] border-[#3A1E2A]/10 hover:text-[#C24E6E] hover:border-[#C24E6E]/30 min-h-10 min-w-10 sm:min-h-0 sm:min-w-0 sm:p-1.5"
+          }`}
+        title={armDelete ? "Tap again to remove" : "Remove this value"}
+        aria-label={armDelete ? "Confirm remove this value" : "Remove this value"}
       >
-        <Trash2 size={14} />
+        {armDelete ? "delete?" : <Trash2 size={15} />}
       </button>
 
       {!isExpanded ? (

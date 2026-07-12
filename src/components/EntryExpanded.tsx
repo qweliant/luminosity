@@ -3,6 +3,7 @@ import type { LensCompletion } from "../derive";
 import type { ParsedNeed } from "../parsedNeed";
 import { EMOTION_PLACES_BY_ID, findEmotion } from "../data";
 import { BloomFlower, BrakeMark, BloomWorkability } from "./bloom";
+import { CommitmentCard } from "./CommitmentCard";
 import { CompletionBar } from "./primitives";
 import { LensPanel } from "./LensPanel";
 import { UnblendFrame } from "./UnblendFrame";
@@ -344,13 +345,20 @@ export const EntryExpanded = ({
       </div>
     </div>
 
+    {/* Committed action — the if-then that carries this value out. Mirrors the
+        card in Focus step 6. EntryExpanded only renders for non-cessation
+        entries, so no pause-here gate is needed here. */}
+    <div className="mt-6">
+      <CommitmentCard entry={entry} onChange={onChange} />
+    </div>
+
     {/* Footer chrome */}
     <div className="mt-6 pt-4 border-t border-dashed border-[#3A1E2A]/10 flex items-center gap-4 flex-wrap print:hidden bg-[#FDF4F0] -mx-6 -mb-6 p-4 rounded-b-[18px]">
       <button
         onClick={onToggleLens}
         className="text-[9.5px] uppercase tracking-[0.25em] text-[#C24E6E] hover:text-[#3A1E2A] transition-colors font-semibold cursor-pointer"
       >
-        {lensOpen ? "✿ Hide lenses" : "+ Apply lenses"}
+        {lensOpen ? "✿ Hide the steps" : "+ Open the steps"}
       </button>
       <CompletionBar completion={completion} />
 

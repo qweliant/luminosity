@@ -81,7 +81,7 @@ export const PartSelector = ({
               commit();
             }
           }}
-          placeholder='Name a voice — e.g. "The Caretaker"'
+          placeholder='Name a voice, e.g. "The Caretaker"'
           className="flex-1 px-3 py-2 text-base sm:text-sm bg-white border border-[#3A1E2A]/10 rounded-lg focus:outline-none focus:border-[#C24E6E] placeholder:text-[#B391A0]/60"
         />
         <button

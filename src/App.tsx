@@ -351,7 +351,7 @@ export const App = () => {
               <div className="flex justify-between items-end flex-wrap gap-4 border-b border-[#3A1E2A]/10 pb-4">
                 <div className="flex items-baseline gap-3">
                   <BloomWordmark size={36} />
-                  <span className="font-serif italic text-xs text-[#B391A0]">
+                  <span className="hidden sm:inline font-serif italic text-xs text-[#B391A0]">
                     a kind, small ledger
                   </span>
                 </div>
@@ -446,7 +446,7 @@ export const App = () => {
                       },
                       {
                         label: "Print",
-                        hint: "Editorial layout — useful for PDF saves",
+                        hint: "Editorial layout, useful for PDF saves",
                         icon: <Printer size={15} />,
                         onClick: () => window.print(),
                       },
@@ -535,8 +535,8 @@ export const App = () => {
                       {nudge.entry.value || "Your alignment"}
                     </button>{" "}
                     {nudge.kind === "almost"
-                      ? "is almost tended — want to finish unpacking the friction?"
-                      : "feels like a good place to start tending today — ready to unpack the friction?"}
+                      ? "is almost tended. want to finish unpacking the friction?"
+                      : "feels like a good place to start today. ready to unpack the friction?"}
                   </div>
                   <div className="mt-1 font-mono text-[9px] text-[#5A3645]/70 tracking-wider">
                     lumi · your gentle nudge

@@ -15,7 +15,29 @@
 /* Optional: Add the fonts for that high-end look */
 
 @layer base {
+  html {
+    /* Stop iOS from inflating text in landscape, and kill the grey tap flash. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    /* Match the app background so the notch/home-indicator gutters and the
+       iOS overscroll bounce blend in rather than flashing a different color. */
+    background-color: #FDF4F0;
+  }
+
   body {
-    @apply bg-[#FDFCFB] text-[#1a1a1a] antialiased;
+    @apply bg-[#FDF4F0] text-[#1a1a1a] antialiased;
+    min-height: 100dvh;
+  }
+
+  /* Snappier touch: remove the 300ms tap delay and double-tap-zoom on
+     interactive controls (text inputs keep their default behavior). */
+  button,
+  a,
+  summary,
+  label,
+  [role="button"],
+  [role="radio"] {
+    touch-action: manipulation;
   }
 }

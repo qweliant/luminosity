@@ -200,8 +200,8 @@ describe('deriveNeed', () => {
         },
       })
     );
-    expect(out).toContain('fact of life — navigating around it: plan around their schedule');
-    expect(out).not.toContain('Prototype');
+    expect(out).toContain('fact of life, working around it: plan around their schedule');
+    expect(out).not.toContain('To try');
   });
 
   test('Reality without acceptanceNote falls back to default reality clause', () => {
@@ -223,7 +223,7 @@ describe('deriveNeed', () => {
         },
       })
     );
-    expect(out).toContain('Prototype (talk): interview Sarah');
+    expect(out).toContain('To try (talk): interview Sarah');
   });
 
   test('Reframe note appears (non-Reality only)', () => {
@@ -259,7 +259,7 @@ describe('deriveNeed', () => {
         },
       })
     );
-    expect(out).toContain('Accountability: this requires asserting an external boundary, not a request — clean boundary.');
+    expect(out).toContain('Accountability: this requires asserting an external boundary, not a request. A clean boundary.');
   });
 
   test('agreement_violation with failures → risk + failure list', () => {
@@ -285,7 +285,7 @@ describe('deriveNeed', () => {
     const out = deriveNeed(
       baseEntry({ relational: { active: true, source: 'internal_work' } })
     );
-    expect(out).toContain('Accountability: this is internal work — no other person needs to change.');
+    expect(out).toContain('Accountability: this is internal work; no other person needs to change.');
     expect(out).not.toContain('clean boundary');
     expect(out).not.toContain('Risk');
   });
@@ -323,7 +323,7 @@ describe('deriveNeed', () => {
         emotion: 'Overwhelm',
       })
     );
-    expect(out).toContain('cessation');
+    expect(out).toContain('This is overwhelm');
     expect(out).not.toContain('Reliable access');
   });
 

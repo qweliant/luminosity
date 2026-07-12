@@ -248,8 +248,8 @@ export const PartsPage = ({
               The voices you've named.
             </h1>
             <p className="font-serif italic text-sm text-[#5A3645] mt-2 max-w-prose leading-relaxed m-0">
-              The recurring inner characters showing up across your entries — what tends
-              to come up under each, how they usually feel, and the sentences they've written.
+              The recurring inner characters across your entries, and what tends to come
+              up under each: how they usually feel, and the sentences they've written.
             </p>
           </div>
         </div>
@@ -288,8 +288,8 @@ export const PartsPage = ({
           </p>
           <p className="text-sm text-[#5A3645] leading-relaxed max-w-md mx-auto m-0">
             Open any value in Focus mode and look for the <em>recurring voice</em> field
-            on the "Deeper need" step. Type a name — "The People Pleaser", "The Inner
-            Critic", "The Caretaker" — and it will show up here.
+            on the "Deeper need" step. Type a name, like "The People Pleaser" or "The
+            Caretaker", and it'll show up here.
           </p>
         </section>
       ) : (

@@ -91,25 +91,25 @@ export const hasAnyLensData = (entry: Mapping): boolean => {
 const atlasBias = (entry: Mapping): string | null => {
   switch (entry.emotion) {
     case 'Envy':
-      return 'Envy as data: this points to a desire I have not given myself permission to pursue. The prototype should test that permission.';
+      return 'Envy as data: this points to a desire I have not given myself permission to pursue. The small test should try that permission.';
     case 'Jealousy':
-      return 'A relationship is at stake — name what is being protected before naming what is being demanded.';
+      return 'A relationship is at stake. Name what is being protected before naming what is being demanded.';
     case 'Resentment':
       return 'Resentment lives in the standard I am holding, not in the other person\'s freedom. Examine which burden can be put down.';
     case 'Guilt':
-      return 'Guilt is adaptive — it surfaces behavior that strayed from this value. The need is realignment, not self-condemnation.';
+      return 'Guilt is adaptive: it surfaces behavior that strayed from this value. The need is realignment, not self-condemnation.';
     case 'Perfectionism':
       return 'Perfectionism is a brake disguised as a standard. The need is a tolerable threshold for "good enough."';
     case 'Disappointment':
-      return 'Examine the expectation behind this — was it examined and expressed, or stealth?';
+      return 'Examine the expectation behind this. Was it examined and expressed, or unspoken?';
     case 'Regret':
       return 'Regret is signal when it surfaces a value to realign with; loop when it does not. Which is this?';
     case 'Fitting In':
       return 'Fitting in costs more than it pays. The need is at least one space where the unmasked self is safe.';
     case 'Anger':
-      return 'Test the target: if it is something I can change, route to workability. If not, route to acceptance.';
+      return 'Test the target: if it is something I can change, act on it. If not, work toward acceptance.';
     case 'Anxiety':
-      return 'Anxiety is anticipation without an immediate threat. Ground in what is actually within my control today.';
+      return 'Anxiety is anticipation without an immediate threat. Ground in what is within my control today.';
     default:
       return null;
   }
@@ -124,15 +124,15 @@ const atlasBias = (entry: Mapping): string | null => {
 // abstinence-violation spiral rather than change.
 const CESSATION_PROSE: Record<string, string> = {
   Overwhelm:
-    'This is overwhelm — cognitive, emotional, and physical processing is shut down. The need is cessation: silence, space, and disengagement until the nervous system resets. Do not plan from here.',
+    'This is overwhelm. Your thinking, feelings, and body have shut down for now. What you need is to stop: quiet and space until things settle. Don\'t plan from here.',
   Shame:
-    'This is shame — the story that "I am bad," not "I did something bad." Environmental fixes will fail because the self is the target. The need is self-compassion and naming the experience, not a prototype.',
+    'This is shame: the story that "I am bad," not "I did something bad." Fixing your circumstances won\'t help, because the target is you. What you need is self-compassion, and to name what you\'re feeling. Not a plan.',
   Flooding:
-    'This is flooding — the body\'s emergency response in conflict. The need is to disengage and return when calm.',
-  Grief: 'This is grief. There is no need to prescribe. Presence, witnessing, and time are the only honest response.',
-  Anguish: 'This is anguish. There is no prototype that fits — be in it, with support.',
+    'This is flooding: your body\'s alarm going off in conflict. Step away, and come back when you\'re calm.',
+  Grief: 'This is grief. There is nothing to prescribe. Presence and time are the only honest response.',
+  Anguish: 'This is anguish. No plan fits. Be in it, with support.',
   Despair: 'This is despair. Do not solve. Reach for company, and for the smallest next breath.',
-  Hopelessness: 'This is hopelessness. The need is presence — yours, and someone else\'s if possible.',
+  Hopelessness: 'This is hopelessness. What you need is presence: yours, and someone else\'s if possible.',
   Sadness: 'This is sadness. It is not asking to be fixed. Let it be felt.',
 };
 
@@ -171,9 +171,9 @@ export const deriveNeed = (entry: Mapping): string => {
 
   if (ld?.problemFrame === 'reality') {
     if (ld.acceptanceNote && ld.acceptanceNote.trim()) {
-      parts.push(`This is a fact of life — navigating around it: ${ld.acceptanceNote.trim()}.`);
+      parts.push(`This is a fact of life, working around it: ${ld.acceptanceNote.trim()}.`);
     } else {
-      parts.push('Treated as reality — a fact of life to navigate around, not solve.');
+      parts.push('Treated as reality: a fact of life to work around, not solve.');
     }
   } else {
     if (ld?.reframeNote && ld.reframeNote.trim()) {
@@ -182,9 +182,9 @@ export const deriveNeed = (entry: Mapping): string => {
     const action = ld?.prototype?.action?.trim();
     if (action) {
       const pmode = ld?.prototype?.mode === 'talk' ? 'talk' : 'do';
-      parts.push(`Prototype (${pmode}): ${action}.`);
+      parts.push(`To try (${pmode}): ${action}.`);
     } else if (ld?.problemFrame === 'stuck') {
-      parts.push('A stuck problem — sticky, deserving of design attention.');
+      parts.push('A stuck problem: sticky, and worth some attention.');
     }
   }
 
@@ -200,7 +200,7 @@ export const deriveNeed = (entry: Mapping): string => {
     const sourceClause: Record<RelationalSource, string> = {
       right_violation: 'this requires asserting an external boundary, not a request',
       agreement_violation: 'this requires collaborative repair of a prior agreement',
-      internal_work: 'this is internal work — no other person needs to change',
+      internal_work: 'this is internal work; no other person needs to change',
     };
     const checks = [r.focusSelf, r.intentValue, r.isRequest, r.preservesAutonomy];
     const allClean = checks.every(c => c === true);
@@ -211,9 +211,9 @@ export const deriveNeed = (entry: Mapping): string => {
     if (r.preservesAutonomy === false) failures.push('preserve their autonomy');
 
     if (allClean) {
-      parts.push(`Accountability: ${sourceClause[r.source]} — clean boundary.`);
+      parts.push(`Accountability: ${sourceClause[r.source]}. A clean boundary.`);
     } else if (failures.length > 0) {
-      parts.push(`Accountability: ${sourceClause[r.source]}. Risk: still overreaches — needs to ${formatList(failures)}.`);
+      parts.push(`Accountability: ${sourceClause[r.source]}. Risk: still overreaches, needs to ${formatList(failures)}.`);
     } else {
       parts.push(`Accountability: ${sourceClause[r.source]}.`);
     }

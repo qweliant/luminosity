@@ -177,7 +177,7 @@ export const SyncOverlay = ({
 
   return (
     <div className="fixed inset-0 bg-[#FAE6E1]/80 backdrop-blur-xs z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200 select-none">
-      <div className="w-full max-w-xl bg-[#FDF4F0] border border-[#3A1E2A]/15 rounded-[18px] p-6 sm:p-8 shadow-xl relative overflow-hidden">
+      <div className="w-full max-w-xl max-h-[90dvh] overflow-y-auto overflow-x-hidden overscroll-contain bg-[#FDF4F0] border border-[#3A1E2A]/15 rounded-[18px] p-6 sm:p-8 shadow-xl relative">
         {/* Ambient background decoration */}
         <div
           aria-hidden="true"
@@ -370,7 +370,7 @@ export const SyncOverlay = ({
               <div className="flex gap-2">
                 <input
                   type="text"
-                  className="flex-1 bg-white border border-[#3A1E2A]/15 rounded-xl px-3 py-2 text-xs font-mono text-[#3A1E2A] focus:outline-none focus:border-[#C24E6E]"
+                  className="flex-1 bg-white border border-[#3A1E2A]/15 rounded-xl px-3 py-2 text-base sm:text-xs font-mono text-[#3A1E2A] focus:outline-none focus:border-[#C24E6E]"
                   placeholder="luminosity-room::secret-key"
                   value={joinString}
                   onChange={(e) => setJoinString(e.target.value)}

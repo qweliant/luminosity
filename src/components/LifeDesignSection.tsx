@@ -31,21 +31,21 @@ const PROBLEM_TYPES: Array<{
   {
     id: "stuck",
     name: "Stuck",
-    blurb: "Sticky and recurring — needs a reframe first.",
+    blurb: "Sticky and recurring. Needs a reframe first.",
   },
   {
     id: "reality",
     name: "Reality",
-    blurb: "A fact of life to accept and navigate around, not solve.",
+    blurb: "A fact of life to accept and work around, not solve.",
   },
 ];
 
 // Conditional downstream — names the path forward before the downstream fields
 // appear, so the framework's logic is visible instead of buried.
 const DOWNSTREAM_LABEL: Record<LifeDesignProblemType, string> = {
-  open: "Open problem — go straight to a small test.",
-  stuck: "Because this is stuck — reframe first, then design a small test.",
-  reality: "Because this is a reality — accept and design around it.",
+  open: "Open problem. Go straight to a small test.",
+  stuck: "Because this is stuck, reframe first, then try a small test.",
+  reality: "Because this is a reality, accept and work around it.",
 };
 
 const DOWNSTREAM_ICON: Record<LifeDesignProblemType, string> = {
@@ -159,7 +159,7 @@ export const LifeDesignSection = ({
       <section>
         <Question
           title="How does this value sit in your week?"
-          sub="Wayfinding — from Burnett & Evans' Good Time Journal."
+          sub="A quick read on where your energy and interest go."
         />
         <div className="space-y-3">
           <LabeledScale
@@ -180,7 +180,7 @@ export const LifeDesignSection = ({
           />
           {energy > 0 && energy < 3 && (
             <p className="font-serif italic text-[11.5px] text-[#A85A2C] m-0 pl-[103px] leading-snug">
-              ⚠ This is currently draining you — worth naming.
+              ⚠ This is draining you right now. Worth naming.
             </p>
           )}
         </div>
@@ -289,14 +289,14 @@ export const LifeDesignSection = ({
                 An acceptance note
                 <span className="text-[#B391A0] font-normal italic">
                   {" "}
-                  · how will you navigate around it?
+                  · how will you work around it?
                 </span>
               </label>
               <input
                 className="w-full font-serif italic text-base sm:text-[14px] bg-white border border-[#3A1E2A]/10 focus:outline-none focus:border-[#8B6914] rounded-lg py-2 px-3 placeholder:text-[#B391A0]/60"
                 value={current.acceptanceNote ?? ""}
                 onChange={(e) => setAcceptance(e.target.value)}
-                placeholder="This is a fact of life. How will you navigate around it?"
+                placeholder="This is a fact of life. How will you work around it?"
               />
             </div>
           )}
@@ -349,7 +349,7 @@ export const LifeDesignSection = ({
                     {
                       mode: "talk" as const,
                       label: "Talk to someone",
-                      sub: "Who's already lived this — gather their story.",
+                      sub: "Who's already lived this? Gather their story.",
                     },
                   ].map(({ mode, label, sub }) => {
                     const sel = current.prototype?.mode === mode;

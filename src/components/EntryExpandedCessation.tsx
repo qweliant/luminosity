@@ -125,7 +125,7 @@ export const EntryExpandedCessation = ({
           onClick={onToggleLens}
           className="text-[9.5px] uppercase tracking-[0.22em] text-[#8B6914] hover:text-[#3A1E2A] transition-colors font-semibold cursor-pointer"
         >
-          {lensOpen ? "⏸ Hide lenses" : "+ Apply lenses (quietly)"}
+          {lensOpen ? "⏸ Hide the steps" : "+ Open the steps (quietly)"}
         </button>
         <CompletionBar completion={completion} />
         <button

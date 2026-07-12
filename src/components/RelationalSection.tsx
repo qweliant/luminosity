@@ -21,7 +21,7 @@ const SOURCE_OPTIONS: Array<{ key: RelationalSource; label: string; hint: string
   {
     key: 'internal_work',
     label: 'Neither / Painful Emotion',
-    hint: 'Internal reframing — I have work to do.',
+    hint: 'Internal reframing. I have work to do.',
   },
 ];
 

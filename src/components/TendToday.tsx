@@ -60,7 +60,7 @@ export const TendToday = ({ entries, onLog, onFocus }: Props) => {
             Tend today
           </div>
           <p className="font-serif italic text-sm text-[#5A3645] m-0 leading-snug">
-            the small moves you pre-decided — tap when you live it
+            the small moves you pre-decided. tap when you live it.
           </p>
         </div>
       </div>

@@ -12,7 +12,7 @@ export const EntryPrintSummary = ({ entry }: { entry: Mapping }) => (
     {entry.workability ? <div>How it's going: {entry.workability}/5</div> : null}
     {entry.emotionCluster ? (
       <div>
-        Atlas of the Heart: {entry.emotion ? `${entry.emotion} · ` : ""}
+        Feeling: {entry.emotion ? `${entry.emotion} · ` : ""}
         {EMOTION_PLACES_BY_ID[entry.emotionCluster]?.label}
       </div>
     ) : null}

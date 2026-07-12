@@ -46,28 +46,28 @@ const STEPS: Step[] = [
     name: 'Check in',
     one_line: "How's it going, and what's in the way?",
     body:
-      "Rate 1–5 how well your life is serving this value right now (1 is stuck, 5 is working). Then jot down what's in the way, and pick the feeling closest to where the friction's coming from. A few feelings — grief, shame, overwhelm, flooding — are \"pause here\" states: when you pick one, the app won't try to hand you a plan.",
+      "Rate 1–5 how well your life is serving this value right now (1 is stuck, 5 is working). Then jot down what's in the way, and pick the feeling closest to where the friction's coming from. A few feelings (grief, shame, overwhelm, flooding) are \"pause here\" states: when you pick one, the app won't try to hand you a plan.",
   },
   {
     step: '2',
     name: "What's missing",
     one_line: "What's starving underneath the friction?",
     body:
-      "Tag the plain human needs that feel unmet — things like rest, belonging, honesty, choice, growth. Naming what's missing tends to be more useful than naming what's wrong.",
+      "Tag the plain human needs that feel unmet, like rest, belonging, or honesty. Naming what's missing tends to be more useful than naming what's wrong.",
   },
   {
     step: '3',
     name: 'Deeper need',
     one_line: "What's this really in service of?",
     body:
-      "Pick the deeper thing this value serves — comfort, variety, feeling like you matter, connection, growth, contributing. And if it helps, name the recurring inner voice behind the entry (e.g. \"The Caretaker\").",
+      "Pick the deeper thing this value serves: comfort, variety, feeling like you matter, connection, growth, contributing. If it helps, name the recurring inner voice behind the entry, like \"The Caretaker\".",
   },
   {
     step: '4',
     name: 'Reframe',
     one_line: 'What kind of problem is this, and what could you try?',
     body:
-      "Some problems you can act on, some are stuck and need a fresh angle first, and some are just facts of life to make peace with. Name which, then sketch the smallest thing you could actually try or ask.",
+      "Some problems you can act on, some are stuck and need a fresh angle first, and some are just facts of life to make peace with. Name which, then sketch the smallest thing you could try or ask for.",
   },
   {
     step: '5',
@@ -81,7 +81,7 @@ const STEPS: Step[] = [
     name: 'Sum up',
     one_line: 'Pull it all into one sentence.',
     body:
-      "The app drafts a single sentence for what you need from everything above — take it, tweak it, or write your own. From here you can turn it into one tiny committed action to actually carry it out. In a \"pause here\" state it won't push a plan; it offers something kinder instead.",
+      "The app drafts a single sentence for what you need from everything above. Take it, tweak it, or write your own. From there you can turn it into one tiny committed action to carry it out. In a \"pause here\" state it won't push a plan; it offers something kinder instead.",
   },
 ];
 
@@ -107,14 +107,14 @@ const INFLUENCES: Influence[] = [
     author: 'Alicorn · LessWrong, 2009–2011',
     href: 'https://www.lesswrong.com/s/ynMFrq9K5iNMfSZNg/p/9o3Cjjem7AbmmZfBs',
     why:
-      "The longer version — practical exercises in seeing what's actually there without flinching or flattering it.",
+      "The longer version: practical exercises in seeing what's there without flinching or flattering it.",
   },
   {
     title: 'Ureshiku Naritai',
     author: 'Alicorn · LessWrong, 2024',
     href: 'https://www.lesswrong.com/posts/xnPFYBuaGhpq869mY/ureshiku-naritai',
     why:
-      'A later look back at what trying to be happier on purpose actually looked like, and what stuck.',
+      'A later look back at what trying to be happier on purpose looked like, and what stuck.',
   },
 ];
 
@@ -190,8 +190,8 @@ export const MethodsPage = ({ onClose }: { onClose: () => void }) => {
                   A small thing I made.
                 </h1>
                 <p className="font-serif italic text-[15px] text-[#5A3645] m-0 max-w-prose leading-relaxed">
-                  It walks a value from the friction that's in the way to a sentence
-                  you can act on, or just sit with — one small step at a time.
+                  It walks a value from the friction in the way to a sentence you can
+                  act on, or just sit with. One small step at a time.
                 </p>
               </div>
               <button
@@ -207,11 +207,11 @@ export const MethodsPage = ({ onClose }: { onClose: () => void }) => {
               <SectionCaps>Why I made this</SectionCaps>
               <div className="mt-3 px-6 py-5 bg-white rounded-2xl border border-[#3A1E2A]/10 shadow-xs">
                 <p className="m-0 text-[14px] text-[#5A3645] leading-relaxed max-w-145">
-                  I'm not a therapist, and I didn't consult one. I made this for myself —
-                  to line up my days with what I actually care about without getting
-                  overwhelmed. It borrows ideas from books and posts that helped me
-                  (listed at the bottom). Anything I got wrong in how I used them is on me.
-                  Take what's useful, ignore the rest.
+                  I'm not a therapist, and I didn't consult one. I made this for myself,
+                  to line up my days with what I care about without getting overwhelmed.
+                  It borrows ideas from books and posts that helped me (listed at the
+                  bottom). Anything I got wrong in how I used them is on me. Take what's
+                  useful, ignore the rest.
                 </p>
               </div>
             </section>
@@ -235,10 +235,10 @@ export const MethodsPage = ({ onClose }: { onClose: () => void }) => {
               </div>
               <dl className="mt-3.5 grid grid-cols-[110px_1fr] gap-x-5 gap-y-2.5 text-[13.5px] text-[#5A3645] leading-relaxed m-0">
                 {[
-                  ['Value', 'the belief or commitment you care about — e.g. Compassion, Curiosity, Health.'],
+                  ['Value', 'the belief or commitment you care about, e.g. Compassion or Health.'],
                   ['Friction', "what's currently in the way of living it."],
                   ['Need', 'the conditions that, if met, would let the value thrive.'],
-                  ['How it’s going', 'a simple 1–5 gut read on how well your life is actually serving it.'],
+                  ['How it’s going', 'a simple 1–5 gut read on how well your life is serving it.'],
                 ].map(([k, v]) => (
                   <React.Fragment key={k}>
                     <dt className="font-serif italic text-[14px] text-[#3A1E2A] m-0">{k}</dt>
@@ -247,8 +247,8 @@ export const MethodsPage = ({ onClose }: { onClose: () => void }) => {
                 ))}
               </dl>
               <p className="mt-4 px-3.5 py-2.5 bg-[#FAE6E1]/50 rounded-xl font-serif italic text-[13.5px] text-[#5A3645] leading-relaxed m-0">
-                The aim isn't to list values — it's to find where you're starving and name
-                the smallest thing that would feed you.
+                The aim isn't to list values. It's to find where you're starving, and
+                name the smallest thing that would feed you.
               </p>
             </section>
 
@@ -309,19 +309,19 @@ export const MethodsPage = ({ onClose }: { onClose: () => void }) => {
                 The recurring inner characters.
               </h2>
               <p className="m-0 mb-3.5 font-serif italic text-[13.5px] text-[#5A3645] leading-relaxed max-w-145">
-                Optionally, you can name the inner voice behind an entry — <em>The Caretaker</em>,{' '}
+                You can name the inner voice behind an entry: <em>The Caretaker</em>,{' '}
                 <em>The Inner Critic</em>, <em>The People Pleaser</em>. Once you've named a few,
                 the{' '}
                 <a href="#/parts" className="text-[#C24E6E] underline hover:no-underline">
                   voices page
                 </a>{' '}
-                groups your entries under each and shows what tends to come up — which ones
+                groups your entries under each and shows what tends to come up: which ones
                 usually feel stuck, and what deeper need keeps surfacing.
               </p>
               <div className="grid sm:grid-cols-3 gap-2.5">
                 {[
                   { rule: 'One at a time', body: 'Each entry names at most one voice.' },
-                  { rule: 'You name them', body: 'No preset list — whatever you type becomes a voice.' },
+                  { rule: 'You name them', body: 'No preset list; whatever you type becomes a voice.' },
                   { rule: 'Just for reading back', body: 'Name them while journaling; the voices page only reads them back.' },
                 ].map((c) => (
                   <div
@@ -352,13 +352,13 @@ export const MethodsPage = ({ onClose }: { onClose: () => void }) => {
                 <p className="m-0 mb-2.5 text-[13.5px] text-[#5A3645] leading-relaxed">
                   When you tag an entry with{' '}
                   <em>grief, shame, overwhelm, flooding, anguish, despair, hopelessness,</em>{' '}
-                  or <em>sadness</em>, the app won't try to draft a plan — it returns a
+                  or <em>sadness</em>, the app won't try to draft a plan. It offers a
                   kinder sentence instead.
                 </p>
                 <p className="m-0 text-[13.5px] text-[#5A3645] leading-relaxed">
-                  That's on purpose. From what I've read — and honestly from experience —
-                  trying to problem-solve from inside those states usually backfires. Better
-                  to be with it first, and come back to the planning later.
+                  That's on purpose. From what I've read, and from experience, trying to
+                  problem-solve from inside those states usually backfires. Better to be
+                  with it first, and come back to the planning later.
                 </p>
               </div>
             </section>
@@ -369,7 +369,7 @@ export const MethodsPage = ({ onClose }: { onClose: () => void }) => {
               <div className="mt-2.5 grid sm:grid-cols-2 gap-2.5">
                 {[
                   ['Local-first', "Everything lives in your browser's localStorage. No account, no telemetry, no analytics."],
-                  ['Sidecar (optional, if you install from GitHub)', 'The backup sidecar writes timestamped snapshots to a local SQLite file — still on your machine.'],
+                  ['Sidecar (optional, if you install from GitHub)', 'The backup sidecar writes timestamped snapshots to a local SQLite file, still on your machine.'],
                   ['Sync (optional)', 'Sync mirrors this between your own browsers over end-to-end encrypted WebRTC.'],
                   ['Nothing leaves', 'No server sees your data. Not for backup, not for sync, not for anything.'],
                 ].map(([t, b]) => (
@@ -401,13 +401,13 @@ export const MethodsPage = ({ onClose }: { onClose: () => void }) => {
                 <div className="relative">
                   <SectionCaps>What shaped this</SectionCaps>
                   <h2 className="font-serif italic text-[28px] text-[#3A1E2A] tracking-[-0.01em] leading-tight mt-2 mb-3 max-w-120">
-                    Where the name — and the idea — came from.
+                    Where the name, and the idea, came from.
                   </h2>
                   <p className="m-0 mb-5 text-[14px] text-[#5A3645] leading-relaxed max-w-145">
                     "Luminosity" comes from a set of posts by Alicorn on LessWrong about
                     getting better at seeing your own inner states clearly. This app is my
                     small, concrete take on that idea. A handful of self-help and psychology
-                    books shaped the individual steps too — but the through-line is below.
+                    books shaped the individual steps too, but the through-line is below.
                   </p>
 
                   <ul className="grid gap-2.5 list-none m-0 p-0">

@@ -48,7 +48,7 @@ export const EmotionPicker = ({ entry, onChange, variant = 'compact' }: Props) =
       <p
         className={`text-[11px] text-[#5A3645] ${isFocus ? 'mb-2' : 'mb-1'} font-serif italic leading-relaxed`}
       >
-        Where's the friction coming from? Pick the closest match — you can change it later.
+        Where's the friction coming from? Pick the closest match. You can change it later.
       </p>
 
       <div className="flex flex-wrap gap-1.5">

@@ -21,7 +21,7 @@ export const StepSynthesize = ({ entry, onChange }: FocusStepProps) => {
           </div>
           <div>
             <p className="text-[9.5px] uppercase tracking-[0.18em] text-amber-800 font-bold mb-1 font-mono">
-              ⚠️ Pause here — planning from this state isn't honest
+              ⚠️ Pause here. Planning from this state isn't honest
             </p>
             <p className="text-sm text-[#3A1E2A] leading-relaxed italic font-serif select-text bg-white/60 p-3 rounded border border-amber-200/50 my-2">
               "{draft}"
@@ -50,7 +50,7 @@ export const StepSynthesize = ({ entry, onChange }: FocusStepProps) => {
           </div>
           <div className="flex-1">
             <p className="text-[9.5px] uppercase tracking-[0.18em] text-[#C24E6E] font-bold mb-1 font-mono">
-              ✿ Drafted from your lenses
+              ✿ Drafted from your steps
             </p>
             <p className="text-sm sm:text-base text-[#3A1E2A] leading-relaxed italic font-serif select-text bg-[#FDF4F0] p-3 rounded border border-[#3A1E2A]/5 my-2">
               "{draft}"

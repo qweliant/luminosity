@@ -65,7 +65,7 @@ export const CommitmentCard = ({ entry, onChange }: Props) => {
         <p className="text-[9.5px] uppercase tracking-[0.18em] text-[#C24E6E] font-bold flex items-center gap-1 m-0">
           <BloomFlower size={12} petal="#E07A95" smile={false} /> Committed action
           <span className="text-[#B391A0] font-normal lowercase tracking-normal">
-            · the if-then that carries this out
+            · a when-then to carry it out
           </span>
         </p>
         {canSeed && (
@@ -79,8 +79,8 @@ export const CommitmentCard = ({ entry, onChange }: Props) => {
         )}
       </div>
       <p className="text-xs italic text-[#B391A0] mb-4 leading-snug">
-        Pre-decide one tiny move so the moment decides for you. Small beats
-        ambitious — the point is that it actually happens.
+        Pre-decide one tiny move, so the moment decides for you. Small beats
+        ambitious. The point is that it happens.
       </p>
 
       <div className="space-y-3">
@@ -134,8 +134,8 @@ export const CommitmentCard = ({ entry, onChange }: Props) => {
 
       {(c?.cue?.trim() || c?.action?.trim()) && (
         <p className="mt-3 text-[10px] text-[#B391A0] font-mono tracking-wide flex items-center gap-1">
-          <BloomFlower size={10} petal="#9CD3B6" smile={false} /> saved — this
-          resurfaces on your home page to tend
+          <BloomFlower size={10} petal="#9CD3B6" smile={false} /> saved. it'll show
+          up on your home page to tend
         </p>
       )}
     </div>
