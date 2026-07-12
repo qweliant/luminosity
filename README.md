@@ -76,9 +76,9 @@ src/
     EntrySection.tsx   List-view row (condensed + expanded states).
     FocusOverlay.tsx   Full-screen wizard (six steps).
     MatrixView.tsx     2-axis grid + mobile swipe-stack carousel.
-    MethodsPage.tsx    #/methods · framework reference page.
-    PartsPage.tsx      #/parts · read-only IFS Part profiles drawer.
-    PartSelector.tsx   Combobox inside Focus step 3 — assigns/creates Parts.
+    MethodsPage.tsx    #/methods · plain "how it works" page (no citations).
+    PartsPage.tsx      #/parts · "voices": read-only profiles of named voices.
+    PartSelector.tsx   Combobox inside Focus step 3 · names/creates voices.
     LensPanel.tsx, LifeDesignSection.tsx, RelationalSection.tsx,
     EmotionPicker.tsx, ImportModal.tsx, SyncOverlay.tsx, BackupChip.tsx,
     PrintLedger.tsx, primitives.tsx.
@@ -186,7 +186,7 @@ The lens scaffolding has six parallel touch points. Follow this checklist when a
    - Update `lensCompletion()` if the new lens should count as a step.
    - Update `hasAnyLensData()` to include it.
    - Update `deriveNeed()` if it should affect the synthesized sentence.
-5. **List-view UI** ([src/components/LensPanel.tsx](src/components/LensPanel.tsx)): add a new `<LensRow label="N · Verb · Framework">` block. For chip-style indicators on the condensed row (like Parts or IFS), extend the status pill strip in [src/components/EntrySection.tsx](src/components/EntrySection.tsx).
+5. **List-view UI** ([src/components/LensPanel.tsx](src/components/LensPanel.tsx)): add a `<LensStep n="N" name="…">` block with a **plain-language** name and no framework label (see *Conventions › Voice*). For chip-style indicators on the condensed row, extend the status pill strip in [src/components/EntryStatusPills.tsx](src/components/EntryStatusPills.tsx).
 6. **Focus-mode UI** ([src/components/FocusOverlay.tsx](src/components/FocusOverlay.tsx)'s `FocusStep`): add a step branch and corresponding entry in `FOCUS_STEPS` / `FOCUS_PROMPTS`.
 7. **Print summary** ([src/components/EntrySection.tsx](src/components/EntrySection.tsx) and [src/components/PrintLedger.tsx](src/components/PrintLedger.tsx)): emit a summary line when the field is set.
 8. **Tests**: extend [src/derive.test.ts](src/derive.test.ts) for any branch you added in `deriveNeed`/`lensCompletion`/`hasAnyLensData`, and [src/types.test.ts](src/types.test.ts) if you added a migration branch or a new top-level type.

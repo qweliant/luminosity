@@ -51,9 +51,9 @@ const STEPS: Step[] = [
   {
     step: '2',
     name: "What's missing",
-    one_line: "What's starving underneath the friction?",
+    one_line: "What's missing underneath the friction?",
     body:
-      "Tag the plain human needs that feel unmet, like rest, belonging, or honesty. Naming what's missing tends to be more useful than naming what's wrong.",
+      "Tag the needs that feel unmet, like rest, belonging, or honesty. Naming what's missing tends to be more useful than naming what's wrong.",
   },
   {
     step: '3',
