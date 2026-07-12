@@ -6,6 +6,9 @@
 import { test, expect, describe } from 'bun:test';
 import type { Mapping } from './types';
 import {
+  appendCheckpoint,
+  arcDirection,
+  daysSinceTouched,
   deriveNeed,
   formatList,
   hasAnyLensData,
@@ -13,13 +16,16 @@ import {
   ifsLayer,
   ifsLayerForBand,
   isCessationState,
+  lastTouched,
   lensCompletion,
   livedDays,
   livedInWindow,
   maslowHighest,
+  needsRecheck,
   practicedToday,
   relationalFreedoms,
   sdtProfile,
+  workabilityArc,
 } from './derive';
 
 const baseEntry = (overrides: Partial<Mapping> = {}): Mapping => ({
@@ -545,5 +551,107 @@ describe('livedInWindow', () => {
     // lived 6 days ago and today, nothing between — still counts both.
     const e = baseEntry({ practiced: [NOW, NOW - 6 * DAY] });
     expect(livedInWindow(e, 7, NOW)).toBe(2);
+  });
+});
+
+// --- Value journal / arc ----------------------------------------------------
+
+describe('appendCheckpoint', () => {
+  test('appends on a fresh day', () => {
+    expect(appendCheckpoint([], 4, NOW)).toEqual([{ at: NOW, workability: 4 }]);
+  });
+
+  test('coalesces a same-day re-rating (last of the day wins)', () => {
+    const day1 = appendCheckpoint([], 3, NOW);
+    const again = appendCheckpoint(day1, 5, NOW + 60_000);
+    expect(again).toHaveLength(1);
+    expect(again[0]).toEqual({ at: NOW + 60_000, workability: 5 });
+  });
+
+  test('appends a separate checkpoint on a different day', () => {
+    const day1 = appendCheckpoint([], 3, NOW - DAY);
+    const day2 = appendCheckpoint(day1, 4, NOW);
+    expect(day2.map((c) => c.workability)).toEqual([3, 4]);
+  });
+
+  test('carries an optional note', () => {
+    expect(appendCheckpoint([], 2, NOW, 'about time now')[0]!.note).toBe(
+      'about time now',
+    );
+  });
+});
+
+describe('journal reads', () => {
+  const e = baseEntry({
+    checkpoints: [
+      { at: NOW - 2 * DAY, workability: 2 },
+      { at: NOW - DAY, workability: 3 },
+      { at: NOW, workability: 5 },
+    ],
+  });
+
+  test('lastTouched / daysSinceTouched', () => {
+    expect(lastTouched(e)).toBe(NOW);
+    expect(daysSinceTouched(e, NOW)).toBe(0);
+    expect(daysSinceTouched(e, NOW + 5 * DAY)).toBe(5);
+    expect(lastTouched(baseEntry())).toBeNull();
+    expect(daysSinceTouched(baseEntry(), NOW)).toBeNull();
+  });
+
+  test('workabilityArc is oldest→newest ratings', () => {
+    expect(workabilityArc(e)).toEqual([2, 3, 5]);
+    expect(workabilityArc(baseEntry())).toEqual([]);
+  });
+
+  test('arcDirection compares the last two points', () => {
+    expect(arcDirection(e)).toBe('rising');
+    expect(
+      arcDirection(
+        baseEntry({
+          checkpoints: [
+            { at: NOW - DAY, workability: 4 },
+            { at: NOW, workability: 2 },
+          ],
+        }),
+      ),
+    ).toBe('falling');
+    expect(
+      arcDirection(
+        baseEntry({
+          checkpoints: [
+            { at: NOW - DAY, workability: 3 },
+            { at: NOW, workability: 3 },
+          ],
+        }),
+      ),
+    ).toBe('steady');
+    expect(
+      arcDirection(baseEntry({ checkpoints: [{ at: NOW, workability: 3 }] })),
+    ).toBeNull();
+    expect(arcDirection(baseEntry())).toBeNull();
+  });
+});
+
+describe('needsRecheck', () => {
+  test('true only for a working value that has gone stale', () => {
+    const stale = baseEntry({
+      workability: 5,
+      checkpoints: [{ at: NOW - 30 * DAY, workability: 5 }],
+    });
+    expect(needsRecheck(stale, 21, NOW)).toBe(true);
+  });
+
+  test('false for fresh, stuck, or un-journaled values', () => {
+    const fresh = baseEntry({
+      workability: 5,
+      checkpoints: [{ at: NOW - 2 * DAY, workability: 5 }],
+    });
+    const stuck = baseEntry({
+      workability: 2,
+      checkpoints: [{ at: NOW - 30 * DAY, workability: 2 }],
+    });
+    expect(needsRecheck(fresh, 21, NOW)).toBe(false);
+    expect(needsRecheck(stuck, 21, NOW)).toBe(false);
+    expect(needsRecheck(baseEntry({ workability: 5 }), 21, NOW)).toBe(false);
   });
 });

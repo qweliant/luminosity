@@ -100,7 +100,7 @@ export const DotString = ({
 export const CompletionBar = ({ completion }: { completion: LensCompletion }) => {
   const allDone = completion.filled === completion.total;
   return (
-    <div className="flex items-center gap-2" title={`${completion.filled} of ${completion.total} lenses applied`}>
+    <div className="flex items-center gap-2" title={`${completion.filled} of ${completion.total} steps done`}>
       <div className="flex gap-0.5">
         {completion.steps.map((on, i) => (
           <span
@@ -113,5 +113,60 @@ export const CompletionBar = ({ completion }: { completion: LensCompletion }) =>
         {allDone ? 'complete' : `${completion.filled}/${completion.total}`}
       </span>
     </div>
+  );
+};
+
+// --- WorkabilityArc ---------------------------------------------------------
+// Tiny sparkline of a value's "how it's going" journal — the reward for coming
+// back. Maps each checkpoint's 1–5 rating to a point (5 at top), colours the
+// line by its latest move (up = sage, down = pink, flat = muted), and marks the
+// most recent point. Needs at least two checkpoints; renders nothing otherwise.
+
+const ARC_COLOR = {
+  rising: '#5C7F66',
+  falling: '#C24E6E',
+  steady: '#B391A0',
+} as const;
+
+export const WorkabilityArc = ({
+  arc,
+  direction,
+  width = 52,
+  height = 14,
+}: {
+  arc: number[];
+  direction?: 'rising' | 'falling' | 'steady' | null;
+  width?: number;
+  height?: number;
+}) => {
+  if (arc.length < 2) return null;
+  const pad = 2;
+  const n = arc.length;
+  const x = (i: number) => pad + (i * (width - pad * 2)) / (n - 1);
+  const y = (v: number) => {
+    const t = (Math.min(5, Math.max(1, v)) - 1) / 4; // 0 (=1) .. 1 (=5)
+    return height - pad - t * (height - pad * 2);
+  };
+  const points = arc.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  const color = ARC_COLOR[direction ?? 'steady'];
+  return (
+    <svg
+      width={width}
+      height={height}
+      viewBox={`0 0 ${width} ${height}`}
+      className="inline-block align-middle overflow-visible"
+      aria-hidden="true"
+    >
+      <polyline
+        points={points}
+        fill="none"
+        stroke={color}
+        strokeWidth={1.5}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+        opacity={0.85}
+      />
+      <circle cx={x(n - 1)} cy={y(arc[n - 1]!)} r={1.9} fill={color} />
+    </svg>
   );
 };

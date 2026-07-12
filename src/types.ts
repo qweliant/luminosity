@@ -79,6 +79,25 @@ export interface Mapping {
   // NOTE: concurrent multi-device edits can clobber the log under LWW; that is
   // acceptable under the single-editor sync model (see notes in useEntries).
   practiced?: number[];
+
+  // --- Value journal (the time axis the snapshot model lacked) -------------
+  // Append-only "how it's going" checkpoints, one per local day it was
+  // re-rated. Turns a static snapshot into a value with a history: powers the
+  // workability arc (the sparkline), a "last touched" timestamp for re-check
+  // prompts, and — eventually — a maintenance ("tended") mode. Same append-only,
+  // whole-object-LWW pattern as `practiced[]`; forward-only, so pre-existing
+  // entries build their arc from the next re-rating on. Optional/additive: no
+  // migration needed.
+  checkpoints?: Checkpoint[];
+}
+
+// One entry in a value's journal — a dated snapshot of how it was going, with
+// an optional short note (a reframe, or what the friction had become). Written
+// by appendCheckpoint() in derive.ts when the rating changes.
+export interface Checkpoint {
+  at: number;          // epoch ms
+  workability: number; // 1–5 at this moment
+  note?: string;       // optional: a reframe / what the friction is now
 }
 
 // ACT committed action, expressed as a Gollwitzer implementation intention:

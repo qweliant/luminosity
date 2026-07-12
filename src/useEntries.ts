@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { migrateMapping, type LegacyMapping, type Mapping, type Part } from "./types";
-import { dayKey } from "./derive";
+import { appendCheckpoint, dayKey } from "./derive";
 import { yEntriesMap, yPartsMap, ydoc } from "./services/syncEngine";
 
 const STORAGE_KEY = "values-mapper-v2";
@@ -135,6 +135,13 @@ export const useEntries = (): EntriesStore => {
       prev.map((e) => {
         if (e.id !== id) return e;
         const updated = { ...e, ...patch };
+        // Journal a "how it's going" checkpoint when the rating actually
+        // changes to a real 1–5 value — the time axis the snapshot model
+        // lacked. Coalesced to one per local day inside appendCheckpoint.
+        const w = patch.workability;
+        if (typeof w === "number" && w >= 1 && w <= 5 && w !== e.workability) {
+          updated.checkpoints = appendCheckpoint(e.checkpoints ?? [], w);
+        }
         ydoc.transact(() => yEntriesMap.set(id, updated), "local");
         return updated;
       }),

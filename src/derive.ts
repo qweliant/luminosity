@@ -1,4 +1,4 @@
-import type { Mapping, RelationalLens, RelationalSource } from './types';
+import type { Checkpoint, Mapping, RelationalLens, RelationalSource } from './types';
 import {
   NVC_TO_SDT,
   NVC_TO_MASLOW,
@@ -359,4 +359,73 @@ export const livedInWindow = (
     if (ts >= cutoff) days.add(dayKey(ts));
   }
   return days.size;
+};
+
+// --- Value journal · the arc ------------------------------------------------
+// The snapshot model overwrote history on every re-rating; these give a value
+// a memory. `appendCheckpoint` coalesces to one entry per local day so
+// intra-day fiddling with the rating dots doesn't spam the arc — the last
+// rating of the day wins.
+
+export const appendCheckpoint = (
+  log: Checkpoint[],
+  workability: number,
+  at: number = Date.now(),
+  note?: string,
+): Checkpoint[] => {
+  const cp: Checkpoint = note ? { at, workability, note } : { at, workability };
+  const last = log[log.length - 1];
+  if (last && dayKey(last.at) === dayKey(at)) {
+    return [...log.slice(0, -1), cp];
+  }
+  return [...log, cp];
+};
+
+// Epoch-ms of the most recent checkpoint, or null if the value was never rated
+// since the journal existed.
+export const lastTouched = (entry: Mapping): number | null => {
+  const log = entry.checkpoints ?? [];
+  const last = log[log.length - 1];
+  return last ? last.at : null;
+};
+
+// Whole days since the last checkpoint — the clock a re-check / "tended" mode
+// runs on. Null when there's no history yet.
+export const daysSinceTouched = (
+  entry: Mapping,
+  now: number = Date.now(),
+): number | null => {
+  const t = lastTouched(entry);
+  if (t == null) return null;
+  return Math.max(0, Math.floor((now - t) / 86_400_000));
+};
+
+// The rating trend, oldest → newest, for the sparkline.
+export const workabilityArc = (entry: Mapping): number[] =>
+  (entry.checkpoints ?? []).map((c) => c.workability);
+
+// Direction of the most recent move. Null until there are at least two points.
+export const arcDirection = (
+  entry: Mapping,
+): 'rising' | 'falling' | 'steady' | null => {
+  const arc = workabilityArc(entry);
+  if (arc.length < 2) return null;
+  const prev = arc[arc.length - 2]!;
+  const curr = arc[arc.length - 1]!;
+  if (curr > prev) return 'rising';
+  if (curr < prev) return 'falling';
+  return 'steady';
+};
+
+// A value is a candidate for a gentle "still true?" re-check when it's been
+// sitting as working (4–5) and untouched for a while. Forward-only: entries
+// with no journal yet return false until their first re-rating.
+export const needsRecheck = (
+  entry: Mapping,
+  staleDays = 21,
+  now: number = Date.now(),
+): boolean => {
+  if (!entry.workability || entry.workability < 4) return false;
+  const d = daysSinceTouched(entry, now);
+  return d != null && d >= staleDays;
 };
