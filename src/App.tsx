@@ -112,6 +112,16 @@ export const App = () => {
     else if (route.name === "matrix") setLastUnderlay("matrix");
   }, [route]);
 
+  // The Matrix is the primary view everywhere: when the app is opened at the
+  // root (no deep link), land on the map instead of the list. Runs once on
+  // mount — toggling to the list afterward is preserved. Skipped for a
+  // brand-new (empty) ledger so first-run users still get the list's onboarding.
+  useEffect(() => {
+    const atRoot = window.location.hash.replace(/^#\/?/, "").trim() === "";
+    if (atRoot && entries.length > 0) navigate({ name: "matrix" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigate]);
+
   // Subscribe to live sync status so the "Live" header chip reflects the
   // actual WebRTC connection state instead of a stale snapshot.
   useEffect(() => subscribeSyncStatus(() => setLiveP2P(isSyncing())), []);
@@ -119,10 +129,7 @@ export const App = () => {
   // Surface "also editing on iPad" when another of the user's own devices
   // joins the same sync room. See [[sync-model-single-editor]] — this is the
   // presence surface for our single-editor model.
-  useEffect(
-    () => subscribeAwareness(() => setPeers(getPeerPresences())),
-    [],
-  );
+  useEffect(() => subscribeAwareness(() => setPeers(getPeerPresences())), []);
 
   const matrixView =
     route.name === "matrix" ||
@@ -183,31 +190,36 @@ export const App = () => {
   // Notebook metrics derivations
   // ---------------------------------------------------------------------------
 
-  const { countTotal, countStuck, countMixed, countWorking, activeLensesCount } =
-    useMemo(() => {
-      let stuck = 0;
-      let mixed = 0;
-      let working = 0;
-      let lenses = 0;
-      for (const e of entries) {
-        if (e.workability === 1) stuck++;
-        else if (e.workability === 2 || e.workability === 3) mixed++;
-        else if (e.workability === 4 || e.workability === 5) working++;
-        if (e.workability) lenses++;
-        if (e.emotionCluster) lenses++;
-        if (e.coreNeed) lenses++;
-        if (e.lifeDesign?.problemFrame) lenses++;
-        if (e.accelerators?.trim()) lenses++;
-        if (e.relational?.active) lenses++;
-      }
-      return {
-        countTotal: entries.length,
-        countStuck: stuck,
-        countMixed: mixed,
-        countWorking: working,
-        activeLensesCount: lenses,
-      };
-    }, [entries]);
+  const {
+    countTotal,
+    countStuck,
+    countMixed,
+    countWorking,
+    activeLensesCount,
+  } = useMemo(() => {
+    let stuck = 0;
+    let mixed = 0;
+    let working = 0;
+    let lenses = 0;
+    for (const e of entries) {
+      if (e.workability === 1) stuck++;
+      else if (e.workability === 2 || e.workability === 3) mixed++;
+      else if (e.workability === 4 || e.workability === 5) working++;
+      if (e.workability) lenses++;
+      if (e.emotionCluster) lenses++;
+      if (e.coreNeed) lenses++;
+      if (e.lifeDesign?.problemFrame) lenses++;
+      if (e.accelerators?.trim()) lenses++;
+      if (e.relational?.active) lenses++;
+    }
+    return {
+      countTotal: entries.length,
+      countStuck: stuck,
+      countMixed: mixed,
+      countWorking: working,
+      activeLensesCount: lenses,
+    };
+  }, [entries]);
 
   const maxLenses = countTotal * 6;
 
@@ -262,6 +274,18 @@ export const App = () => {
         friction: "",
       })),
     );
+  };
+
+  // Add a single named value from the Matrix. It lands unrated, so it appears
+  // in the Matrix's "Not yet placed" tray. When `openInFocus` is set (the
+  // "open in focus" add mode), jump straight into Focus to map it; otherwise
+  // stay on the map so you can add several in a row.
+  const handleAddValue = (name: string, openInFocus = false) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const id = crypto.randomUUID();
+    addEntries([{ id, value: trimmed, need: "", friction: "" }]);
+    if (openInFocus) navigate({ name: "focus", id });
   };
 
   const handleLoadBackup = (loaded: Mapping[]) => {
@@ -537,8 +561,7 @@ export const App = () => {
                 <LumiBean size={54} />
                 <div className="flex-1">
                   <div className="font-serif italic text-sm sm:text-base text-[#3A1E2A] leading-snug">
-                    Hi.
-                    {" "}
+                    Hi.{" "}
                     <button
                       type="button"
                       onClick={() => focusEntry(nudge.entry.id)}
@@ -563,19 +586,20 @@ export const App = () => {
               </div>
             )}
 
-            {!matrixView && (
-              <TendToday
-                entries={entries}
-                onLog={togglePracticedToday}
-                onFocus={focusEntry}
-              />
-            )}
+            {/* Daily "tend" surface sits above whichever view you're on — it's
+                the action layer, not tied to the list. */}
+            <TendToday
+              entries={entries}
+              onLog={togglePracticedToday}
+              onFocus={focusEntry}
+            />
 
             {matrixView ? (
               <MatrixView
                 entries={entries}
                 parts={parts}
                 onFocus={(id) => navigate({ name: "focus", id })}
+                onAdd={handleAddValue}
               />
             ) : (
               <main className="space-y-4 sm:space-y-6">
@@ -696,14 +720,14 @@ export const App = () => {
             )}
 
             <footer className="mt-16 pt-6 border-t border-[#3A1E2A]/10 text-center text-xs text-[#B391A0] font-serif italic print:hidden">
-              ✿ built for clarity · persisted locally · nothing leaves your
-              device ✿
+              ✿ this shi really hard 😭 · i tried to make it really private tho
+              · gone head put yo feelings out ✿
             </footer>
           </div>
         )}
       </div>
     </div>
   );
-};
+};;
 
 export default App;

@@ -65,14 +65,91 @@ const Hibiscus = ({
   </svg>
 );
 
+// Inline "add a value" field so the Matrix is a place you can *create* from,
+// not just navigate. A new value has no deeper-need or how-it's-going rating
+// yet, so it lands in the "Not yet placed" tray below.
+//
+// Two modes, remembered across sessions:
+//   · add more    — stay on the map to add several in a row (default)
+//   · open in focus — jump straight into Focus to map the one you just added
+const ADD_MODE_KEY = 'lumi-matrix-add-mode';
+type AddMode = 'more' | 'focus';
+
+const MatrixAddValue = ({
+  onAdd,
+}: {
+  onAdd: (name: string, openInFocus?: boolean) => void;
+}) => {
+  const [draft, setDraft] = React.useState('');
+  const [mode, setMode] = React.useState<AddMode>(() =>
+    localStorage.getItem(ADD_MODE_KEY) === 'focus' ? 'focus' : 'more',
+  );
+
+  const pickMode = (m: AddMode) => {
+    setMode(m);
+    localStorage.setItem(ADD_MODE_KEY, m);
+  };
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const name = draft.trim();
+    if (!name) return;
+    onAdd(name, mode === 'focus');
+    setDraft('');
+  };
+
+  const modeBtn = (m: AddMode, label: string) => (
+    <button
+      type="button"
+      onClick={() => pickMode(m)}
+      aria-pressed={mode === m}
+      className={`px-2 py-1 rounded-full transition-colors cursor-pointer ${
+        mode === m
+          ? 'bg-[#FBD9E0]/60 text-[#C24E6E] font-semibold'
+          : 'text-[#B391A0] hover:text-[#C24E6E]'
+      }`}
+    >
+      {label}
+    </button>
+  );
+
+  return (
+    <div className="space-y-1.5 print:hidden">
+      <form onSubmit={submit} className="flex gap-2 items-center">
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="Add a value…"
+          aria-label="Add a value"
+          className="flex-1 min-w-0 bg-white border border-[#3A1E2A]/10 rounded-full px-4 py-2.5 text-base sm:text-sm text-[#3A1E2A] placeholder:text-[#B391A0]/60 focus:outline-none focus:border-[#C24E6E] transition-colors"
+        />
+        <button
+          type="submit"
+          disabled={!draft.trim()}
+          className="shrink-0 inline-flex items-center gap-1 bg-[#C24E6E] text-white px-4 min-h-11 rounded-full text-[11px] uppercase tracking-[0.18em] font-semibold hover:bg-[#3A1E2A] disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+        >
+          {mode === 'focus' ? 'add & map →' : 'add ✿'}
+        </button>
+      </form>
+      <div className="flex items-center gap-1 justify-end text-[9px] uppercase tracking-[0.15em]">
+        <span className="text-[#B391A0] mr-0.5">after adding</span>
+        {modeBtn('more', 'add more')}
+        {modeBtn('focus', 'open in focus')}
+      </div>
+    </div>
+  );
+};
+
 export const MatrixView = ({
   entries,
   parts,
   onFocus,
+  onAdd,
 }: {
   entries: Mapping[];
   parts: Part[];
   onFocus: (id: string) => void;
+  onAdd?: (name: string, openInFocus?: boolean) => void;
 }) => {
   type Cell = Mapping[];
   const grid: Record<string, Record<number, Cell>> = {};
@@ -128,9 +205,11 @@ export const MatrixView = ({
         </p>
       </div>
 
+      {onAdd && <MatrixAddValue onAdd={onAdd} />}
+
       {entries.length === 0 ? (
         <p className="text-[#B391A0] text-center py-10 font-serif italic">
-          Nothing to map yet.
+          No values yet — add one above to begin.
         </p>
       ) : (
         <>
