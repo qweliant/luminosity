@@ -16,16 +16,23 @@ import {
   ifsLayer,
   ifsLayerForBand,
   isCessationState,
+  feelingsBreakdown,
+  followThrough,
   lastTouched,
   lensCompletion,
   livedDays,
   livedInWindow,
   maslowHighest,
+  needsBreakdown,
   needsRecheck,
   practicedToday,
+  problemFrameSplit,
   relationalFreedoms,
   sdtProfile,
+  tendingByDay,
+  wayfindingPoints,
   workabilityArc,
+  workabilityBand,
 } from './derive';
 
 const baseEntry = (overrides: Partial<Mapping> = {}): Mapping => ({
@@ -653,5 +660,144 @@ describe('needsRecheck', () => {
     expect(needsRecheck(fresh, 21, NOW)).toBe(false);
     expect(needsRecheck(stuck, 21, NOW)).toBe(false);
     expect(needsRecheck(baseEntry({ workability: 5 }), 21, NOW)).toBe(false);
+  });
+});
+
+// --- Whole-ledger aggregates ------------------------------------------------
+
+describe('workabilityBand', () => {
+  test('thresholds: <2.5 stuck, <3.5 mixed, else working', () => {
+    expect(workabilityBand(1)).toBe('stuck');
+    expect(workabilityBand(2.4)).toBe('stuck');
+    expect(workabilityBand(2.5)).toBe('mixed');
+    expect(workabilityBand(3.4)).toBe('mixed');
+    expect(workabilityBand(3.5)).toBe('working');
+    expect(workabilityBand(5)).toBe('working');
+  });
+});
+
+describe('needsBreakdown', () => {
+  const stat = (bd: ReturnType<typeof needsBreakdown>, need: string) =>
+    bd.groups.flatMap((g) => g.needs).find((n) => n.need === need);
+
+  test('counts, avg/band, category grouping, and stuckest value', () => {
+    const bd = needsBreakdown([
+      baseEntry({ id: 'a', nvcNeeds: ['rest', 'choice'], workability: 1 }),
+      baseEntry({ id: 'b', nvcNeeds: ['rest'], workability: 5 }),
+      baseEntry({ id: 'c', nvcNeeds: ['rest', 'joy'] }), // unrated
+    ]);
+    expect(bd.maxCount).toBe(3);
+    expect(bd.totalTags).toBe(5);
+
+    const rest = stat(bd, 'rest')!;
+    expect(rest.count).toBe(3);
+    expect(rest.avgWorkability).toBe(3); // (1 + 5) / 2
+    expect(rest.band).toBe('mixed');
+    expect(rest.stuckestId).toBe('a'); // the workability-1 value
+
+    const joy = stat(bd, 'joy')!;
+    expect(joy.avgWorkability).toBeNull(); // only appears on an unrated value
+    expect(joy.band).toBeNull();
+    expect(joy.stuckestId).toBe('c');
+
+    // grouped into NVC categories (rest=Physical, choice=Autonomy, joy=Play)
+    expect(bd.groups.map((g) => g.category).sort()).toEqual([
+      'Autonomy',
+      'Physical',
+      'Play',
+    ]);
+  });
+
+  test('empty ledger → empty breakdown', () => {
+    const bd = needsBreakdown([]);
+    expect(bd.groups).toEqual([]);
+    expect(bd.maxCount).toBe(0);
+  });
+});
+
+describe('followThrough', () => {
+  test('committed vs lived this week vs never lived', () => {
+    const ft = followThrough(
+      [
+        baseEntry({
+          id: 'a',
+          commitment: { cue: 'x', action: 'y', mode: 'do', createdAt: NOW },
+          practiced: [NOW],
+        }),
+        baseEntry({
+          id: 'b',
+          commitment: { cue: '', action: 'z', mode: 'do', createdAt: NOW },
+        }),
+        baseEntry({ id: 'c', practiced: [NOW] }), // no commitment
+      ],
+      NOW,
+    );
+    expect(ft).toEqual({ committed: 2, livedThisWeek: 1, neverLived: 1 });
+  });
+});
+
+describe('tendingByDay', () => {
+  test('buckets lived-it taps per local day over the window', () => {
+    const days = tendingByDay(
+      [baseEntry({ practiced: [NOW, NOW, NOW - DAY] })],
+      14,
+      NOW,
+    );
+    expect(days).toHaveLength(14);
+    expect(days[days.length - 1]!.count).toBe(2); // today
+    expect(days[days.length - 2]!.count).toBe(1); // yesterday
+    expect(days[0]!.count).toBe(0); // 13 days ago
+  });
+});
+
+describe('feelingsBreakdown', () => {
+  test('per-cluster counts/band, pause-here total, and cessation flag', () => {
+    const fb = feelingsBreakdown([
+      baseEntry({ id: 's', emotionCluster: 'uncertain', emotion: 'Stress', workability: 2 }),
+      baseEntry({ id: 'o', emotionCluster: 'uncertain', emotion: 'Overwhelm', workability: 1 }),
+      baseEntry({ id: 'g', emotionCluster: 'hurting', emotion: 'Grief' }),
+    ]);
+
+    expect(fb.pauseHere).toBe(2); // Overwhelm + Grief are cessation states
+
+    const uncertain = fb.feelings.find((f) => f.cluster === 'uncertain')!;
+    expect(uncertain.count).toBe(2);
+    expect(uncertain.avgWorkability).toBe(1.5);
+    expect(uncertain.band).toBe('stuck');
+    expect(uncertain.stuckestId).toBe('o'); // workability 1
+    expect(uncertain.cessation).toBe(false); // not every feeling here is pause-here
+
+    const hurting = fb.feelings.find((f) => f.cluster === 'hurting')!;
+    expect(hurting.cessation).toBe(true); // "We're Hurting" is all pause-here
+    expect(hurting.band).toBeNull(); // unrated
+
+    // sorted by count desc
+    expect(fb.feelings[0]!.cluster).toBe('uncertain');
+  });
+});
+
+describe('problemFrameSplit', () => {
+  test('counts open / stuck / reality, ignores unframed', () => {
+    expect(
+      problemFrameSplit([
+        baseEntry({ lifeDesign: { problemFrame: 'open' } }),
+        baseEntry({ lifeDesign: { problemFrame: 'stuck' } }),
+        baseEntry({ lifeDesign: { problemFrame: 'stuck' } }),
+        baseEntry({ lifeDesign: { problemFrame: 'reality' } }),
+        baseEntry({}),
+      ]),
+    ).toEqual({ open: 1, stuck: 2, reality: 1, total: 4 });
+  });
+});
+
+describe('wayfindingPoints', () => {
+  test('keeps only values that rated both engagement and energy, with band', () => {
+    expect(
+      wayfindingPoints([
+        baseEntry({ id: 'a', value: 'Health', workability: 2, lifeDesign: { wayfinding: { engagement: 4, energy: 2 } } }),
+        baseEntry({ id: 'b', lifeDesign: { wayfinding: { engagement: 3 } } }),
+        baseEntry({ id: 'c' }),
+      ]),
+    ).toEqual([{ id: 'a', value: 'Health', engagement: 4, energy: 2, band: 'stuck' }]);
   });
 });

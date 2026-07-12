@@ -27,6 +27,7 @@ import { EntryRow } from "./components/EntryRow";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { healthSentence } from "./components/healthSentence";
 import { MatrixView } from "./components/MatrixView";
+import { MatrixInsights } from "./components/MatrixInsights";
 import { OverflowMenu } from "./components/OverflowMenu";
 import { PrintLedger } from "./components/PrintLedger";
 import { TendToday } from "./components/TendToday";
@@ -595,12 +596,18 @@ export const App = () => {
             />
 
             {matrixView ? (
-              <MatrixView
-                entries={entries}
-                parts={parts}
-                onFocus={(id) => navigate({ name: "focus", id })}
-                onAdd={handleAddValue}
-              />
+              <>
+                <MatrixView
+                  entries={entries}
+                  parts={parts}
+                  onFocus={(id) => navigate({ name: "focus", id })}
+                  onAdd={handleAddValue}
+                />
+                <MatrixInsights
+                  entries={entries}
+                  onFocus={(id) => navigate({ name: "focus", id })}
+                />
+              </>
             ) : (
               <main className="space-y-4 sm:space-y-6">
                 {entries.length === 0 && (

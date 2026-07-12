@@ -27,6 +27,12 @@ export const NVC_CATEGORIES: NvcCategory[] = [
   { name: 'Meaning',    needs: ['challenge', 'competence', 'contribution', 'creativity', 'growth', 'learning', 'purpose', 'stimulation'] },
 ];
 
+// Reverse map need → category, so aggregate views (the "what's missing" cloud)
+// can group the flat nvcNeeds tags back into their 7 clusters for free.
+export const NVC_CATEGORY_OF: Record<string, string> = Object.fromEntries(
+  NVC_CATEGORIES.flatMap((c) => c.needs.map((n) => [n, c.name] as const)),
+);
+
 export type MaslowLevel = 'physiological' | 'safety' | 'belonging' | 'esteem' | 'self-actualization';
 
 export const MASLOW_LEVELS: MaslowLevel[] = ['physiological', 'safety', 'belonging', 'esteem', 'self-actualization'];

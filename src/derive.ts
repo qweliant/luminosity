@@ -1,9 +1,18 @@
-import type { Checkpoint, Mapping, RelationalLens, RelationalSource } from './types';
+import type {
+  Checkpoint,
+  EmotionCluster,
+  Mapping,
+  RelationalLens,
+  RelationalSource,
+} from './types';
 import {
   NVC_TO_SDT,
   NVC_TO_MASLOW,
   MASLOW_LEVELS,
   NVC_TO_FREEDOMS,
+  NVC_CATEGORIES,
+  NVC_CATEGORY_OF,
+  EMOTION_PLACES_BY_ID,
   findEmotion,
   type MaslowLevel,
   type JonesFreedom,
@@ -428,4 +437,275 @@ export const needsRecheck = (
   if (!entry.workability || entry.workability < 4) return false;
   const d = daysSinceTouched(entry, now);
   return d != null && d >= staleDays;
+};
+
+// --- Whole-ledger aggregates (the insight views under the Matrix) -----------
+
+export type WorkabilityBand = 'stuck' | 'mixed' | 'working';
+
+// Coarse band from an average rating. Matches the Matrix / voices thresholds.
+export const workabilityBand = (avg: number): WorkabilityBand =>
+  avg < 2.5 ? 'stuck' : avg < 3.5 ? 'mixed' : 'working';
+
+export interface NeedStat {
+  need: string;
+  count: number; // how many values tag it as missing
+  avgWorkability: number | null; // avg of those values' ratings (rated only)
+  band: WorkabilityBand | null; // null when none of them are rated yet
+  stuckestId: string | null; // lowest-rated value missing it → tap-to-open
+}
+export interface NeedCategoryGroup {
+  category: string;
+  needs: NeedStat[]; // sorted by count desc
+  total: number;
+}
+export interface NeedsBreakdown {
+  groups: NeedCategoryGroup[]; // NVC category order, non-empty only
+  maxCount: number; // for size scaling in the cloud
+  totalTags: number;
+}
+
+// "What's missing", aggregated: frequency of each unmet need across all values,
+// the average how-it's-going of the values that miss it (the leverage signal:
+// big + stuck = where to look), grouped back into the 7 NVC categories.
+export const needsBreakdown = (entries: Mapping[]): NeedsBreakdown => {
+  interface Acc {
+    count: number;
+    ratedSum: number;
+    ratedN: number;
+    stuckestId: string | null;
+    stuckestW: number;
+  }
+  const acc = new Map<string, Acc>();
+
+  for (const e of entries) {
+    for (const need of e.nvcNeeds ?? []) {
+      let a = acc.get(need);
+      if (!a) {
+        a = { count: 0, ratedSum: 0, ratedN: 0, stuckestId: null, stuckestW: Infinity };
+        acc.set(need, a);
+      }
+      a.count++;
+      const w = e.workability;
+      if (typeof w === 'number' && w >= 1 && w <= 5) {
+        a.ratedSum += w;
+        a.ratedN++;
+        if (w < a.stuckestW) {
+          a.stuckestW = w;
+          a.stuckestId = e.id;
+        }
+      } else if (a.stuckestId === null) {
+        a.stuckestId = e.id; // fall back to any value when none are rated
+      }
+    }
+  }
+
+  let maxCount = 0;
+  let totalTags = 0;
+  const byCat = new Map<string, NeedStat[]>();
+
+  for (const [need, a] of acc) {
+    maxCount = Math.max(maxCount, a.count);
+    totalTags += a.count;
+    const avg = a.ratedN > 0 ? a.ratedSum / a.ratedN : null;
+    const stat: NeedStat = {
+      need,
+      count: a.count,
+      avgWorkability: avg,
+      band: avg == null ? null : workabilityBand(avg),
+      stuckestId: a.stuckestId,
+    };
+    const cat = NVC_CATEGORY_OF[need] ?? 'Meaning';
+    const arr = byCat.get(cat) ?? [];
+    arr.push(stat);
+    byCat.set(cat, arr);
+  }
+
+  const groups: NeedCategoryGroup[] = [];
+  for (const c of NVC_CATEGORIES) {
+    const needs = byCat.get(c.name);
+    if (!needs || needs.length === 0) continue;
+    needs.sort((x, y) => y.count - x.count);
+    groups.push({
+      category: c.name,
+      needs,
+      total: needs.reduce((s, n) => s + n.count, 0),
+    });
+  }
+
+  return { groups, maxCount, totalTags };
+};
+
+// The reinforcement loop's own scoreboard: committed actions made vs. actually
+// lived. Makes the intention→action gap visible.
+export interface FollowThrough {
+  committed: number;
+  livedThisWeek: number;
+  neverLived: number;
+}
+export const followThrough = (
+  entries: Mapping[],
+  now: number = Date.now(),
+): FollowThrough => {
+  let committed = 0;
+  let livedThisWeek = 0;
+  let neverLived = 0;
+  for (const e of entries) {
+    if (!hasCommitment(e)) continue;
+    committed++;
+    if (livedInWindow(e, 7, now) > 0) livedThisWeek++;
+    if ((e.practiced ?? []).length === 0) neverLived++;
+  }
+  return { committed, livedThisWeek, neverLived };
+};
+
+// Tending activity per day for the trailing `days` window, oldest → newest —
+// the "lived it" heatmap. Direction, not streaks: a zero day is just a zero,
+// it doesn't reset anything.
+export interface DayTend {
+  day: string; // YYYY-MM-DD (local)
+  label: string; // e.g. "Jul 8"
+  count: number; // total lived-it taps that day, across all values
+}
+export const tendingByDay = (
+  entries: Mapping[],
+  days = 14,
+  now: number = Date.now(),
+): DayTend[] => {
+  const counts = new Map<string, number>();
+  for (const e of entries) {
+    for (const ts of e.practiced ?? []) {
+      const k = dayKey(ts);
+      counts.set(k, (counts.get(k) ?? 0) + 1);
+    }
+  }
+  const out: DayTend[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now - i * 86_400_000);
+    const key = dayKey(d.getTime());
+    out.push({
+      day: key,
+      label: d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+      count: counts.get(key) ?? 0,
+    });
+  }
+  return out;
+};
+
+// Where friction comes from, by Atlas "place" (cluster). Same leverage trick as
+// the needs cloud: tint each place by the average how-it's-going of its values.
+export interface FeelingStat {
+  cluster: EmotionCluster;
+  label: string;
+  count: number;
+  avgWorkability: number | null;
+  band: WorkabilityBand | null;
+  cessation: boolean; // a "pause-here" place (every feeling in it is one)
+  stuckestId: string | null;
+}
+export const feelingsBreakdown = (
+  entries: Mapping[],
+): { feelings: FeelingStat[]; pauseHere: number } => {
+  interface Acc {
+    count: number;
+    ratedSum: number;
+    ratedN: number;
+    stuckestId: string | null;
+    stuckestW: number;
+  }
+  const acc = new Map<EmotionCluster, Acc>();
+  let pauseHere = 0;
+
+  for (const e of entries) {
+    if (isCessationState(e)) pauseHere++;
+    const c = e.emotionCluster;
+    if (!c) continue;
+    let a = acc.get(c);
+    if (!a) {
+      a = { count: 0, ratedSum: 0, ratedN: 0, stuckestId: null, stuckestW: Infinity };
+      acc.set(c, a);
+    }
+    a.count++;
+    const w = e.workability;
+    if (typeof w === 'number' && w >= 1 && w <= 5) {
+      a.ratedSum += w;
+      a.ratedN++;
+      if (w < a.stuckestW) {
+        a.stuckestW = w;
+        a.stuckestId = e.id;
+      }
+    } else if (a.stuckestId === null) {
+      a.stuckestId = e.id;
+    }
+  }
+
+  const feelings: FeelingStat[] = [];
+  for (const [cluster, a] of acc) {
+    const place = EMOTION_PLACES_BY_ID[cluster];
+    const avg = a.ratedN > 0 ? a.ratedSum / a.ratedN : null;
+    feelings.push({
+      cluster,
+      label: place?.label ?? cluster,
+      count: a.count,
+      avgWorkability: avg,
+      band: avg == null ? null : workabilityBand(avg),
+      cessation: !!place && place.emotions.length > 0 && place.emotions.every((x) => x.cessation),
+      stuckestId: a.stuckestId,
+    });
+  }
+  feelings.sort((x, y) => y.count - x.count);
+  return { feelings, pauseHere };
+};
+
+// What KIND of work your values need: something to try (open), a reframe
+// (stuck), or acceptance (reality). Counts only values that framed the problem.
+export interface FrameSplit {
+  open: number;
+  stuck: number;
+  reality: number;
+  total: number;
+}
+export const problemFrameSplit = (entries: Mapping[]): FrameSplit => {
+  let open = 0;
+  let stuck = 0;
+  let reality = 0;
+  for (const e of entries) {
+    const f = e.lifeDesign?.problemFrame;
+    if (f === 'open') open++;
+    else if (f === 'stuck') stuck++;
+    else if (f === 'reality') reality++;
+  }
+  return { open, stuck, reality, total: open + stuck + reality };
+};
+
+// Values plotted on the second map: engagement (numb → flow) × energy
+// (drains → fills). Only values that rated both wayfinding scales appear.
+export interface WayfindingPoint {
+  id: string;
+  value: string;
+  engagement: number; // 1–5
+  energy: number; // 1–5
+  band: WorkabilityBand | null; // colour of the dot; null when unrated
+}
+export const wayfindingPoints = (entries: Mapping[]): WayfindingPoint[] => {
+  const out: WayfindingPoint[] = [];
+  for (const e of entries) {
+    const wf = e.lifeDesign?.wayfinding;
+    const eng = wf?.engagement;
+    const en = wf?.energy;
+    if (
+      typeof eng === 'number' && eng >= 1 && eng <= 5 &&
+      typeof en === 'number' && en >= 1 && en <= 5
+    ) {
+      const w = e.workability;
+      out.push({
+        id: e.id,
+        value: e.value || 'untitled',
+        engagement: eng,
+        energy: en,
+        band: typeof w === 'number' && w >= 1 && w <= 5 ? workabilityBand(w) : null,
+      });
+    }
+  }
+  return out;
 };
