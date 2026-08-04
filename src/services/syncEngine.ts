@@ -4,6 +4,13 @@ import * as Y from "yjs";
 // initial bundle — sync isn't on the critical path for the list view.
 import type { WebrtcProvider } from "y-webrtc";
 import type { Mapping, Part } from "../types";
+import {
+  derivePassword,
+  deriveRoom,
+  loadPairing,
+  savePairing,
+  clearPairing,
+} from "./pairing";
 
 // Establish the singleton application state source
 export const ydoc = new Y.Doc();
@@ -17,13 +24,9 @@ export const yPartsMap = ydoc.getMap<Part>("parts");
 
 // Track active connection state safely
 let provider: WebrtcProvider | null = null;
-let currentRoom: string | null = null;
+let currentCode: string | null = null;
 let detachAwareness: (() => void) | null = null;
-
-export interface SyncConfig {
-  roomName: string;
-  secretKey: string;
-}
+let lastError: string | null = null;
 
 export interface PeerPresence {
   /** Best-effort label for the peer's device, derived from UA. */
@@ -32,39 +35,33 @@ export interface PeerPresence {
   joinedAt: number;
 }
 
-// Listeners that want to be told when the sync status flips. We notify on
-// explicit connect/disconnect and on the provider's own `status` event so the
-// UI doesn't lie when the underlying WebRTC link drops.
-const statusListeners = new Set<() => void>();
-const notifyStatus = () => {
-  for (const cb of statusListeners) cb();
+/**
+ * The three states a person can actually be in, named the way they'd describe
+ * them. `waiting` is the important one: the previous build collapsed it into
+ * "Live", so the header went green the moment the engine started even though
+ * nothing was on the other end. A status light that can't tell you the
+ * difference between "on" and "working" is the reason sync felt unknowable.
+ */
+export type SyncState = "off" | "waiting" | "linked" | "error";
+
+const listeners = new Set<() => void>();
+const notify = () => {
+  for (const cb of listeners) cb();
 };
 
-export const subscribeSyncStatus = (cb: () => void): (() => void) => {
-  statusListeners.add(cb);
-  return () => statusListeners.delete(cb);
-};
-
-// Awareness: who else is connected to the same room. We use this to surface
-// "also editing on iPad" in the header so the user knows when another of
-// their own devices is live. See [[sync-model-single-editor]].
-const awarenessListeners = new Set<() => void>();
-const notifyAwareness = () => {
-  for (const cb of awarenessListeners) cb();
-};
-
-export const subscribeAwareness = (cb: () => void): (() => void) => {
-  awarenessListeners.add(cb);
-  return () => awarenessListeners.delete(cb);
+/** One subscription for every user-visible fact about sync. */
+export const subscribeSync = (cb: () => void): (() => void) => {
+  listeners.add(cb);
+  return () => listeners.delete(cb);
 };
 
 const guessDeviceLabel = (): string => {
   const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
   if (/iPad/.test(ua)) return "iPad";
   if (/iPhone/.test(ua)) return "iPhone";
-  if (/Android/.test(ua)) return "Android";
+  if (/Android/.test(ua)) return "Android phone";
   if (/Macintosh|Mac OS X/.test(ua)) return "Mac";
-  if (/Windows/.test(ua)) return "Windows";
+  if (/Windows/.test(ua)) return "Windows PC";
   if (/Linux/.test(ua)) return "Linux";
   return "another device";
 };
@@ -76,7 +73,8 @@ export const getPeerPresences = (): PeerPresence[] => {
   provider.awareness.getStates().forEach((state, clientId) => {
     if (clientId === myId) return;
     out.push({
-      device: typeof state?.device === "string" ? state.device : "another device",
+      device:
+        typeof state?.device === "string" ? state.device : "another device",
       joinedAt: typeof state?.joinedAt === "number" ? state.joinedAt : 0,
     });
   });
@@ -84,54 +82,85 @@ export const getPeerPresences = (): PeerPresence[] => {
 };
 
 /**
- * Initializes the encrypted peer-to-peer WebRTC connection. Async because
- * we dynamically import y-webrtc here — keeps the WebRTC stack out of the
- * initial bundle. Callers can fire-and-forget.
+ * "Linked" means another device is genuinely present in the room, not merely
+ * that we opened a socket. Everything the UI shows keys off this.
  */
-export const connectWebRTC = async (config: SyncConfig): Promise<void> => {
-  // If we are already broadcasting to this exact room, do nothing
-  if (provider && currentRoom === config.roomName) {
+export const getSyncState = (): SyncState => {
+  if (lastError) return "error";
+  if (!provider) return "off";
+  return getPeerPresences().length > 0 ? "linked" : "waiting";
+};
+
+export const getSyncError = (): string | null => lastError;
+
+/** The code this device is currently paired with, if any. */
+export const getActiveCode = (): string | null => currentCode;
+
+const signalingUrls = (): string[] =>
+  import.meta.env.DEV
+    ? ["ws://localhost:4444"]
+    : ([import.meta.env.VITE_FLYIO_RELAY].filter(Boolean) as string[]);
+
+/**
+ * Joins the room a code maps to. There is no host and no guest — both devices
+ * run exactly this, and whoever arrives second finds the other already there.
+ *
+ * Async because y-webrtc and the SHA derivation are both dynamic; callers can
+ * fire-and-forget, since every outcome lands on a subscriber notification.
+ */
+export const connectWithCode = async (code: string): Promise<void> => {
+  if (provider && currentCode === code) return;
+  if (provider) teardownProvider();
+
+  currentCode = code;
+  lastError = null;
+  notify();
+
+  const signaling = signalingUrls();
+  if (signaling.length === 0) {
+    // Better to say so than to spin forever on a status light that never
+    // resolves. Happens when VITE_FLYIO_RELAY is missing from a prod build.
+    lastError = "No relay configured for this build, so devices can't find each other.";
+    currentCode = null;
+    notify();
     return;
   }
 
-  if (provider) {
-    teardownProvider();
+  try {
+    const [{ WebrtcProvider }, room, password] = await Promise.all([
+      import("y-webrtc"),
+      deriveRoom(code),
+      derivePassword(code),
+    ]);
+
+    // The user could have disconnected (or paired with a different code)
+    // between issuing the import and its resolution. Bail if so.
+    if (currentCode !== code) return;
+
+    provider = new WebrtcProvider(room, ydoc, { password, signaling });
+    provider.on("status", notify);
+
+    // Announce ourselves so the other device can name us in its header.
+    provider.awareness.setLocalState({
+      device: guessDeviceLabel(),
+      joinedAt: Date.now(),
+    });
+    provider.awareness.on("change", notify);
+    const own = provider;
+    detachAwareness = () => {
+      own.awareness.off("change", notify);
+      own.awareness.setLocalState(null);
+    };
+
+    provider.connect();
+    savePairing({ code, enabled: true });
+  } catch (err) {
+    lastError =
+      err instanceof Error ? err.message : "Couldn't start syncing on this device.";
+    currentCode = null;
   }
 
-  currentRoom = config.roomName;
-
-  const { WebrtcProvider } = await import("y-webrtc");
-
-  // The user could have disconnected (or reconnected to a different room)
-  // between issuing the import and its resolution. Bail if so.
-  if (currentRoom !== config.roomName) return;
-
-  provider = new WebrtcProvider(config.roomName, ydoc, {
-    password: config.secretKey,
-    signaling: import.meta.env.DEV
-      ? ["ws://localhost:4444"]
-      : [import.meta.env.VITE_FLYIO_RELAY].filter(Boolean) as string[],
-  });
-
-  provider.on("status", notifyStatus);
-
-  // Announce ourselves so other devices in the same room can show a presence
-  // chip. We tear this down in disconnectWebRTC.
-  provider.awareness.setLocalState({
-    device: guessDeviceLabel(),
-    joinedAt: Date.now(),
-  });
-  const onAwarenessChange = () => notifyAwareness();
-  provider.awareness.on("change", onAwarenessChange);
-  const ownProvider = provider;
-  detachAwareness = () => {
-    ownProvider.awareness.off("change", onAwarenessChange);
-    ownProvider.awareness.setLocalState(null);
-  };
-
-  provider.connect();
-  notifyStatus();
-  notifyAwareness();
+  notify();
 };
 
 const teardownProvider = () => {
@@ -146,17 +175,25 @@ const teardownProvider = () => {
 };
 
 /**
- * Drops active signaling networks instantly.
+ * Stops syncing on this device. `forget` also drops the stored code, so this
+ * device won't rejoin on the next load and the code has to be re-entered.
  */
-export const disconnectWebRTC = (): void => {
-  if (!provider) return;
+export const stopSync = (forget = false): void => {
   teardownProvider();
-  currentRoom = null;
-  notifyStatus();
-  notifyAwareness();
+  const code = currentCode;
+  currentCode = null;
+  lastError = null;
+  if (forget) clearPairing();
+  else if (code) savePairing({ code, enabled: false });
+  notify();
 };
 
 /**
- * Generates runtime verification state for device metrics mirrors.
+ * Rejoins on page load if this device was syncing when it was last closed.
+ * Without this, every reload silently unpaired the device — the single biggest
+ * reason sync felt like it kept starting over.
  */
-export const isSyncing = (): boolean => provider?.connected ?? false;
+export const resumeSync = (): void => {
+  const stored = loadPairing();
+  if (stored?.enabled) void connectWithCode(stored.code);
+};

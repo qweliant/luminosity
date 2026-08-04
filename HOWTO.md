@@ -119,6 +119,30 @@ This app's whole architecture is a small instance of a larger loop Alicorn named
 - [**The Luminosity sequence**](https://www.lesswrong.com/s/ynMFrq9K5iNMfSZNg/p/9o3Cjjem7AbmmZfBs) — Alicorn (LessWrong, 2009–2011). Practical exercises in noticing your own mental states accurately — without flinching, flattering, or theorizing past what's actually there.
 - [**Ureshiku Naritai**](https://www.lesswrong.com/posts/xnPFYBuaGhpq869mY/ureshiku-naritai) — Alicorn (LessWrong, 2024). A later update on the same project — what it actually looked like to try to be happier on purpose, and what stuck.
 
+## Sync — using the ledger on more than one device
+
+One ledger has **one code**. A device that has the code is on the ledger; a device that doesn't, isn't. There's no host and no guest — both devices run the same thing, and whoever arrives second finds the other already there.
+
+**First device** → header **Sync** → *This is my first device*. It makes a code (four words and a number, like `otter-lantern-quiet-river-4821`) and starts listening straight away.
+
+**Second device** → either scan the QR code, or open Sync → *I'm adding this device* and type the code. Either way you get a confirmation screen first, which spells out what joining does: both lists join together, nothing is deleted on either side.
+
+The header chip is the status, and it distinguishes three things that used to look alike:
+
+| Chip | Meaning |
+| ---- | ------- |
+| `Sync` (grey) | Not syncing. This ledger lives only on this device. |
+| `Waiting` (amber, pulsing) | Your code is live and listening, but no other device has joined yet. |
+| `Synced` (green) | Another device is actually present. Edits flow both ways immediately. |
+
+Notes:
+
+- **The pairing survives reloads.** The code is stored on the device and rejoins on the next visit. *Pause syncing* stops it but keeps the code (with a Resume screen); *Forget this code* drops it entirely.
+- **The QR/link carries the code in `?pair=`**, which is read once on load and then scrubbed from the address bar, so it doesn't linger in history or in a screenshot of your browser.
+- **The relay never sees your entries.** The room id is a hash of the code and the encryption password is a *separate* hash of it, so the signalling server can't read the secret out of a room name. Anyone with the code can read the ledger — treat it like a password.
+- **In development you need `bun run signal`**, or the pairing screen waits forever. Production uses `VITE_FLYIO_RELAY`.
+- **Merging is a union, not a replace.** Two devices with different entries end up with all of them. If you want one to win, export from that device and use Import → Load a backup on the other instead.
+
 ## Backup
 
 The primary backup channel is **Export** (overflow menu → Export) — downloads a JSON file of every entry. Re-import it later via Import → Load a backup. This works in every browser and is the recommended way to keep a safety net.
@@ -155,5 +179,6 @@ The server is intentionally local-only — bind on `127.0.0.1`, no auth, no user
   - `values-mapper-v2` — `Mapping[]`, your entries (see [src/types.ts](src/types.ts)).
   - `values-mapper-parts-v1` — `Part[]`, your named IFS Parts.
   - `values-mapper-seed-v1` — set to `'1'` after the first-run seed runs once. Delete this key plus `values-mapper-v2` to re-seed.
+  - `lumi-pairing-v1` — `{ code, enabled }` for device sync. Delete it to unpair this device (same as *Forget this code*).
 - Both stores are mirrored into a shared Yjs document (`yEntriesMap` / `yPartsMap`) so optional peer-to-peer sync stays symmetric across devices.
 - Schema additions are additive — old entries continue to load with `undefined` for new optional fields. The migration in `migrateMapping()` handles both legacy `designConstraint`/`designNote` (folded into `lifeDesign`) and legacy enum values (`'actionable'/'anchor'/'gravity'` → `'open'/'stuck'/'reality'`, `prototype.type 'interview'/'experience'` → `prototype.mode 'talk'/'do'`). A pure additive optional field (like `partId`) doesn't need its own branch.

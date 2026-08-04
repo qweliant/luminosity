@@ -73,7 +73,10 @@ export const mountSystemDirectory = async (): Promise<boolean> =>
 };
 
 /**
- * Attempts silent restoration of prior file mappings on initialization.
+ * Re-links a folder chosen in an earlier session, silently. A page load must
+ * never throw a permission dialog at someone who only came here to write an
+ * entry, so a lapsed permission just reports false — picking the folder again
+ * from the archive menu is the way back.
  */
 export const restoreCachedDirectoryAccess = async (): Promise<boolean> => {
   if (!isFileSystemAccessSupported()) return false;
@@ -81,24 +84,18 @@ export const restoreCachedDirectoryAccess = async (): Promise<boolean> => {
     const handle = await getCachedHandle();
     if (!handle) return false;
 
-    // Verify native security access rights silently
     const perm = await handle.queryPermission({ mode: "readwrite" });
-    if (perm === "granted") {
-      backupDirHandle = handle;
-      return true;
-    }
+    if (perm !== "granted") return false;
 
-    // Prompt user verification if prior authorization states dropped
-    const requestPerm = await handle.requestPermission({ mode: "readwrite" });
-    if (requestPerm === "granted") {
-      backupDirHandle = handle;
-      return true;
-    }
-    return false;
+    backupDirHandle = handle;
+    return true;
   } catch (err) {
     return false;
   }
 };
+
+/** Whether a folder is currently linked for background copies. */
+export const hasMountedDirectory = (): boolean => backupDirHandle !== null;
 
 /**
  * Writes active Yjs document payloads directly to local system drives.

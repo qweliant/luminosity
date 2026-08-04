@@ -370,7 +370,7 @@ export const MethodsPage = ({ onClose }: { onClose: () => void }) => {
                 {[
                   ['Local-first', "Everything lives in your browser's localStorage. No account, no telemetry, no analytics."],
                   ['Sidecar (optional, if you install from GitHub)', 'The backup sidecar writes timestamped snapshots to a local SQLite file, still on your machine.'],
-                  ['Sync (optional)', 'Sync mirrors this between your own browsers over end-to-end encrypted WebRTC.'],
+                  ['Sync (optional)', "Give a second device this ledger's code and the two stay in step. Entries travel straight between your devices, encrypted, and the code is the only thing that opens them."],
                   ['Nothing leaves', 'No server sees your data. Not for backup, not for sync, not for anything.'],
                 ].map(([t, b]) => (
                   <div

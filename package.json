@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "server": "bun --hot server.ts",
+    "signal": "PORT=4444 bun node_modules/y-webrtc/bin/server.js",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
   },

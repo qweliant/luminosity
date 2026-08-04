@@ -1,10 +1,28 @@
-import React, { useState, useEffect } from "react";
+// The pairing dialog. One job: get a second device onto this ledger, and then
+// tell the truth about whether it worked.
+//
+// Shape of the thing: there are no tabs and no host/guest roles, because the
+// transport has neither. A ledger has one code. A device either has it or is
+// being given it. Every screen below is one of four honest answers to "where
+// am I": choosing, showing the code, entering a code, or confirming a merge.
+
+import React, { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import {
-  connectWebRTC,
-  disconnectWebRTC,
-  isSyncing,
+  connectWithCode,
+  getActiveCode,
+  getPeerPresences,
+  getSyncError,
+  getSyncState,
+  stopSync,
+  subscribeSync,
 } from "../services/syncEngine";
+import {
+  generateCode,
+  loadPairing,
+  normalizeCode,
+  pairUrl,
+} from "../services/pairing";
 
 // --- Bloom SVG Primitives & Mascots ---------------------------------------
 
@@ -85,316 +103,566 @@ const CloudFriend = ({ size = 48 }) => (
   </svg>
 );
 
+// --- Shared bits ----------------------------------------------------------
+
+const Card = ({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) => (
+  <div
+    className={`bg-white p-4 sm:p-5 rounded-xl border border-[#3A1E2A]/5 ${className}`}
+  >
+    {children}
+  </div>
+);
+
+/** Chunked so the eye can hold it while typing on the other device. */
+const CodeDisplay = ({ code }: { code: string }) => (
+  <p className="font-mono text-[15px] sm:text-base text-[#3A1E2A] leading-relaxed break-all select-all m-0">
+    {code}
+  </p>
+);
+
+const copyText = async (text: string): Promise<boolean> => {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 // --- Component Root -------------------------------------------------------
+
+type View = "choose" | "code" | "enter";
 
 export const SyncOverlay = ({
   open,
   onClose,
-  onMountStorage,
+  entryCount,
+  /** A code arriving from a scanned QR / pairing link, pending confirmation. */
+  incomingCode = null,
+  onIncomingHandled,
 }: {
   open: boolean;
   onClose: () => void;
-  onMountStorage: () => Promise<boolean>;
+  entryCount: number;
+  incomingCode?: string | null;
+  onIncomingHandled?: () => void;
 }) => {
-  const [activeTab, setActiveTab] = useState<"host" | "join">("host");
-  const [roomName, setRoomName] = useState("");
-  const [secretKey, setSecretKey] = useState("");
-  const [joinString, setJoinString] = useState("");
-  const [connectionLive, setConnectionLive] = useState(() => isSyncing());
-  const [storageMounted, setStorageMounted] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [, force] = useState(0);
+  const [view, setView] = useState<View>("choose");
+  const [typed, setTyped] = useState("");
+  const [pendingCode, setPendingCode] = useState<string | null>(null);
+  const [inputError, setInputError] = useState<string | null>(null);
+  const [copied, setCopied] = useState<"link" | "code" | null>(null);
+  const [copyFailed, setCopyFailed] = useState(false);
+
+  // Every user-visible fact about sync comes from the engine, so the dialog
+  // can't drift out of step with the header chip the way the old local
+  // `connectionLive` flag did.
+  useEffect(() => subscribeSync(() => force((n) => n + 1)), []);
+
+  const state = getSyncState();
+  const activeCode = getActiveCode();
+  const peers = getPeerPresences();
+  const engineError = getSyncError();
+
+  // A scanned link always wins: it's the most explicit thing the user has done.
+  useEffect(() => {
+    if (incomingCode) setPendingCode(incomingCode);
+  }, [incomingCode]);
 
   useEffect(() => {
-    if (open && !roomName) {
-      const randomEntropy = () => Math.random().toString(36).substring(2, 10);
-      setRoomName(`luminosity-${randomEntropy()}`);
-      setSecretKey(`sec-${randomEntropy()}-${randomEntropy()}`);
+    if (!open) {
+      setPendingCode(null);
+      setTyped("");
+      setInputError(null);
+      setView("choose");
     }
-    setConnectionLive(isSyncing());
-  }, [open, roomName]);
+  }, [open]);
+
+  useEffect(() => {
+    if (!copied) return;
+    const t = setTimeout(() => setCopied(null), 2000);
+    return () => clearTimeout(t);
+  }, [copied]);
+
+  // Waiting has no natural end: a dead relay and a network that won't let two
+  // devices reach each other both look exactly like patience. After a while,
+  // say so and name what's worth checking — an indicator that can only ever
+  // mean "keep waiting" is the thing that makes this feel unknowable.
+  const [stalled, setStalled] = useState(false);
+  useEffect(() => {
+    setStalled(false);
+    if (state !== "waiting") return;
+    const t = setTimeout(() => setStalled(true), 20_000);
+    return () => clearTimeout(t);
+  }, [state]);
 
   if (!open) return null;
 
-  const baseUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}${window.location.pathname}`
-      : "";
-  const syncUrlString = `${baseUrl}?room=${roomName}&secret=${secretKey}`;
-  const portablePairingPhrase = `${roomName}::${secretKey}`;
+  const syncing = state === "waiting" || state === "linked";
+  // Paused: this device knows a code but isn't using it. Without its own
+  // screen, pausing dumps you back on the first-run setup questions as though
+  // the pairing never happened — the exact loop this dialog exists to end.
+  const stored = loadPairing();
+  const paused = !syncing && !pendingCode && !!stored && !stored.enabled;
+  const shownCode = activeCode ?? stored?.code ?? "";
 
-  const handleHostConnect = () => {
-    if (!roomName || !secretKey) return;
-    connectWebRTC({ roomName, secretKey });
-    setConnectionLive(true);
+  const handleStartFresh = () => {
+    const code = generateCode();
+    void connectWithCode(code);
+    setView("code");
   };
 
-  const handleManualJoin = () => {
-    const raw = joinString.trim();
-    if (!raw) return;
-
-    let extractedRoom = "";
-    let extractedSecret = "";
-
-    const roomMatch = raw.match(/room=([^&*\s]+)/i);
-    const secretMatch = raw.match(/secret=([^&*\s]+)/i);
-
-    if (roomMatch && secretMatch && roomMatch[1] && secretMatch[1]) {
-      extractedRoom = roomMatch[1];
-      extractedSecret = secretMatch[1];
-    } else if (raw.includes("::")) {
-      const parts = raw.split("::").map((s) => s.trim());
-      if (parts.length >= 2 && parts[0] && parts[1]) {
-        extractedRoom = parts[0];
-        extractedSecret = parts[1];
-      }
-    }
-
-    if (extractedRoom && extractedSecret) {
-      connectWebRTC({ roomName: extractedRoom, secretKey: extractedSecret });
-      setConnectionLive(true);
-      onClose();
-    } else {
-      alert(
-        "Could not extract clean network variables. Paste either the direct URL link or the compact phrase: roomName::secretKey",
+  const handleSubmitTyped = () => {
+    const code = normalizeCode(typed);
+    if (!code) {
+      setInputError(
+        "That doesn't look like a pairing code. It's four words and a number, like otter-lantern-quiet-river-4821.",
       );
+      return;
+    }
+    setInputError(null);
+    setPendingCode(code);
+  };
+
+  const handleConfirmJoin = () => {
+    if (!pendingCode) return;
+    void connectWithCode(pendingCode);
+    setPendingCode(null);
+    onIncomingHandled?.();
+    setView("code");
+  };
+
+  const handleCancelJoin = () => {
+    setPendingCode(null);
+    onIncomingHandled?.();
+  };
+
+  const handleCopy = async (kind: "link" | "code") => {
+    const ok = await copyText(kind === "link" ? pairUrl(shownCode) : shownCode);
+    if (ok) {
+      setCopied(kind);
+      setCopyFailed(false);
+    } else {
+      setCopyFailed(true);
     }
   };
 
-  const handleDisconnect = () => {
-    disconnectWebRTC();
-    setConnectionLive(false);
-  };
-
-  const handleClipboardCopy = () => {
-    navigator.clipboard.writeText(syncUrlString);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  // Check if current browser context supports native folder mounting safely
-  const supportsNativeDisk =
-    typeof window !== "undefined" && "showDirectoryPicker" in window;
+  const peerNames = peers.map((p) => p.device);
+  const peerSentence =
+    peerNames.length === 1
+      ? `Synced with your ${peerNames[0]}.`
+      : `Synced with ${peerNames.length} other devices.`;
 
   return (
-    <div className="fixed inset-0 bg-[#FAE6E1]/80 backdrop-blur-xs z-50 flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200 select-none">
-      <div className="w-full max-w-xl max-h-[90dvh] overflow-y-auto overflow-x-hidden overscroll-contain bg-[#FDF4F0] border border-[#3A1E2A]/15 rounded-[18px] p-6 sm:p-8 shadow-xl relative">
-        {/* Ambient background decoration */}
+    <div className="fixed inset-0 bg-[#FAE6E1]/80 backdrop-blur-xs z-50 flex items-center justify-center p-0 sm:p-6 animate-in fade-in duration-200">
+      <div className="w-full sm:max-w-lg h-full sm:h-auto sm:max-h-[90dvh] overflow-y-auto overflow-x-hidden overscroll-contain bg-[#FDF4F0] sm:border border-[#3A1E2A]/15 sm:rounded-[18px] p-5 sm:p-7 shadow-xl relative">
         <div
           aria-hidden="true"
-          className="absolute right-[-20px] top-[-20px] opacity-40 pointer-events-none"
+          className="absolute right-[-34px] top-[-30px] opacity-25 pointer-events-none"
         >
-          <BloomFlower size={120} petal="#F4ABBC" smile={false} />
+          <BloomFlower size={96} petal="#F4ABBC" smile={false} />
         </div>
 
-        {/* Dialog Header */}
-        <div className="flex justify-between items-start mb-6 border-b border-dashed border-[#3A1E2A]/10 pb-4 relative z-10">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] uppercase tracking-[0.25em] text-[#C24E6E] font-bold">
-                ✿ Quiet Intercom ✿
-              </span>
-            </div>
-            <h2 className="text-2xl font-serif text-[#3A1E2A] mt-1 tracking-[-0.01em]">
-              Connect your screens to keep entries flowing together.
+        {/* Header — states its own answer, so the title is never a question the
+            user has to resolve before reading further. */}
+        <div className="flex justify-between items-start gap-3 mb-5 border-b border-dashed border-[#3A1E2A]/10 pb-4 relative z-10">
+          <div className="min-w-0">
+            <span className="text-[10px] uppercase tracking-[0.25em] text-[#C24E6E] font-bold">
+              ✿ Your devices ✿
+            </span>
+            <h2 className="text-xl sm:text-2xl font-serif text-[#3A1E2A] mt-1 tracking-[-0.01em] leading-snug">
+              {/* A pending join owns the title — reporting the current
+                  connection above a "before you connect" card reads as the
+                  dialog contradicting itself. */}
+              {pendingCode
+                ? "Add this device to your ledger."
+                : state === "linked"
+                  ? peerSentence
+                  : state === "waiting"
+                    ? "Waiting for your other device."
+                    : paused
+                      ? "Syncing is paused here."
+                      : "Keep this ledger on more than one device."}
             </h2>
           </div>
 
+          {/* Solid backdrop so the close target stays legible against the
+              decorative bloom behind it. */}
           <button
             onClick={onClose}
-            className="text-xl text-[#B391A0] hover:text-[#C24E6E] transition-colors p-1 cursor-pointer"
-            aria-label="Close interface overlay"
+            className="text-2xl leading-none text-[#5A3645] hover:text-[#C24E6E] transition-colors rounded-full bg-[#FDF4F0]/85 min-h-11 min-w-11 flex items-center justify-center shrink-0 cursor-pointer"
+            aria-label="Close"
           >
             ×
           </button>
         </div>
 
-        {/* Action-Oriented Tab Navigation */}
-        <div className="flex flex-wrap gap-2 mb-6 relative z-10">
-          <button
-            onClick={() => setActiveTab("host")}
-            className={`px-4 py-1.5 rounded-full font-sans text-xs font-medium transition-all cursor-pointer ${
-              activeTab === "host"
-                ? "bg-[#C24E6E] text-white shadow-2xs"
-                : "bg-transparent text-[#5A3645] border border-[#3A1E2A]/10 hover:bg-white/50"
-            }`}
-          >
-            ✿ Start a new connection
-          </button>
-          <button
-            onClick={() => setActiveTab("join")}
-            className={`px-4 py-1.5 rounded-full font-sans text-xs font-medium transition-all cursor-pointer ${
-              activeTab === "join"
-                ? "bg-[#C24E6E] text-white shadow-2xs"
-                : "bg-transparent text-[#5A3645] border border-[#3A1E2A]/10 hover:bg-white/50"
-            }`}
-          >
-            🔗 Link to an active screen
-          </button>
+        <div className="relative z-10 space-y-4">
+          {/* --- CONFIRM A JOIN ------------------------------------------- */}
+          {pendingCode ? (
+            <>
+              <Card>
+                <span className="text-[10px] uppercase tracking-[0.18em] text-[#C24E6E] font-bold block mb-2">
+                  Before you connect
+                </span>
+
+                {/* Lead with the outcome. Stating the two transfers separately
+                    ("yours go there", "theirs come here") makes the reader
+                    compose them into an answer, which is how this ends up
+                    feeling directional and possibly destructive. It is
+                    neither: it's a union, and it's mutual. */}
+                <p className="text-[15px] font-serif text-[#3A1E2A] leading-snug m-0">
+                  Both devices end up with everything. Nothing is replaced.
+                </p>
+
+                <dl className="mt-3 text-[13px] leading-relaxed m-0">
+                  <div className="flex justify-between gap-3 py-1.5 border-b border-[#3A1E2A]/5">
+                    <dt className="text-[#B391A0]">On this device now</dt>
+                    <dd className="text-[#3A1E2A] m-0 text-right">
+                      {entryCount} {entryCount === 1 ? "entry" : "entries"}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-3 py-1.5 border-b border-[#3A1E2A]/5">
+                    <dt className="text-[#B391A0]">On the other device</dt>
+                    <dd className="text-[#3A1E2A] m-0 text-right">
+                      whatever it already has
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-3 py-1.5">
+                    <dt className="text-[#5A3645] font-semibold">
+                      After connecting
+                    </dt>
+                    <dd className="text-[#3A1E2A] m-0 text-right font-semibold">
+                      both lists, on both
+                    </dd>
+                  </div>
+                </dl>
+
+                <p className="text-[13px] text-[#5A3645] leading-relaxed mt-3 m-0">
+                  It keeps working after that — write on either device and it
+                  shows up on the other. You can stop it any time.
+                </p>
+
+                {activeCode && activeCode !== pendingCode && (
+                  <p className="flex gap-2 text-[13px] text-[#5A3645] leading-relaxed mt-3 pt-3 border-t border-[#3A1E2A]/5 m-0">
+                    <span className="text-[#D9A441] shrink-0">!</span>
+                    <span>
+                      This device is already syncing with a different code. It
+                      will leave that one and join this ledger instead.
+                    </span>
+                  </p>
+                )}
+
+                <p className="font-mono text-[11px] text-[#B391A0] mt-3 pt-3 border-t border-[#3A1E2A]/5 break-all m-0">
+                  {pendingCode}
+                </p>
+              </Card>
+
+              <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+                <button
+                  onClick={handleCancelJoin}
+                  className="min-h-11 px-4 rounded-xl text-xs font-semibold text-[#5A3645] border border-[#3A1E2A]/10 hover:bg-white/60 transition-colors cursor-pointer"
+                >
+                  Not now
+                </button>
+                <button
+                  onClick={handleConfirmJoin}
+                  className="min-h-11 px-5 rounded-xl text-xs font-semibold bg-[#C24E6E] text-white hover:bg-[#3A1E2A] transition-colors shadow-2xs cursor-pointer"
+                >
+                  Connect these devices
+                </button>
+              </div>
+            </>
+          ) : syncing ? (
+            /* --- SYNCING: WAITING OR LINKED ----------------------------- */
+            <>
+              <Card className="flex items-start gap-3">
+                <span
+                  className={`w-2.5 h-2.5 rounded-full shrink-0 mt-1 ${
+                    state === "linked"
+                      ? "bg-[#9CD3B6] animate-pulse"
+                      : "bg-[#F7D679]"
+                  }`}
+                />
+                <div className="min-w-0">
+                  <p className="text-[13px] text-[#3A1E2A] leading-relaxed m-0">
+                    {state === "linked"
+                      ? "Anything you write on either device shows up on the other one right away. You can close this."
+                      : "This device is ready and listening. Open Luminosity on your other device and give it the code below."}
+                  </p>
+                </div>
+              </Card>
+
+              {/* The code stays visible while waiting, and tucks away once
+                  linked — at that point it's only needed for a third device. */}
+              {state === "waiting" ? (
+                <>
+                  <Card className="flex flex-col items-center gap-4">
+                    <div className="p-3 bg-white border border-[#3A1E2A]/10 rounded-xl shadow-2xs">
+                      <QRCodeSVG
+                        value={pairUrl(shownCode)}
+                        size={168}
+                        bgColor="#FFFFFF"
+                        fgColor="#3A1E2A"
+                        level="Q"
+                        marginSize={0}
+                      />
+                    </div>
+
+                    <div className="w-full text-center space-y-2">
+                      <span className="text-[10px] uppercase tracking-[0.18em] text-[#B391A0] font-bold block">
+                        Point the other device's camera here
+                      </span>
+                      <div className="pt-3 border-t border-[#3A1E2A]/5">
+                        <span className="text-[10px] uppercase tracking-[0.18em] text-[#B391A0] font-bold block mb-1.5">
+                          or type this code
+                        </span>
+                        <CodeDisplay code={shownCode} />
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 w-full">
+                      <button
+                        onClick={() => handleCopy("code")}
+                        className="flex-1 min-h-11 rounded-xl text-[11px] font-semibold uppercase tracking-wider text-[#5A3645] border border-[#3A1E2A]/10 hover:bg-[#FBD9E0]/40 transition-colors cursor-pointer"
+                      >
+                        {copied === "code" ? "Code copied ✓" : "Copy code"}
+                      </button>
+                      <button
+                        onClick={() => handleCopy("link")}
+                        className="flex-1 min-h-11 rounded-xl text-[11px] font-semibold uppercase tracking-wider text-[#5A3645] border border-[#3A1E2A]/10 hover:bg-[#FBD9E0]/40 transition-colors cursor-pointer"
+                      >
+                        {copied === "link" ? "Link copied ✓" : "Copy link"}
+                      </button>
+                    </div>
+                    {copyFailed && (
+                      <span className="text-[11px] text-[#C24E6E] italic">
+                        Copying isn't allowed here — tap the code to select it.
+                      </span>
+                    )}
+                  </Card>
+
+                  {stalled && (
+                    <Card className="border-[#F7D679]/60 bg-[#FFFBF0]">
+                      <span className="text-[10px] uppercase tracking-[0.18em] text-[#B8860B] font-bold block mb-1.5">
+                        Still nothing?
+                      </span>
+                      <ul className="text-[12.5px] text-[#5A3645] leading-relaxed list-none p-0 m-0 space-y-1.5">
+                        <li>
+                          Check the other device is showing the same code,
+                          letter for letter.
+                        </li>
+                        <li>
+                          Make sure it's actually open — a phone that's gone to
+                          sleep isn't listening.
+                        </li>
+                        <li>
+                          Try both devices on the same wi-fi. Some networks
+                          won't let two devices reach each other directly, and
+                          mobile data is the usual culprit.
+                        </li>
+                      </ul>
+                    </Card>
+                  )}
+                </>
+              ) : (
+                <details className="group">
+                  <summary className="cursor-pointer list-none text-[11px] uppercase tracking-[0.18em] text-[#B391A0] hover:text-[#C24E6E] font-bold min-h-11 flex items-center gap-2">
+                    <span className="transition-transform group-open:rotate-90">
+                      ›
+                    </span>
+                    Show the code (to add a third device)
+                  </summary>
+                  <Card className="mt-2">
+                    <CodeDisplay code={shownCode} />
+                    <button
+                      onClick={() => handleCopy("code")}
+                      className="mt-3 text-[10px] uppercase tracking-wider font-bold text-[#C24E6E] hover:underline cursor-pointer min-h-11"
+                    >
+                      {copied === "code" ? "Copied ✓" : "Copy code"}
+                    </button>
+                  </Card>
+                </details>
+              )}
+
+              <div className="flex flex-wrap gap-x-5 gap-y-2 pt-1">
+                <button
+                  onClick={() => stopSync(false)}
+                  className="text-[11px] text-[#5A3645] hover:text-[#C24E6E] underline underline-offset-4 min-h-11 cursor-pointer"
+                >
+                  Pause syncing on this device
+                </button>
+                <button
+                  onClick={() => {
+                    stopSync(true);
+                    setView("choose");
+                  }}
+                  className="text-[11px] text-[#B391A0] hover:text-[#C24E6E] underline underline-offset-4 min-h-11 cursor-pointer"
+                >
+                  Forget this code
+                </button>
+              </div>
+            </>
+          ) : paused && view === "choose" ? (
+            /* --- PAUSED --------------------------------------------------- */
+            <>
+              <Card className="flex items-start gap-3">
+                <span className="w-2.5 h-2.5 rounded-full shrink-0 mt-1 bg-[#B391A0]" />
+                <p className="text-[13px] text-[#3A1E2A] leading-relaxed m-0">
+                  This device still remembers its code — it just isn't sending
+                  or receiving right now. Anything you write stays here until
+                  you start it again.
+                </p>
+              </Card>
+
+              <Card>
+                <span className="text-[10px] uppercase tracking-[0.18em] text-[#B391A0] font-bold block mb-1.5">
+                  This ledger's code
+                </span>
+                <CodeDisplay code={shownCode} />
+              </Card>
+
+              <button
+                onClick={() => void connectWithCode(shownCode)}
+                className="w-full min-h-12 bg-[#C24E6E] text-white rounded-xl text-xs font-semibold hover:bg-[#3A1E2A] transition-colors cursor-pointer"
+              >
+                Start syncing again
+              </button>
+
+              <div className="flex flex-wrap gap-x-5 gap-y-2">
+                <button
+                  onClick={() => stopSync(true)}
+                  className="text-[11px] text-[#B391A0] hover:text-[#C24E6E] underline underline-offset-4 min-h-11 cursor-pointer"
+                >
+                  Forget this code
+                </button>
+                <button
+                  onClick={() => setView("enter")}
+                  className="text-[11px] text-[#B391A0] hover:text-[#C24E6E] underline underline-offset-4 min-h-11 cursor-pointer"
+                >
+                  Use a different code
+                </button>
+              </div>
+            </>
+          ) : view === "enter" ? (
+            /* --- ENTER A CODE ------------------------------------------- */
+            <>
+              <Card className="flex items-start gap-3">
+                <div className="shrink-0 pt-1">
+                  <CloudFriend size={40} />
+                </div>
+                <p className="text-[13px] text-[#3A1E2A] leading-relaxed m-0">
+                  On your other device, open Luminosity and tap{" "}
+                  <span className="font-semibold">Sync</span>. Type the code it
+                  shows you here.
+                </p>
+              </Card>
+
+              <div className="space-y-2">
+                <label
+                  htmlFor="pair-code"
+                  className="text-[10px] uppercase tracking-[0.18em] text-[#C24E6E] font-semibold block"
+                >
+                  Pairing code
+                </label>
+                <input
+                  id="pair-code"
+                  type="text"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  className="w-full bg-white border border-[#3A1E2A]/15 rounded-xl px-3 min-h-12 text-base font-mono text-[#3A1E2A] focus:outline-none focus:border-[#C24E6E]"
+                  placeholder="otter-lantern-quiet-river-4821"
+                  value={typed}
+                  onChange={(e) => {
+                    setTyped(e.target.value);
+                    setInputError(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleSubmitTyped();
+                  }}
+                />
+                {inputError && (
+                  <p className="text-[11px] text-[#C24E6E] leading-relaxed m-0">
+                    {inputError}
+                  </p>
+                )}
+                <button
+                  onClick={handleSubmitTyped}
+                  disabled={!typed.trim()}
+                  className="w-full min-h-12 bg-[#C24E6E] text-white rounded-xl text-xs font-semibold hover:bg-[#3A1E2A] transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  Continue
+                </button>
+                <button
+                  onClick={() => setView("choose")}
+                  className="w-full text-[11px] text-[#B391A0] hover:text-[#C24E6E] underline underline-offset-4 min-h-11 cursor-pointer"
+                >
+                  Back
+                </button>
+              </div>
+            </>
+          ) : (
+            /* --- CHOOSE ------------------------------------------------- */
+            <>
+              <p className="text-[13px] text-[#5A3645] leading-relaxed m-0">
+                Write on your phone, read on your laptop — the same ledger in
+                both places. It goes both ways and only ever adds: each device
+                ends up with everything from both, and nothing gets replaced.
+                Entries travel straight between your devices, encrypted, with no
+                account and no copy on a server.
+              </p>
+
+              <button
+                onClick={handleStartFresh}
+                className="w-full text-left bg-white p-4 rounded-xl border border-[#3A1E2A]/10 hover:border-[#C24E6E] transition-colors cursor-pointer group"
+              >
+                <span className="font-serif text-[15px] text-[#3A1E2A] block group-hover:text-[#C24E6E] transition-colors">
+                  This is my first device →
+                </span>
+                <span className="text-[12px] text-[#B391A0] leading-snug block mt-1">
+                  Makes a code for this ledger. Nothing here changes — you'll
+                  give the code to your other device next.
+                </span>
+              </button>
+
+              <button
+                onClick={() => setView("enter")}
+                className="w-full text-left bg-white p-4 rounded-xl border border-[#3A1E2A]/10 hover:border-[#C24E6E] transition-colors cursor-pointer group"
+              >
+                <span className="font-serif text-[15px] text-[#3A1E2A] block group-hover:text-[#C24E6E] transition-colors">
+                  I'm adding this device →
+                </span>
+                <span className="text-[12px] text-[#B391A0] leading-snug block mt-1">
+                  You already set up another device and have its code.
+                </span>
+              </button>
+            </>
+          )}
+
+          {state === "error" && engineError && (
+            <Card className="border-[#E07A95]/40 bg-[#FDECEF]">
+              <span className="text-[10px] uppercase tracking-[0.18em] text-[#C24E6E] font-bold block mb-1">
+                Sync couldn't start
+              </span>
+              <p className="text-[12px] text-[#5A3645] leading-relaxed m-0">
+                {engineError}
+              </p>
+            </Card>
+          )}
         </div>
 
-        {/* --- START CONNECTION VIEW --- */}
-        {activeTab === "host" ? (
-          <div className="space-y-5 relative z-10 animate-in fade-in duration-150">
-            {/* Conditional Folder Backup Row (Only shows if browser supports it) */}
-            {supportsNativeDisk && (
-              <div className="bg-white p-4 rounded-xl border border-[#3A1E2A]/5 flex items-center justify-between gap-4">
-                <div>
-                  <span className="text-[10px] uppercase tracking-[0.18em] text-[#5A3645] font-bold block mb-0.5">
-                    1. Tending your local archive (Optional)
-                  </span>
-                  <p className="text-xs text-[#B391A0] m-0 leading-snug">
-                    {storageMounted
-                      ? "✓ Safe-keeping folder linked beautifully."
-                      : "Pick a folder on this device to save quiet offline backups while you write."}
-                  </p>
-                </div>
-
-                <button
-                  onClick={async () => {
-                    const ok = await onMountStorage();
-                    if (ok) setStorageMounted(true);
-                  }}
-                  className={`px-3 py-1.5 rounded-lg font-sans text-xs font-semibold shrink-0 transition-all cursor-pointer ${
-                    storageMounted
-                      ? "bg-[#9CD3B6]/20 text-[#1F6E4A] border border-[#9CD3B6]"
-                      : "bg-[#FFF5DC] text-[#5A3645] border border-[#F7D679] hover:bg-[#F7D679]/40"
-                  }`}
-                >
-                  {storageMounted ? "Linked ✓" : "Pick Folder ✿"}
-                </button>
-              </div>
-            )}
-
-            {/* Visual Dead-Drop Pairing QR Frame */}
-            <div className="bg-white p-5 rounded-xl border border-[#3A1E2A]/5 flex flex-col sm:flex-row items-center gap-6">
-              <div className="p-3 bg-white border border-[#3A1E2A]/10 rounded-xl shrink-0 shadow-2xs">
-                <QRCodeSVG
-                  value={syncUrlString}
-                  size={140}
-                  bgColor="#FFFFFF"
-                  fgColor="#3A1E2A"
-                  level="Q"
-                  marginSize={0}
-                />
-              </div>
-
-              <div className="space-y-3 w-full text-center sm:text-left">
-                <div>
-                  <span className="text-[10px] uppercase tracking-[0.18em] text-[#C24E6E] font-bold block mb-0.5">
-                    {supportsNativeDisk ? "2." : "1."} Scan or copy secret link
-                  </span>
-                  <p className="text-xs text-[#3A1E2A] m-0 leading-relaxed">
-                    Open the camera or paste this link on your other screen to
-                    let them introduce themselves.
-                  </p>
-                </div>
-
-                <div className="pt-2 border-t border-[#3A1E2A]/5 flex items-center justify-between gap-2">
-                  <span className="font-mono text-[10px] text-[#B391A0] truncate max-w-[180px]">
-                    {portablePairingPhrase}
-                  </span>
-
-                  <button
-                    onClick={handleClipboardCopy}
-                    className="text-[10px] text-[#C24E6E] hover:underline uppercase tracking-wider font-bold shrink-0 cursor-pointer"
-                  >
-                    {copied ? "Copied Link ✓" : "Copy Link ✿"}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Connection Channel State Controls */}
-            <div className="bg-white p-5 rounded-xl border border-[#3A1E2A]/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div>
-                <div className="text-[10px] uppercase tracking-[0.18em] text-[#C24E6E] font-bold block mb-0.5">
-                  {supportsNativeDisk ? "3." : "2."} Open the channel
-                </div>
-                <div className="flex items-center gap-2 mt-1">
-                  <span
-                    className={`w-2 h-2 rounded-full shrink-0 ${
-                      connectionLive
-                        ? "bg-[#9CD3B6] animate-pulse"
-                        : "bg-[#E07A95]"
-                    }`}
-                  />
-                  <span className="font-mono text-[10px] text-[#5A3645]">
-                    {connectionLive
-                      ? "Listening quietly for your other screen..."
-                      : "Channel is resting offline"}
-                  </span>
-                </div>
-              </div>
-
-              {connectionLive ? (
-                <button
-                  onClick={handleDisconnect}
-                  className="text-xs text-[#C24E6E] hover:underline font-medium cursor-pointer self-end sm:self-center"
-                >
-                  Close channel
-                </button>
-              ) : (
-                <button
-                  onClick={handleHostConnect}
-                  className="bg-[#3A1E2A] text-white px-4 py-2 rounded-full font-sans text-xs font-medium hover:bg-[#C24E6E] transition-colors shadow-2xs cursor-pointer w-full sm:w-auto"
-                >
-                  Start Sync Engine ✿
-                </button>
-              )}
-            </div>
-          </div>
-        ) : (
-          /* --- JOIN CONNECTION VIEW --- */
-          <div className="space-y-5 relative z-10 animate-in fade-in duration-150">
-            <div className="bg-white p-5 rounded-xl border border-[#3A1E2A]/5 flex items-start gap-4">
-              <div className="shrink-0 pt-1">
-                <CloudFriend size={44} />
-              </div>
-              <div>
-                <span className="text-[10px] uppercase tracking-[0.18em] text-[#5A3645] font-bold block mb-1">
-                  Catching active entries
-                </span>
-                <p className="text-xs text-[#3A1E2A] m-0 leading-relaxed">
-                  If scanning the QR code directly feels awkward, just paste
-                  your private link or compact phrase below to securely tie this
-                  screen in.
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-[10px] uppercase tracking-[0.18em] text-[#C24E6E] font-semibold block">
-                Paste your secret link
-              </label>
-
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  className="flex-1 bg-white border border-[#3A1E2A]/15 rounded-xl px-3 py-2 text-base sm:text-xs font-mono text-[#3A1E2A] focus:outline-none focus:border-[#C24E6E]"
-                  placeholder="luminosity-room::secret-key"
-                  value={joinString}
-                  onChange={(e) => setJoinString(e.target.value)}
-                />
-                <button
-                  onClick={handleManualJoin}
-                  disabled={!joinString.trim()}
-                  className="bg-[#C24E6E] text-white px-4 py-2 rounded-xl text-xs font-semibold hover:bg-[#3A1E2A] transition-colors disabled:opacity-40 disabled:cursor-not-allowed shrink-0 cursor-pointer"
-                >
-                  Link Screen
-                </button>
-              </div>
-              <span className="text-[9px] text-[#B391A0] block italic">
-                Accepts full URLs or compact phrases: roomName::secretKey
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Legal Safeguard Footnote */}
         <div className="mt-6 pt-4 border-t border-dashed border-[#3A1E2A]/10 text-center relative z-10">
-          <span className="font-serif italic text-[11px] text-[#B391A0] block">
-            ✿ End-to-end encrypted · Data flows directly screen-to-screen
-            without central logging ✿
+          <span className="font-serif italic text-[11px] text-[#B391A0] block leading-relaxed">
+            ✿ Encrypted end to end · your entries go device to device, never
+            through a server that can read them ✿
           </span>
         </div>
       </div>

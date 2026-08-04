@@ -1,4 +1,12 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Plus,
   Printer,
@@ -6,6 +14,7 @@ import {
   Radio,
   BookOpen,
   Download,
+  FolderDown,
   Users,
   LayoutGrid,
   List,
@@ -51,14 +60,20 @@ const SyncOverlay = lazy(() =>
   import("./components/SyncOverlay").then((m) => ({ default: m.SyncOverlay })),
 );
 
-import { mountSystemDirectory } from "./services/storageDaemon";
+import {
+  isFileSystemAccessSupported,
+  mountSystemDirectory,
+  restoreCachedDirectoryAccess,
+} from "./services/storageDaemon";
 import {
   getPeerPresences,
-  isSyncing,
-  subscribeAwareness,
-  subscribeSyncStatus,
+  getSyncState,
+  resumeSync,
+  subscribeSync,
   type PeerPresence,
+  type SyncState,
 } from "./services/syncEngine";
+import { takePairCodeFromUrl } from "./services/pairing";
 
 const norm = (s: string) => s.trim().toLowerCase();
 
@@ -99,8 +114,15 @@ export const App = () => {
   const [lastUnderlay, setLastUnderlay] = useState<"list" | "matrix">("list");
   const [showImport, setShowImport] = useState(false);
   const [showSync, setShowSync] = useState(false);
-  const [liveP2P, setLiveP2P] = useState(() => isSyncing());
+  const [syncState, setSyncState] = useState<SyncState>(() => getSyncState());
   const [peers, setPeers] = useState<PeerPresence[]>(() => getPeerPresences());
+  // A pairing code carried in on a scanned QR / shared link, waiting for the
+  // user to confirm the merge before we connect anything.
+  const [incomingCode, setIncomingCode] = useState<string | null>(null);
+  // Optional folder copies. Lives beside Import/Export in the archive menu —
+  // it's a file on this disk, not a second device, and putting it inside the
+  // pairing flow was most of why that flow read as four unrelated ideas.
+  const [folderLinked, setFolderLinked] = useState(false);
   const [dismissHello, setDismissHello] = useState(
     () => localStorage.getItem("lumi-nudge-dismissed") === todayKey(),
   );
@@ -123,14 +145,43 @@ export const App = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
-  // Subscribe to live sync status so the "Live" header chip reflects the
-  // actual WebRTC connection state instead of a stale snapshot.
-  useEffect(() => subscribeSyncStatus(() => setLiveP2P(isSyncing())), []);
+  // One subscription for every user-visible sync fact: the header chip and the
+  // dialog read the same engine state, so they can never disagree.
+  useEffect(
+    () =>
+      subscribeSync(() => {
+        setSyncState(getSyncState());
+        setPeers(getPeerPresences());
+      }),
+    [],
+  );
 
-  // Surface "also editing on iPad" when another of the user's own devices
-  // joins the same sync room. See [[sync-model-single-editor]] — this is the
-  // presence surface for our single-editor model.
-  useEffect(() => subscribeAwareness(() => setPeers(getPeerPresences())), []);
+  // Boot. Either we arrived by scanning a pairing link — in which case ask
+  // before joining, because joining merges two ledgers — or this device was
+  // already paired and should quietly pick up where it left off.
+  //
+  // Guarded because the decision has to be made exactly once: the code is
+  // scrubbed from the URL as it's read, so a second pass would find nothing
+  // there and quietly resume the *old* pairing behind the dialog asking about
+  // the new one. (StrictMode double-invokes this in dev, which is how that
+  // showed up, but a scanned link landing on an already-paired device is the
+  // real case.)
+  const bootedRef = useRef(false);
+  useEffect(() => {
+    if (bootedRef.current) return;
+    bootedRef.current = true;
+
+    const scanned = takePairCodeFromUrl();
+    if (scanned) {
+      setIncomingCode(scanned);
+      setShowSync(true);
+    } else {
+      resumeSync();
+    }
+    // Silent — re-links a folder chosen in an earlier session when the
+    // permission is still granted, and stays quiet when it isn't.
+    void restoreCachedDirectoryAccess().then(setFolderLinked);
+  }, []);
 
   const matrixView =
     route.name === "matrix" ||
@@ -235,7 +286,9 @@ export const App = () => {
     const ok = window.confirm(
       `Restore snapshot from ${relTime(snap.createdAt)} (${snap.count} ${
         snap.count === 1 ? "value" : "values"
-      })? This will replace your current entries.`,
+      })? This will replace your current entries${
+        syncState === "linked" ? ", on your other devices as well" : ""
+      }.`,
     );
 
     if (!ok) return;
@@ -291,10 +344,18 @@ export const App = () => {
 
   const handleLoadBackup = (loaded: Mapping[]) => {
     if (entries.length > 0) {
+      // A restore is a replace, and a replace propagates: on a synced device it
+      // wipes the other device too. Say so before it happens, not after.
+      const reach =
+        syncState === "linked"
+          ? ` This replaces them on your other ${
+              peers.length === 1 ? "device" : "devices"
+            } too, since sync is on.`
+          : "";
       const ok = window.confirm(
         `Replace your current ${entries.length} ${
           entries.length === 1 ? "entry" : "entries"
-        } with the ${loaded.length} from this backup? Your current data will be overwritten.`,
+        } with the ${loaded.length} from this backup? Your current data will be overwritten.${reach}`,
       );
       if (!ok) return;
     }
@@ -347,7 +408,9 @@ export const App = () => {
           <SyncOverlay
             open
             onClose={() => setShowSync(false)}
-            onMountStorage={mountSystemDirectory}
+            entryCount={entries.length}
+            incomingCode={incomingCode}
+            onIncomingHandled={() => setIncomingCode(null)}
           />
         </Suspense>
       )}
@@ -395,35 +458,59 @@ export const App = () => {
                     />
                   )}
 
-                  {/* Primary: live state — icon-only on mobile, labelled on desktop */}
+                  {/* Primary: sync state. Three states, three colours, and the
+                      label appears on mobile whenever something is actually
+                      happening — waiting and connected must never look alike. */}
                   <button
                     onClick={() => setShowSync(true)}
                     className={`inline-flex items-center justify-center gap-1.5 min-h-11 min-w-11 sm:min-h-0 sm:min-w-0 px-1 sm:px-0 hover:text-[#C24E6E] transition-colors cursor-pointer ${
-                      liveP2P ? "text-[#9CD3B6] font-bold" : "text-[#B391A0]"
+                      syncState === "linked"
+                        ? "text-[#9CD3B6] font-bold"
+                        : syncState === "waiting"
+                          ? "text-[#D9A441]"
+                          : syncState === "error"
+                            ? "text-[#C24E6E]"
+                            : "text-[#B391A0]"
                     }`}
-                    title="Mirror this ledger to another browser. Nothing leaves your devices."
-                    aria-label={liveP2P ? "Sync — live" : "Sync"}
+                    title={
+                      syncState === "linked"
+                        ? `Synced with ${peers.map((p) => p.device).join(", ")}`
+                        : syncState === "waiting"
+                          ? "Waiting for your other device to join"
+                          : syncState === "error"
+                            ? "Sync couldn't start — tap for details"
+                            : "Keep this ledger on more than one device. Nothing leaves your devices."
+                    }
+                    aria-label={
+                      syncState === "linked"
+                        ? "Sync — connected"
+                        : syncState === "waiting"
+                          ? "Sync — waiting for another device"
+                          : "Sync"
+                    }
                   >
                     <Radio
                       size={17}
-                      className={liveP2P ? "animate-pulse" : ""}
+                      className={syncState === "waiting" ? "animate-pulse" : ""}
                     />
-                    <span className="hidden sm:inline">
-                      {liveP2P ? "Live" : "Sync"}
+                    <span
+                      className={syncState === "off" ? "hidden sm:inline" : ""}
+                    >
+                      {syncState === "linked"
+                        ? "Synced"
+                        : syncState === "waiting"
+                          ? "Waiting"
+                          : syncState === "error"
+                            ? "Sync off"
+                            : "Sync"}
                     </span>
                   </button>
 
-                  {liveP2P && peers.length > 0 && (
-                    <span
-                      className="hidden sm:inline font-serif italic text-[10px] tracking-normal normal-case text-[#B391A0]"
-                      title={
-                        "Other devices in this room: " +
-                        peers.map((p) => p.device).join(", ")
-                      }
-                    >
+                  {syncState === "linked" && peers.length > 0 && (
+                    <span className="hidden sm:inline font-serif italic text-[10px] tracking-normal normal-case text-[#B391A0]">
                       {peers.length === 1
-                        ? `also on ${peers[0]?.device ?? "another device"}`
-                        : `also on ${peers.length} other devices`}
+                        ? `with your ${peers[0]?.device ?? "other device"}`
+                        : `with ${peers.length} devices`}
                     </span>
                   )}
 
@@ -487,6 +574,26 @@ export const App = () => {
                         icon: <Printer size={15} />,
                         onClick: () => window.print(),
                       },
+                      ...(isFileSystemAccessSupported()
+                        ? [
+                            {
+                              label: folderLinked
+                                ? "Folder copy · on"
+                                : "Folder copy",
+                              hint: folderLinked
+                                ? "Saving as you write · pick a different folder"
+                                : "Keep a .json copy in a folder on this device",
+                              icon: <FolderDown size={15} />,
+                              onClick: () => {
+                                void mountSystemDirectory().then((ok) => {
+                                  // A cancelled picker leaves any existing
+                                  // folder linked — don't report it as off.
+                                  if (ok) setFolderLinked(true);
+                                });
+                              },
+                            },
+                          ]
+                        : []),
                     ]}
                   />
                 </div>

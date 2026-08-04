@@ -31,9 +31,12 @@ End-user docs live in [HOWTO.md](HOWTO.md). This file is for working on the code
 bun install
 bun run dev          # http://localhost:5173
 bun run server       # http://127.0.0.1:5174 (optional backup sidecar)
+bun run signal       # ws://localhost:4444   (only needed to test device sync)
 ```
 
-The app is fully functional without the sidecar — `localStorage` is the source of truth. Run `bun run server` in a second terminal if you want timestamped SQLite snapshots written to `data/backups.db`.
+The app is fully functional without either extra process — `localStorage` is the source of truth. Run `bun run server` in a second terminal if you want timestamped SQLite snapshots written to `data/backups.db`.
+
+`bun run signal` is only needed when working on sync: in dev the app looks for a signalling server at `ws://localhost:4444`, and without one the pairing screen sits on "waiting" forever. Production builds use `VITE_FLYIO_RELAY` instead.
 
 | Script              | Purpose                                          |
 | ------------------- | ------------------------------------------------ |
@@ -41,6 +44,7 @@ The app is fully functional without the sidecar — `localStorage` is the source
 | `bun run build`     | Production build to `dist/`                      |
 | `bun run preview`   | Serve the built bundle                           |
 | `bun run server`    | Backup sidecar (`bun --hot server.ts`)           |
+| `bun run signal`    | Local y-webrtc signalling server for sync        |
 | `bun run test`      | Run the [src/*.test.ts](src/) suite              |
 | `bun run typecheck` | Strict typecheck, no emit                        |
 
@@ -71,6 +75,11 @@ src/
                    restore. Returns BackupState consumed by BackupChip.
   services/
     syncEngine.ts  Yjs doc + yEntriesMap + yPartsMap + WebRTC provider.
+                   Owns SyncState ('off' | 'waiting' | 'linked' | 'error') —
+                   'linked' means a peer is actually present, not just that
+                   the provider is up.
+    pairing.ts     Pairing codes: generate, normalize, derive room/password,
+                   persist, and read-and-scrub the ?pair= deep link.
     storageDaemon.ts  Optional File System Access API backup target.
   components/
     EntrySection.tsx   List-view row (condensed + expanded states).
