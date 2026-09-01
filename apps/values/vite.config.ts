@@ -4,6 +4,11 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig({
+  // One `.env` lives at the workspace root and serves every app plus the Bun
+  // sidecar (which loads it automatically). Without this, moving the Vite root
+  // down into apps/values would silently drop VITE_FLYIO_RELAY from prod
+  // builds — and a missing relay only shows up as sync that never links.
+  envDir: '../..',
   plugins: [
     react(),
     tailwindcss(),
