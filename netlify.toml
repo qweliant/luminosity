@@ -1,6 +1,10 @@
+# Built from the workspace root, not from apps/values: `bun.lock` lives at the
+# root, so that is where install has to run. The root `build` script delegates
+# to the app via `bun run --filter`. When a second app gets its own site, give
+# that site its own build command rather than moving `base` here.
 [build]
   command = "bun run build"
-  publish = "dist"
+  publish = "apps/values/dist"
 
 # Optional: Directs all arbitrary page paths back to index.html to seamlessly 
 # maintain client-side single-page app component state during hard reloads.
