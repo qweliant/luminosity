@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import type {
-  Arrangement, ArrangementMode, AskReply, Need, Person, RelationContext,
+  Arrangement, ArrangementMode, Need, Person, RelationContext, RequestState,
 } from '../types';
 import {
-  AGREEMENT_STATUS_LABEL, MODE_LABEL, RELATION_CONTEXTS, REPLIES, REPLY_LABEL,
-  canNegotiate,
+  AGREEMENT_STATUS_LABEL, MODE_LABEL, RELATION_CONTEXTS, REQUEST_STATES,
+  REQUEST_STATE_LABEL, canNegotiate,
 } from '../types';
 import { coverNeed } from '../derive';
 import { NEED_VOCABULARY } from '../data';
@@ -27,7 +27,7 @@ interface Props {
     needId: string, personId: string, mode: ArrangementMode, request?: string,
   ) => void;
   setMode: (id: string, mode: ArrangementMode) => void;
-  setReply: (id: string, reply: AskReply) => void;
+  setRequestState: (id: string, state: RequestState) => void;
   setArrangementAgreement: (id: string, agreementId: string) => void;
   removeArrangement: (id: string) => void;
   spaceFor: (personId: string) => SpaceState | undefined;
@@ -101,7 +101,7 @@ const ArrangementForm = ({
       {mode !== 'given' && (
         <input
           className={`${inputClass} mt-3`}
-          placeholder="What I'm asking for — one small, concrete thing"
+          placeholder="What I'd be asking for — one small, concrete thing"
           value={request}
           onChange={(e) => setRequest(e.target.value)}
         />
@@ -156,17 +156,19 @@ const ArrangementLine = ({
         {a.mode === 'asked' && (
           <select
             className={selectClass}
-            value={a.reply ?? 'waiting'}
-            onChange={(e) => props.setReply(a.id, e.target.value as AskReply)}
-            aria-label={`Where the ask to ${name} stands`}
+            value={a.state ?? 'unasked'}
+            onChange={(e) => props.setRequestState(a.id, e.target.value as RequestState)}
+            aria-label={`Where the request to ${name} stands`}
           >
-            {REPLIES.map((r) => <option key={r} value={r}>{REPLY_LABEL[r]}</option>)}
+            {REQUEST_STATES.map((r) => (
+              <option key={r} value={r}>{REQUEST_STATE_LABEL[r]}</option>
+            ))}
           </select>
         )}
 
         {a.mode === 'given' && (
           <button className={linkClass} onClick={() => props.setMode(a.id, 'asked')}>
-            actually, I asked for this
+            make this a request
           </button>
         )}
 
@@ -259,7 +261,7 @@ const NeedRow = ({ need, props }: { need: Need; props: Props }) => {
             someone already does this
           </button>
           <button className={quietButtonClass} onClick={() => setAdding('asked')}>
-            I asked for something
+            add a request
           </button>
         </div>
       )}

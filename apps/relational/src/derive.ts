@@ -55,8 +55,10 @@ export const coverNeed = (need: Need, all: Arrangement[]): NeedCoverage => {
 
   const status: NeedStatus =
     metPeople.length > 0 ? 'met'
-    : mine.some((a) => a.mode === 'asked' && a.reply === 'waiting') ? 'waiting'
-    : mine.some((a) => a.mode === 'asked' && a.reply === 'no') ? 'declined'
+    // A request you have written down but not made leaves the need at 'none'.
+    // Nobody is meeting it and nobody has been asked, which is the honest read.
+    : mine.some((a) => a.mode === 'asked' && a.state === 'waiting') ? 'waiting'
+    : mine.some((a) => a.mode === 'asked' && a.state === 'no') ? 'declined'
     : 'none';
 
   return {

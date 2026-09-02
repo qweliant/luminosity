@@ -23,7 +23,8 @@ const summarise = (
   if (total === 0) return 'Nothing mapped yet.';
   const metPart =
     met === 0 ? 'None are met yet'
-    : met === total ? 'All of them are met'
+    : met === total ? (total === 1 ? 'It is met' : 'All of them are met')
+    : met === 1 ? '1 of them is met'
     : `${met} of them are met`;
   return (
     <>

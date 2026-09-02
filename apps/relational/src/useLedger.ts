@@ -8,7 +8,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type * as Y from 'yjs';
 import type {
-  Arrangement, ArrangementMode, AskReply, Need, Person, RelationContext,
+  Arrangement, ArrangementMode, Need, Person, RelationContext, RequestState,
 } from './types';
 import {
   loadArrangements,
@@ -153,7 +153,9 @@ export const useLedger = () => {
         needId,
         personId,
         mode,
-        ...(mode === 'given' ? {} : { request: trimmed, reply: 'waiting' as AskReply }),
+        // Defaulting to 'unasked' keeps the app from recording a conversation
+        // that has not happened. Flipping it is one tap away.
+        ...(mode === 'given' ? {} : { request: trimmed, state: 'unasked' as RequestState }),
         createdAt: Date.now(),
       };
       setArrangements((prev) => [...prev, arrangement]);
@@ -176,8 +178,8 @@ export const useLedger = () => {
     [],
   );
 
-  const setReply = useCallback(
-    (id: string, reply: AskReply) => patchArrangement(id, { reply }),
+  const setRequestState = useCallback(
+    (id: string, state: RequestState) => patchArrangement(id, { state }),
     [patchArrangement],
   );
 
@@ -190,15 +192,15 @@ export const useLedger = () => {
       patchArrangement(
         id,
         mode === 'given'
-          ? { mode, request: undefined, reply: undefined }
-          : { mode, reply: undefined },
+          ? { mode, request: undefined, state: undefined }
+          : { mode, state: 'unasked' as RequestState },
       ),
     [patchArrangement],
   );
 
   const setArrangementAgreement = useCallback(
     (id: string, agreementId: string) =>
-      patchArrangement(id, { agreementId, mode: 'agreed', reply: undefined }),
+      patchArrangement(id, { agreementId, mode: 'agreed', state: undefined }),
     [patchArrangement],
   );
 
@@ -210,6 +212,6 @@ export const useLedger = () => {
   return {
     people, needs, arrangements,
     addPerson, addNeed, toggleFloor, removeNeed,
-    addArrangement, setMode, setReply, setArrangementAgreement, removeArrangement,
+    addArrangement, setMode, setRequestState, setArrangementAgreement, removeArrangement,
   };
 };

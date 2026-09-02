@@ -1,0 +1,20 @@
+# Per-site config for the values app.
+#
+# Netlify looks for netlify.toml in the package directory first, then the base
+# directory, then the repo root — so this file is what a site with its package
+# directory set to apps/values will use.
+#
+# Base directory stays at the repo root: that is where install and the build
+# command run, and where bun.lock lives. Only the package directory differs
+# per site. Paths below are therefore written from the repo root, not from
+# this file.
+[build]
+  command = "bun run build"
+  publish = "apps/values/dist"
+
+# Send arbitrary paths back to index.html so client-side routing survives a
+# hard reload.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

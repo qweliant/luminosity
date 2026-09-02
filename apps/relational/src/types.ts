@@ -61,8 +61,14 @@ export interface Need {
 // that get met are met without anyone being asked.
 export type ArrangementMode = 'given' | 'asked' | 'agreed';
 
-/** Where a request stands. Only meaningful when mode is 'asked'. */
-export type AskReply = 'waiting' | 'yes' | 'no';
+/**
+ * Where a request stands. Only meaningful when mode is 'asked'.
+ *
+ * `unasked` matters: writing down what you'd want to ask for is a different
+ * act from having asked, and it is usually the first one. Without it, adding a
+ * request forces you to claim a conversation you may not have had.
+ */
+export type RequestState = 'unasked' | 'waiting' | 'yes' | 'no';
 
 export interface Arrangement {
   id: string;
@@ -71,7 +77,7 @@ export interface Arrangement {
   mode: ArrangementMode;
   /** The concrete thing asked for. Absent for `given` — nothing was asked. */
   request?: string;
-  reply?: AskReply;
+  state?: RequestState;
   /**
    * Set once this has been carried into the shared space with that person.
    * The link lives on the private side on purpose: the shared document holds
@@ -84,20 +90,24 @@ export interface Arrangement {
 
 /** Whether this arrangement means the need is actually being met. */
 export const isMet = (a: Arrangement): boolean =>
-  a.mode === 'given' || a.mode === 'agreed' || (a.mode === 'asked' && a.reply === 'yes');
+  a.mode === 'given' || a.mode === 'agreed' || (a.mode === 'asked' && a.state === 'yes');
 
 export const ARRANGEMENT_MODES: ArrangementMode[] = ['given', 'asked', 'agreed'];
 
+// Headings for the form that records each kind.
 export const MODE_LABEL: Record<ArrangementMode, string> = {
-  given: 'They already do this',
-  asked: 'I asked for it',
+  given: 'Someone already does this',
+  asked: 'A request',
   agreed: 'We agreed on it',
 };
 
-export const REPLIES: AskReply[] = ['waiting', 'yes', 'no'];
+export const REQUEST_STATES: RequestState[] = ['unasked', 'waiting', 'yes', 'no'];
 
-export const REPLY_LABEL: Record<AskReply, string> = {
-  waiting: 'Waiting to hear',
+// Each of these says plainly whether the conversation has happened, so nothing
+// here can be read as claiming you asked when you have not.
+export const REQUEST_STATE_LABEL: Record<RequestState, string> = {
+  unasked: "Haven't asked yet",
+  waiting: 'Asked, waiting to hear',
   yes: 'They said yes',
   no: 'They said no',
 };

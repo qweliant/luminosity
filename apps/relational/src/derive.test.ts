@@ -1,6 +1,6 @@
 import { test, expect } from 'bun:test';
 import { concentration, coverNeed, deriveCoverage, givenCount } from './derive';
-import type { Arrangement, ArrangementMode, AskReply, Need, Person } from './types';
+import type { Arrangement, ArrangementMode, Need, Person, RequestState } from './types';
 
 const person = (id: string, name = id): Person =>
   ({ id, name, context: 'partner', createdAt: 0 });
@@ -8,8 +8,8 @@ const need = (id: string, floor = false): Need =>
   ({ id, statement: id, floor, createdAt: 0 });
 const arr = (
   id: string, needId: string, personId: string,
-  mode: ArrangementMode, reply?: AskReply,
-): Arrangement => ({ id, needId, personId, mode, ...(reply ? { reply } : {}), createdAt: 0 });
+  mode: ArrangementMode, state?: RequestState,
+): Arrangement => ({ id, needId, personId, mode, ...(state ? { state } : {}), createdAt: 0 });
 
 test('a need nobody meets has no arrangement', () => {
   const c = coverNeed(need('n1'), []);
@@ -178,10 +178,55 @@ test('givenCount reports needs met without anyone being asked', () => {
   expect(givenCount(cov)).toBe(1);
 });
 
+test('a request written down but not made leaves the need unmet and unasked', () => {
+  const c = coverNeed(need('n1'), [arr('a1', 'n1', 'p1', 'asked', 'unasked')]);
+  expect(c.status).toBe('none');
+  expect(c.metPeople).toEqual([]);
+});
+
+test('an unmade request does not count as waiting on anyone', () => {
+  const c = coverNeed(need('n1'), [
+    arr('a1', 'n1', 'p1', 'asked', 'unasked'),
+    arr('a2', 'n1', 'p2', 'asked', 'no'),
+  ]);
+  expect(c.status).toBe('declined');
+});
+
+test('a floor with only an unmade request is still at risk', () => {
+  const cov = deriveCoverage(
+    [need('floor', true)],
+    [arr('a1', 'floor', 'p1', 'asked', 'unasked')],
+    [person('p1')],
+  );
+  expect(cov.floorsAtRisk).toBe(1);
+});
+
 test('empty ledger derives without throwing', () => {
   const cov = deriveCoverage([], [], []);
   expect(cov).toEqual({
     needs: [], people: [], unmet: 0, singleSource: 0, floorsAtRisk: 0,
   });
   expect(concentration(cov)).toBeUndefined();
+});
+
+// The summary sentence is the first thing on the coverage page, so its
+// arithmetic is worth pinning even though its wording lives in the view.
+test('met and unmet counts stay consistent as arrangements change', () => {
+  const needs = [need('n1'), need('n2')];
+  const people = [person('p1')];
+
+  const none = deriveCoverage(needs, [], people);
+  expect(none.unmet).toBe(2);
+
+  const one = deriveCoverage(needs, [arr('a1', 'n1', 'p1', 'given')], people);
+  expect(one.needs.length - one.unmet).toBe(1);
+  expect(givenCount(one)).toBe(1);
+
+  const both = deriveCoverage(
+    needs,
+    [arr('a1', 'n1', 'p1', 'given'), arr('a2', 'n2', 'p1', 'asked', 'yes')],
+    people,
+  );
+  expect(both.unmet).toBe(0);
+  expect(givenCount(both)).toBe(1);
 });

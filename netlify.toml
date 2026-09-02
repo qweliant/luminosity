@@ -1,7 +1,14 @@
-# Built from the workspace root, not from apps/values: `bun.lock` lives at the
-# root, so that is where install has to run. The root `build` script delegates
-# to the app via `bun run --filter`. When a second app gets its own site, give
-# that site its own build command rather than moving `base` here.
+# Fallback only. Each site should set its **package directory** (apps/values or
+# apps/relational); Netlify then reads that directory's netlify.toml instead of
+# this one. Base directory stays at the repo root for every site — that is
+# where bun.lock is and where install has to run.
+#
+# This file keeps the values site building unchanged for any site that has not
+# had a package directory set yet. Once both sites have one, it can go.
+#
+# NOTE: a site with no package directory falls back here and will build the
+# VALUES app whatever domain it is serving. If a new site deploys the wrong
+# app, that is the setting to check first.
 [build]
   command = "bun run build"
   publish = "apps/values/dist"

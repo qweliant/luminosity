@@ -61,9 +61,10 @@ const migrateAsks = (): Arrangement[] =>
     personId: a.personId,
     mode: 'asked' as const,
     request: a.request,
-    reply: a.state === 'declined' ? ('no' as const)
+    state: a.state === 'declined' ? ('no' as const)
       : a.state === 'agreed' ? ('yes' as const)
-      : ('waiting' as const),
+      : a.state === 'asked' ? ('waiting' as const)
+      : ('unasked' as const),
     ...(a.agreementId ? { agreementId: a.agreementId } : {}),
     createdAt: a.createdAt ?? Date.now(),
   }));
