@@ -249,6 +249,18 @@ export const ConnectOverlay = (props: Props) => {
                       .join(', ')}`}
               </p>
             </button>
+
+            {/* A code is offered on the other side of this flow, so it has to
+                have somewhere to land. Following a link is the easy path; being
+                read a code over the phone is the common one. */}
+            <div className="border-t border-ink/8 pt-5">
+              <button
+                className={linkClass}
+                onClick={() => setView({ name: 'joining', code: '' })}
+              >
+                someone sent me a code
+              </button>
+            </div>
           </div>
         )}
 
@@ -533,7 +545,7 @@ const InviteView = ({
  * person accepting names them locally before anything connects.
  */
 const JoinView = ({
-  code, people, addPerson, linkSpace, onDone, onCancel,
+  code: fromUrl, people, addPerson, linkSpace, onDone, onCancel,
 }: {
   code: string;
   people: Person[];
@@ -545,17 +557,38 @@ const JoinView = ({
   const [personId, setPersonId] = useState(people[0]?.id ?? '__new__');
   const [name, setName] = useState('');
   const [context, setContext] = useState<RelationContext>('partner');
+  const [typed, setTyped] = useState('');
+  const [codeError, setCodeError] = useState<string | null>(null);
 
   const creating = personId === '__new__' || people.length === 0;
-  const ready = !creating || name.trim() !== '';
+  const code = fromUrl || normalizeCode(typed) || '';
+  const ready = code !== '' && (!creating || name.trim() !== '');
 
   return (
     <div className="space-y-5">
       <p className="font-serif text-lg leading-relaxed text-mauve italic">
-        Someone sent you a space. Only agreements the two of you put in it will
-        cross — nothing else in your ledger is shared, and nothing of theirs
-        comes into yours.
+        {fromUrl
+          ? `Someone sent you a space. Only agreements the two of you put in it will cross — nothing else in your ledger is shared, and nothing of theirs comes into yours.`
+          : `Paste the code they sent you. Only agreements the two of you put in the space will cross — nothing else in your ledger is shared.`}
       </p>
+
+      {!fromUrl && (
+        <div>
+          <Label>Their code</Label>
+          <input
+            className={`${inputClass} mt-2`}
+            placeholder="four words and four digits"
+            value={typed}
+            onChange={(e) => { setTyped(e.target.value); setCodeError(null); }}
+          />
+          {typed.trim() !== '' && !normalizeCode(typed) && (
+            <p className="mt-2 font-sans text-[13px] text-rose">
+              That doesn't look like a code — four words and four digits.
+            </p>
+          )}
+          {codeError && <p className="mt-2 font-sans text-[13px] text-rose">{codeError}</p>}
+        </div>
+      )}
 
       <div>
         <Label>Who is this?</Label>
@@ -598,6 +631,10 @@ const JoinView = ({
           className={buttonClass}
           disabled={!ready}
           onClick={() => {
+            if (!code) {
+              setCodeError('Enter the code they sent you first.');
+              return;
+            }
             const target = creating
               ? addPerson(name, context)
               : people.find((p) => p.id === personId);

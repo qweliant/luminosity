@@ -37,18 +37,33 @@ const STATUS_CLASS: Record<AgreementView['status'], string> = {
   ended: 'text-mauve',
 };
 
-const nameOf = (participants: Participant[], id: string, me: string): string => {
+/**
+ * Who acted, in a form that reads as a name.
+ *
+ * The other side publishes a display name into the space, but it may not have
+ * arrived yet — or they may never have set one. Falling back to a pronoun
+ * produced "Put forward by They", which is not a sentence. The name this
+ * person has in *your* ledger is both grammatical and the one you actually
+ * think of them by.
+ */
+const nameOf = (
+  participants: Participant[],
+  id: string,
+  me: string,
+  theirName: string,
+): string => {
   if (id === me) return 'You';
   const found = participants.find((p) => p.id === id);
-  return found?.name?.trim() || 'They';
+  return found?.name?.trim() || theirName;
 };
 
 const AgreementCard = ({
-  view, space, me, onAccept, onRevise, onEnd,
+  view, space, me, theirName, onAccept, onRevise, onEnd,
 }: {
   view: AgreementView;
   space: SpaceState;
   me: string;
+  theirName: string;
   onAccept: () => void;
   onRevise: (text: string) => void;
   onEnd: () => void;
@@ -69,7 +84,7 @@ const AgreementCard = ({
       </div>
 
       <p className="mt-1 font-sans text-[13px] text-mauve">
-        Put forward by {nameOf(space.participants, view.proposedBy, me)}
+        Put forward by {nameOf(space.participants, view.proposedBy, me, theirName)}
         {view.status === 'proposed' &&
           (awaitingMe(view, me) ? ' · your turn' : ' · waiting on them')}
       </p>
@@ -118,7 +133,7 @@ const AgreementCard = ({
         <ol className="mt-2 space-y-1 border-t border-ink/8 pt-2">
           {view.events.map((e, i) => (
             <li key={`${e.at}-${e.by}-${i}`} className="font-sans text-[13px] text-mauve">
-              {nameOf(space.participants, e.by, me)}{' '}
+              {nameOf(space.participants, e.by, me, theirName)}{' '}
               {e.kind === 'proposed' ? 'put this forward'
                 : e.kind === 'accepted' ? 'said yes'
                 : e.kind === 'revised' ? 'suggested different wording'
@@ -179,6 +194,7 @@ const PersonSpace = ({
             view={view}
             space={space}
             me={me}
+            theirName={person.name}
             onAccept={() => onAccept(view.id)}
             onRevise={(text) => onRevise(view.id, text)}
             onEnd={() => onEnd(view.id)}
