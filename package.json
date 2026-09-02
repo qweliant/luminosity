@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "bun run --filter @luminosity/values dev",
     "dev:relational": "bun run --filter @luminosity/relational dev",
+    "dev:relational:live": "VITE_RELAY_URL=$(grep VITE_FLYIO_RELAY .env | cut -d= -f2- | tr -d '\"') bun run --filter @luminosity/relational dev",
     "build": "bun run --filter @luminosity/values build",
     "build:relational": "bun run --filter @luminosity/relational build",
     "preview": "bun run --filter @luminosity/values preview",

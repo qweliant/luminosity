@@ -133,113 +133,71 @@ const AgreementCard = ({
 };
 
 const PersonSpace = ({
-  person, space, me, onCreate, onLink, onLeave, onAccept, onRevise, onEnd,
+  person, space, me, onConnect, onAccept, onRevise, onEnd,
 }: {
   person: Person;
   space: SpaceState | undefined;
   me: string;
-  onCreate: () => void;
-  onLink: (code: string) => void;
-  onLeave: () => void;
+  onConnect: () => void;
   onAccept: (id: string) => void;
   onRevise: (id: string, text: string) => void;
   onEnd: (id: string) => void;
-}) => {
-  const [code, setCode] = useState('');
-
-  return (
-    <Row>
-      <div className="flex items-baseline gap-2">
-        <RingPair size={18} stroke={0.13} />
-        <h2 className="font-serif text-2xl text-ink">{person.name}</h2>
-        <span className="font-mono text-[9px] tracking-[0.16em] text-mauve uppercase">
-          {person.context}
+}) => (
+  <Row>
+    <div className="flex items-baseline gap-2">
+      <RingPair size={18} stroke={0.13} />
+      <h2 className="font-serif text-2xl text-ink">{person.name}</h2>
+      <span className="font-mono text-[9px] tracking-[0.16em] text-mauve uppercase">
+        {person.context}
+      </span>
+      {space && (
+        <span className="ml-auto font-serif text-sm text-mauve italic">
+          {space.state === 'linked' ? 'they are here' : 'waiting for them'}
         </span>
-      </div>
-
-      {!space ? (
-        <div className="mt-3 space-y-2.5">
-          <p className="font-serif text-base leading-relaxed text-mauve italic">
-            A space just with {person.name}. Only the two of you can read it, and
-            only what you put in it — nothing else in this app is shared.
-          </p>
-          <button className={quietButtonClass} onClick={onCreate}>
-            Open a space with {person.name}
-          </button>
-          <div className="flex flex-wrap gap-2">
-            <input
-              className={`${inputClass} flex-1 basis-44`}
-              placeholder="Or paste the code they sent"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-            />
-            <button
-              className={buttonClass}
-              disabled={!code.trim()}
-              onClick={() => { onLink(code.trim()); setCode(''); }}
-            >
-              Join
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="mt-3 space-y-3">
-          <div className="flex items-center gap-2 font-sans text-[13px] text-mauve">
-            <span className={`size-2 rounded-full ${STATE_DOT[space.state]}`} aria-hidden="true" />
-            {STATE_LABEL[space.state]}
-          </div>
-
-          <div>
-            <Label>Give {person.name} this code</Label>
-            <code className="mt-1 block font-mono text-sm break-all text-ink">
-              {space.code}
-            </code>
-          </div>
-
-          {space.error && <p className="font-sans text-[13px] text-rose">{space.error}</p>}
-
-          {space.agreements.length === 0 ? (
-            <p className="font-serif text-base leading-relaxed text-mauve italic">
-              Nothing here yet. Agreements start from an ask, over on Needs.
-            </p>
-          ) : (
-            <ul className="space-y-2.5">
-              {space.agreements.map((view) => (
-                <AgreementCard
-                  key={view.id}
-                  view={view}
-                  space={space}
-                  me={me}
-                  onAccept={() => onAccept(view.id)}
-                  onRevise={(text) => onRevise(view.id, text)}
-                  onEnd={() => onEnd(view.id)}
-                />
-              ))}
-            </ul>
-          )}
-
-          <button className={linkClass} onClick={onLeave}>leave this space</button>
-          <p className="font-serif text-sm leading-relaxed text-mauve/80 italic">
-            Leaving removes it from this device. {person.name} keeps their copy —
-            a shared history isn't yours alone to delete.
-          </p>
-        </div>
       )}
-    </Row>
-  );
-};
+    </div>
+
+    {!space ? (
+      <div className="mt-3">
+        <p className="font-serif text-base leading-relaxed text-mauve italic">
+          No space with {person.name} yet. Agreements need one — it is the only
+          part of this app they can see.
+        </p>
+        <button className={`${quietButtonClass} mt-3`} onClick={onConnect}>
+          invite {person.name}
+        </button>
+      </div>
+    ) : space.agreements.length === 0 ? (
+      <p className="mt-3 font-serif text-base leading-relaxed text-mauve italic">
+        Nothing here yet. Agreements start from a request, over on Needs.
+      </p>
+    ) : (
+      <ul className="mt-3">
+        {space.agreements.map((view) => (
+          <AgreementCard
+            key={view.id}
+            view={view}
+            space={space}
+            me={me}
+            onAccept={() => onAccept(view.id)}
+            onRevise={(text) => onRevise(view.id, text)}
+            onEnd={() => onEnd(view.id)}
+          />
+        ))}
+      </ul>
+    )}
+  </Row>
+);
 
 export const SharedView = ({
-  people, me, setMyName, spaceFor, createSpace, linkSpace, leaveSpace,
-  accept, revise, endAgreement,
+  people, me, setMyName, spaceFor, onConnect, accept, revise, endAgreement,
 }: {
   people: Person[];
   me: Participant;
   setMyName: (name: string) => void;
   spaceFor: (personId: string) => SpaceState | undefined;
-  createSpace: (personId: string) => string;
-  linkSpace: (personId: string, code: string) => void;
-  leaveSpace: (personId: string) => void;
+  /** Opens the connect overlay — every space is opened or joined from there. */
+  onConnect: () => void;
   accept: (personId: string, id: string) => void;
   revise: (personId: string, id: string, text: string) => void;
   endAgreement: (personId: string, id: string) => void;
@@ -296,9 +254,7 @@ export const SharedView = ({
           person={person}
           space={spaceFor(person.id)}
           me={me.id}
-          onCreate={() => createSpace(person.id)}
-          onLink={(code) => linkSpace(person.id, code)}
-          onLeave={() => leaveSpace(person.id)}
+          onConnect={onConnect}
           onAccept={(id) => accept(person.id, id)}
           onRevise={(id, text) => revise(person.id, id, text)}
           onEnd={(id) => endAgreement(person.id, id)}

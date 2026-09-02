@@ -100,16 +100,41 @@ const sha256Hex = async (input: string): Promise<string> => {
 };
 
 /**
+ * What a code is for. These derive to *different rooms from the same code*,
+ * which is a safety property rather than a nicety:
+ *
+ * A device code and a space code are both just words-and-digits, and a person
+ * will eventually paste one into the other's box. Without a namespace they
+ * would resolve to the same room — and since y-webrtc syncs whole documents,
+ * a private ledger joining a space's room would push its needs, people and
+ * arrangements onto the other person's device. Their UI would not draw any of
+ * it; it would simply be there. With a namespace, a mis-pasted code lands in
+ * an empty room and nothing crosses.
+ *
+ * `device` keeps the original, unprefixed derivation so pairings made before
+ * spaces existed keep working.
+ */
+export type CodePurpose = "device" | "space";
+
+const scoped = (purpose: CodePurpose, code: string): string =>
+  purpose === "device" ? code : `${purpose}:${code}`;
+
+/**
  * The room id is a hash of the code, never the code itself — the signalling
  * relay sees which rooms exist, and it should not be able to read the shared
  * secret out of a room name. The encryption password is hashed under a
  * different prefix so knowing one never yields the other.
  */
-export const deriveRoom = async (code: string): Promise<string> =>
-  `lumi-${(await sha256Hex(`room:${code}`)).slice(0, 24)}`;
+export const deriveRoom = async (
+  code: string,
+  purpose: CodePurpose = "device",
+): Promise<string> =>
+  `lumi-${(await sha256Hex(`room:${scoped(purpose, code)}`)).slice(0, 24)}`;
 
-export const derivePassword = async (code: string): Promise<string> =>
-  sha256Hex(`key:${code}`);
+export const derivePassword = async (
+  code: string,
+  purpose: CodePurpose = "device",
+): Promise<string> => sha256Hex(`key:${scoped(purpose, code)}`);
 
 // --- Persistence ----------------------------------------------------------
 
@@ -150,6 +175,17 @@ export const pairUrl = (code: string): string => {
 };
 
 /**
+ * An invitation to a shared space. A separate parameter from `pair` on
+ * purpose: following one of these must never be able to join someone to your
+ * private ledger, and a link is the form a code actually gets sent in.
+ */
+export const spaceUrl = (code: string): string => {
+  if (typeof window === "undefined") return "";
+  const { origin, pathname } = window.location;
+  return `${origin}${pathname}?space=${encodeURIComponent(code)}`;
+};
+
+/**
  * Reads a pairing code out of the address bar and immediately scrubs it, so a
  * shared screenshot or a browser-history entry doesn't carry the secret around
  * after the fact. The hash route is preserved.
@@ -158,6 +194,29 @@ export const pairUrl = (code: string): string => {
  * into a QR code that nothing ever read back, so scanning it only ever opened
  * the app.
  */
+const takeCodeFromUrl = (keys: string[]): string | null => {
+  if (typeof window === "undefined") return null;
+  const params = new URLSearchParams(window.location.search);
+  const raw = keys.map((k) => params.get(k)).find((v) => v !== null) ?? null;
+  if (!raw) return null;
+
+  const code = normalizeCode(raw);
+
+  for (const k of [...keys, "secret"]) params.delete(k);
+  const query = params.toString();
+  window.history.replaceState(
+    null,
+    "",
+    `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`,
+  );
+
+  return code;
+};
+
+/** An invitation to someone else's shared space, if the URL carries one. */
+export const takeSpaceCodeFromUrl = (): string | null =>
+  takeCodeFromUrl(["space"]);
+
 export const takePairCodeFromUrl = (): string | null => {
   if (typeof window === "undefined") return null;
   const params = new URLSearchParams(window.location.search);

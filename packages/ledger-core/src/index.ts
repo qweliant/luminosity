@@ -22,6 +22,10 @@ export {
 export type { SyncState, PeerPresence } from "./sync";
 
 export { openSharedSpace, closeAllSharedSpaces } from "./shared";
+export {
+  getRelayHealth, subscribeRelayHealth, probeRelay, relayUrl,
+} from "./health";
+export type { RelayHealth } from "./health";
 export type { SharedSpace } from "./shared";
 
 export {
@@ -33,6 +37,8 @@ export {
   savePairing,
   clearPairing,
   pairUrl,
+  spaceUrl,
   takePairCodeFromUrl,
+  takeSpaceCodeFromUrl,
 } from "./pairing";
-export type { StoredPairing } from "./pairing";
+export type { StoredPairing, CodePurpose } from "./pairing";

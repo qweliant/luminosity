@@ -88,8 +88,8 @@ export const openSharedSpace = (code: string): SharedSpace => {
     try {
       const [{ WebrtcProvider: Provider }, room, password] = await Promise.all([
         import("y-webrtc"),
-        deriveRoom(code),
-        derivePassword(code),
+        deriveRoom(code, "space"),
+        derivePassword(code, "space"),
       ]);
 
       // The caller may have closed the space while the dynamic import resolved.

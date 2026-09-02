@@ -90,3 +90,35 @@ describe("derivation", () => {
     expect(password).not.toContain(room.replace("lumi-", ""));
   });
 });
+
+// --- Code namespacing --------------------------------------------------------
+// A device code and a space code are indistinguishable strings, so someone will
+// eventually paste one into the other's box. These pin the property that makes
+// that harmless rather than a privacy leak.
+
+test("the same code resolves to different rooms per purpose", async () => {
+  const code = "amber-brook-cedar-dawn-1234";
+  const device = await deriveRoom(code, "device");
+  const space = await deriveRoom(code, "space");
+  expect(device).not.toBe(space);
+});
+
+test("the same code resolves to different passwords per purpose", async () => {
+  const code = "amber-brook-cedar-dawn-1234";
+  expect(await derivePassword(code, "device")).not.toBe(
+    await derivePassword(code, "space"),
+  );
+});
+
+test("device derivation is unchanged, so pairings made before spaces still work", async () => {
+  const code = "amber-brook-cedar-dawn-1234";
+  expect(await deriveRoom(code)).toBe(await deriveRoom(code, "device"));
+  expect(await derivePassword(code)).toBe(await derivePassword(code, "device"));
+});
+
+test("a room id never contains the code itself", async () => {
+  const code = "amber-brook-cedar-dawn-1234";
+  for (const purpose of ["device", "space"] as const) {
+    expect(await deriveRoom(code, purpose)).not.toContain(code);
+  }
+});
