@@ -8,7 +8,9 @@
   ],
   "scripts": {
     "dev": "bun run --filter @luminosity/values dev",
+    "dev:relational": "bun run --filter @luminosity/relational dev",
     "build": "bun run --filter @luminosity/values build",
+    "build:relational": "bun run --filter @luminosity/relational build",
     "preview": "bun run --filter @luminosity/values preview",
     "server": "bun --hot server.ts",
     "signal": "bun run --filter @luminosity/values signal",

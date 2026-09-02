@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+/* Tailwind v4 is CSS-first — no tailwind.config.js. Paths are relative to
+   this file, so they survive the app living under apps/. */
+@source "../index.html";
+@source "./**/*.{js,ts,jsx,tsx}";
+
+@theme {
+  --font-serif: "Instrument Serif", serif;
+  --font-sans: "Inter", sans-serif;
+
+  /* Same world as the values ledger — deep plum on warm cream, rose accent,
+     mauve for anything quiet. The two rings are this app's own note in it. */
+  --color-ink: #3a1e2a;
+  --color-rose: #c24e6e;
+  --color-mauve: #b391a0;
+  --color-cream: #fdf4f0;
+  --color-ring-mine: #d97706;
+  --color-ring-theirs: #dd7a98;
+}
+
+@layer base {
+  html {
+    /* Stop iOS from inflating text in landscape, and kill the grey tap flash. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    /* Match the app background so the notch/home-indicator gutters and the
+       iOS overscroll bounce blend in rather than flashing a different color. */
+    background-color: #FDF4F0;
+  }
+
+  body {
+    @apply bg-cream text-ink antialiased;
+    min-height: 100dvh;
+  }
+
+  /* Snappier touch: remove the 300ms tap delay and double-tap-zoom on
+     interactive controls (text inputs keep their default behavior). */
+  button,
+  a,
+  summary,
+  label,
+  [role="button"],
+  [role="radio"] {
+    touch-action: manipulation;
+  }
+}

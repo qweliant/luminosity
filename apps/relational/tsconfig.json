@@ -1,0 +1,9 @@
+{
+  // `types` is replaced wholesale by `extends`, not merged — so the base's
+  // "bun" has to be repeated here alongside the browser-side types.
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "types": ["bun", "react", "react-dom", "vite-plugin-pwa/client"]
+  },
+  "include": ["src", "vite.config.ts"]
+}

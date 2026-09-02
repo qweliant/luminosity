@@ -73,7 +73,7 @@ import {
   type PeerPresence,
   type SyncState,
 } from "./services/syncEngine";
-import { takePairCodeFromUrl } from "./services/pairing";
+import { takePairCodeFromUrl } from "@luminosity/ledger-core";
 
 const norm = (s: string) => s.trim().toLowerCase();
 

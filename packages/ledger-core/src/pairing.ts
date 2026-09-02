@@ -32,6 +32,9 @@ const WORDS = `amber anchor apple arbor ash aspen attic autumn basil bay beach b
     .split(/\s+/)
     .filter(Boolean);
 
+// Shared verbatim by every app on this substrate, which is safe only because
+// localStorage is scoped per origin and each app is deployed to its own. Serve
+// two of them from one origin and they would fight over this key.
 const PAIR_KEY = "lumi-pairing-v1";
 
 export interface StoredPairing {

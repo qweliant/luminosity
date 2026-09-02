@@ -22,7 +22,7 @@ import {
   loadPairing,
   normalizeCode,
   pairUrl,
-} from "../services/pairing";
+} from "@luminosity/ledger-core";
 
 // --- Bloom SVG Primitives & Mascots ---------------------------------------
 
